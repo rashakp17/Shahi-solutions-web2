@@ -24,13 +24,17 @@ export type Theme = "dark" | "light";
  * source of truth from the stylesheet, and they would disagree the moment
  * somebody used the toggle.
  *
- * Starts on "dark" and corrects in an effect. The alternative — reading the
- * DOM during render — is a hydration mismatch by construction, since the
- * server has no attribute to read. One frame of the default is the cost, and
- * on the canvases it is invisible: neither has drawn anything yet.
+ * Starts on the site default and corrects in an effect. The alternative —
+ * reading the DOM during render — is a hydration mismatch by construction,
+ * since the server has no attribute to read. One frame of the default is the
+ * cost, and on the canvases it is invisible: neither has drawn anything yet.
+ *
+ * This initial value has to track whatever the layout's theme script treats
+ * as its fallback. They are two expressions of one decision, and if they ever
+ * disagree the canvases spend a frame painted for the wrong ground.
  */
 export function useTheme(): Theme {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const root = document.documentElement;

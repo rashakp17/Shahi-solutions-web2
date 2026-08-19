@@ -106,11 +106,21 @@ const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
 
 export function VenturesSection() {
   return (
-    // No overflow-hidden on the section. An ancestor with a clipped overflow
-    // becomes the scrollport for anything sticky inside it, and since this
-    // section does not scroll internally, the left panel would simply never
-    // stick. The atmosphere is clipped by its own wrapper instead.
-    <section id="ventures" className="relative isolate bg-ink-950">
+    // `overflow-x-clip`, and specifically not `overflow-hidden`.
+    //
+    // Something has to clip here: the entrance starts each block translated by
+    // --enter-x, which alternates sign, so half of them begin 2.8rem to the
+    // *right* of where they land. There is slack for that inside a desktop
+    // column; on a phone there is not, and those blocks were widening the
+    // document by ~25px and giving the whole page a horizontal scroll.
+    //
+    // But `hidden` cannot be the fix. An ancestor with hidden overflow becomes
+    // the scrollport for anything sticky inside it, and this section does not
+    // scroll internally, so the left panel would simply never stick. `clip`
+    // clips without establishing a scroll container, which leaves the sticky
+    // panel measuring against the viewport exactly as before. That difference
+    // is the entire reason this rule is `clip`; do not "simplify" it.
+    <section id="ventures" className="relative isolate overflow-x-clip bg-ink-950">
       {/* Kept deliberately quiet — this is the one section whose subject is
           content rather than spectacle. The particle field is the only moving
           part, and it stops itself whenever the section is off screen, so it
@@ -308,7 +318,7 @@ export function VenturesSection() {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Visit ${venture.name}`}
-                        className="anim-rise-inner group mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-fg/55 transition-colors duration-500 ease-cinematic hover:text-fg"
+                        className="anim-rise-inner group mt-6 inline-flex items-center gap-2 py-2 pr-2 text-[13px] font-medium text-fg/55 transition-colors duration-500 ease-cinematic hover:text-fg"
                         style={
                           {
                             animationDelay: from(PART.link),

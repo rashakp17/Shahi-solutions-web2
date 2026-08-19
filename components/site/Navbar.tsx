@@ -77,84 +77,109 @@ export function Navbar() {
     // Leaving both on the default means there is nothing to keep in sync.
     // 300ms is `START` in components/site/Hero.tsx; that is the one number
     // that has to match.
-    <header
-      className="anim-rise fixed inset-x-0 top-0 z-50"
-      style={{ animationDelay: "300ms" }}
-    >
-      <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6 sm:pt-5">
-        <nav
-          className={cn(
-            "flex h-14 items-center justify-between rounded-full border pl-5 pr-2.5 sm:pl-6 sm:pr-3",
-            "transition-[background-color,border-color,box-shadow,backdrop-filter] duration-500 ease-cinematic",
-            // The glass only exists once there is content to see through it.
-            // At the top of the page the bar is over the hero's atmosphere,
-            // which never stops moving — a fixed backdrop filter there means
-            // re-sampling and re-blurring that strip every single frame, for
-            // a blur of empty darkness. Below the fold it earns its keep.
-            scrolled
-              ? "nav-glass border-fg/10 bg-ink-900/70 backdrop-blur-xl shadow-[var(--shadow-card)]"
-              : "border-[color:var(--hair-2)] bg-[color:var(--veil-1)]",
-          )}
-        >
-          <Logo />
-
-          {/* Desktop links */}
-          <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
-            {LINKS.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="relative rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          {/* Desktop actions */}
-          <div className="hidden items-center gap-1 lg:flex">
-            <ThemeToggle className="mr-1" />
-
-            <Link
-              href="#login"
-              className="rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
-            >
-              Log in
-            </Link>
-            <Button href={START_HREF} size="sm" className="px-5">
-              Get started
-            </Button>
-          </div>
-
-          {/* Mobile trigger */}
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-            aria-label={open ? "Close menu" : "Open menu"}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--hair-2)] text-fg/70 transition-colors duration-300 hover:border-fg/15 hover:text-fg lg:hidden"
+    <>
+      <header
+        className="anim-rise fixed inset-x-0 top-0 z-50"
+        style={{ animationDelay: "300ms" }}
+      >
+        <div className="mx-auto max-w-6xl px-4 pt-3 sm:px-6 sm:pt-5">
+          <nav
+            className={cn(
+              "flex h-14 items-center justify-between rounded-full border pl-5 pr-2.5 sm:pl-6 sm:pr-3",
+              "transition-[background-color,border-color,box-shadow,backdrop-filter] duration-500 ease-cinematic",
+              // The glass only exists once there is content to see through it.
+              // At the top of the page the bar is over the hero's atmosphere,
+              // which never stops moving — a fixed backdrop filter there means
+              // re-sampling and re-blurring that strip every single frame, for
+              // a blur of empty darkness. Below the fold it earns its keep.
+              scrolled
+                ? "nav-glass border-fg/10 bg-ink-900/70 backdrop-blur-xl shadow-[var(--shadow-card)]"
+                : "border-[color:var(--hair-2)] bg-[color:var(--veil-1)]",
+            )}
           >
-            <span className="relative block h-3 w-4">
-              <span
-                className={cn(
-                  "absolute left-0 block h-px w-4 bg-current transition-all duration-300 ease-cinematic",
-                  open ? "top-1.5 rotate-45" : "top-0.5",
-                )}
-              />
-              <span
-                className={cn(
-                  "absolute left-0 block h-px w-4 bg-current transition-all duration-300 ease-cinematic",
-                  open ? "top-1.5 -rotate-45" : "top-2.5",
-                )}
-              />
-            </span>
-          </button>
-        </nav>
-      </div>
+            <Logo />
 
-      {/* Mobile sheet */}
+            {/* Desktop links */}
+            <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
+              {LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="relative rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop actions */}
+            <div className="hidden items-center gap-1 lg:flex">
+              <ThemeToggle className="mr-1" />
+
+              <Link
+                href="#login"
+                className="rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
+              >
+                Log in
+              </Link>
+              <Button href={START_HREF} size="sm" className="px-5">
+                Get started
+              </Button>
+            </div>
+
+            {/* Mobile trigger */}
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              aria-label={open ? "Close menu" : "Open menu"}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--hair-2)] text-fg/70 transition-colors duration-300 hover:border-fg/15 hover:text-fg lg:hidden"
+            >
+              <span className="relative block h-3 w-4">
+                <span
+                  className={cn(
+                    "absolute left-0 block h-px w-4 bg-current transition-all duration-300 ease-cinematic",
+                    open ? "top-1.5 rotate-45" : "top-0.5",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "absolute left-0 block h-px w-4 bg-current transition-all duration-300 ease-cinematic",
+                    open ? "top-1.5 -rotate-45" : "top-2.5",
+                  )}
+                />
+              </span>
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {/* ---------------- Mobile sheet ----------------
+
+          A sibling of the header, emphatically not a child of it, and this is
+          load-bearing rather than tidiness.
+
+          The header carries `.anim-rise`, whose entrance animates transform
+          and filter — and which settles on `translate3d(0,0,0)` and
+          `blur(0)` rather than on `none`, because `animation-fill-mode: both`
+          holds the last keyframe forever. Any transform or filter other than
+          `none` makes an element the containing block for `position: fixed`
+          descendants. So inside the header this panel was not fixed to the
+          viewport at all: it was fixed to the 68px-tall bar, and measured
+          375x68 on a 375x812 screen.
+
+          The sheet itself still appeared, because nothing was clipping it —
+          which is exactly what made this hard to see. What did not work was
+          everything depending on the panel's *size*: the scrim covered only
+          the strip behind the navbar instead of dimming the page, and
+          tap-outside-to-close only registered in the top 68px of the screen.
+
+          Out here there is no transformed ancestor and `fixed inset-0` means
+          the viewport again. z-40 against the header's z-50 keeps the bar and
+          its close button painting on top, which is the arrangement the
+          design already had. */}
       <div
         id="mobile-menu"
         className={cn(
@@ -168,10 +193,10 @@ export function Navbar() {
           tabIndex={-1}
           aria-hidden="true"
           onClick={() => setOpen(false)}
-          className="absolute inset-0 h-full w-full cursor-default bg-ink-950/85 backdrop-blur-xl"
+          className="nav-scrim absolute inset-0 h-full w-full cursor-default backdrop-blur-xl"
         />
 
-        <div className="relative mx-4 mt-[4.75rem] overflow-hidden rounded-3xl border border-[color:var(--hair-2)] bg-ink-900/80 p-2 backdrop-blur-2xl sm:mx-6">
+        <div className="nav-sheet relative mx-4 mt-[4.75rem] overflow-hidden rounded-3xl border border-[color:var(--hair-2)] p-2 backdrop-blur-2xl sm:mx-6">
           <ul className="flex flex-col">
             {LINKS.map((link, i) => (
               <li key={link.href}>
@@ -182,7 +207,9 @@ export function Navbar() {
                     "block rounded-2xl px-4 py-3.5 text-[15px] font-medium text-fg/70",
                     "transition-[color,background-color,transform] duration-300 ease-cinematic",
                     "hover:bg-[color:var(--veil-2)] hover:text-fg",
-                    open ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+                    open
+                      ? "translate-y-0 opacity-100"
+                      : "translate-y-2 opacity-0",
                   )}
                   style={{ transitionDelay: open ? `${80 + i * 45}ms` : "0ms" }}
                 >
@@ -197,7 +224,9 @@ export function Navbar() {
               on a phone, which is the half of the audience whose device is
               most likely to have picked the theme for them. */}
           <div className="mt-2 flex items-center justify-between gap-2 border-t border-[color:var(--hair-1)] px-4 pb-1 pt-4">
-            <span className="text-[13px] font-medium text-fg/55">Appearance</span>
+            <span className="text-[13px] font-medium text-fg/55">
+              Appearance
+            </span>
             <ThemeToggle />
           </div>
 
@@ -216,6 +245,6 @@ export function Navbar() {
           </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }

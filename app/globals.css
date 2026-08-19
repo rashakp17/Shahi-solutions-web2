@@ -65,14 +65,18 @@
 }
 
 /* ------------------------------------------------------------------
-   Dark — the original, and still the default.
+   Dark — the original design, now the alternate.
 
-   On `:root` unqualified as well as on the explicit attribute, so the
-   page has a complete palette before any JS runs. A visitor with
-   scripting off, or one served the document before the theme script
-   executes, gets the dark design rather than a half-painted one.
+   Attribute-only. The bare `:root` that used to be on this selector has
+   moved to the light block below, which is what makes light the theme
+   the page has before any JavaScript runs.
+
+   Order and specificity both matter here and they agree: this block is
+   first in the file, and `:root[data-theme="dark"]` at (0,2,0) outranks
+   the bare `:root` at (0,1,0) that the light block also carries. So a
+   document marked dark gets these values even though the light block is
+   later, and a document marked with nothing falls through to light.
    ------------------------------------------------------------------ */
-:root,
 :root[data-theme="dark"] {
   color-scheme: dark;
 
@@ -211,7 +215,16 @@
    position resolves into the navy family below. That is a real change
    rather than a shade: the line the dark theme sets in #6a9bff is navy
    here, because navy is what was asked for.
+
+   ── The default ──
+   On bare `:root` as well as on the attribute, which is what makes this
+   the theme the document has before a single line of script runs. It
+   matters for more than tidiness: a visitor with JavaScript disabled,
+   or one whose browser paints the document before the inline theme
+   script has executed, gets a complete light palette rather than a
+   half-painted page or a flash of the other theme.
    ------------------------------------------------------------------ */
+:root,
 :root[data-theme="light"] {
   color-scheme: light;
 
@@ -3130,8 +3143,17 @@ video.pj-shot {
    pseudo-element rather than with text-decoration so it can animate. */
 .ct-link {
   position: relative;
+  display: inline-block;
   color: inherit;
   transition: color 300ms var(--ease-soft);
+
+  /* Same treatment as .ft-link, and needed more here: these two were the
+     smallest targets on the page at 17px, and they are the email address and
+     the phone number — the single most important thing to be able to hit on a
+     phone. See the note there for why it is padding plus a negative margin. */
+  --tap-pad: 0.45rem;
+  padding-block: var(--tap-pad);
+  margin-block: calc(var(--tap-pad) * -1);
 }
 
 .ct-link::after {
@@ -3139,7 +3161,7 @@ video.pj-shot {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -2px;
+  bottom: calc(var(--tap-pad, 0px) - 2px);
   height: 1px;
   background: currentColor;
   opacity: 0.4;
@@ -3305,6 +3327,19 @@ video.pj-shot {
   display: inline-block;
   color: color-mix(in oklab, var(--fg) 48%, transparent);
   transition: color 300ms var(--ease-soft);
+
+  /* A 13.5px line of type is a 20px-tall tap target, and a finger is not a
+     cursor — WCAG 2.5.8 asks for 24px and a thumb wants more like 40.
+
+     Padding grows the hit area; the matching negative margin takes the space
+     straight back out of the layout, so the list keeps the rhythm it was
+     designed with and only the part you can actually hit gets bigger. The
+     underline has to be pushed back down by the same amount, since `bottom`
+     now measures from the padding edge rather than the text — that is what
+     --tap-pad is for, so the two can never drift apart. */
+  --tap-pad: 0.45rem;
+  padding-block: var(--tap-pad);
+  margin-block: calc(var(--tap-pad) * -1);
 }
 
 .ft-link::after {
@@ -3312,7 +3347,7 @@ video.pj-shot {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -2px;
+  bottom: calc(var(--tap-pad, 0px) - 2px);
   height: 1px;
   background: linear-gradient(
     90deg,
@@ -3616,4 +3651,149 @@ video.pj-shot {
 :root[data-theme="light"] {
   --background: var(--ground);
   --foreground: var(--body-ink);
+}
+
+/* ==================================================================
+   PHONES — minimum legible type
+
+   Six labels on this page are set between 9.5px and 10.5px. At a desk,
+   read at 50–60cm on a sharp display, small tracked caps at that size
+   are a deliberate and perfectly legible piece of typography. On a
+   phone held at arm's length they are simply small, and two of them —
+   the project category and the founder's role — are the line that says
+   what the thing above them *is*.
+
+   Raised to 11px below the `sm` breakpoint and left exactly as designed
+   above it, so this costs the desktop composition nothing. 11px rather
+   than something safer because these are all short, wide-tracked, and
+   sitting directly under something much larger: the job is to be read
+   at a glance, not to be read for a paragraph.
+
+   The letter-spacing comes down a touch with the size increase. Wide
+   tracking is what makes small caps work; at a larger size the same
+   tracking starts to pull the word apart instead.
+   ================================================================== */
+@media (max-width: 639px) {
+  .pj-cat,
+  .pj-stack-label,
+  .fd-role,
+  .tm-role,
+  .ct-detail-label {
+    font-size: 11px;
+  }
+
+  .pj-stack-label,
+  .ct-detail-label {
+    letter-spacing: 0.16em;
+  }
+
+  /* The two eyebrow chips are Tailwind-sized inline (text-[10px]) rather
+     than carrying a class of their own, so they are reached by the shape
+     they share: a bordered pill of mono caps. */
+  .anim-rise.inline-flex.rounded-full {
+    font-size: 11px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   "View Project" — hit area without height.
+
+   The link is a 13px line, so it lands at 25px tall. That clears the
+   24px minimum by a single pixel, which is a pass on paper and a miss
+   with a thumb.
+
+   Every other target on this page was grown with padding and a matching
+   negative margin, but not this one: the project card is already fighting
+   the viewport for height on a phone — it has to fit between --pj-top and
+   the bottom of the smallest screen or sticky pins its own bottom edge off
+   the display — and this link sits at the end of the tallest column in it.
+   Padding would spend height the card does not have.
+
+   An absolutely positioned overlay costs none. It extends the clickable
+   region 9px above and below and changes no box in the layout. `inset` is
+   0 on the horizontal axis so it never reaches past the link's own width
+   into whatever sits beside it.
+   ------------------------------------------------------------------ */
+.pj-cta {
+  position: relative;
+}
+
+.pj-cta::before {
+  content: "";
+  position: absolute;
+  inset: -0.6rem 0;
+  /* Behind the arrow's own ::after, and inert to anything but hit testing. */
+  z-index: 0;
+}
+
+/* ==================================================================
+   iOS: form fields at 16px, or the page zooms itself
+
+   Mobile Safari zooms the viewport in whenever a focused form control
+   has a font-size below 16px, and it does not zoom back out afterwards
+   — the visitor taps "Full Name", the whole page jumps to ~114%, and
+   they have to pinch out to carry on. It happens on every field, every
+   time, and it is the single most common way a well-built form feels
+   broken on an iPhone.
+
+   The usual "fix" is `maximum-scale=1` on the viewport meta, which
+   stops the zoom by removing the visitor's ability to zoom *at all*.
+   That is not a fix, it is trading a nuisance for an accessibility
+   failure, and it is why this file does not do it.
+
+   Raising the field to the threshold is the actual fix. 16px on a
+   phone is a perfectly reasonable input size — arguably better than
+   the 14px the desktop layout wants — and above `sm` the design keeps
+   exactly the size it was drawn at.
+
+   The bare element selectors are there so a field added later gets
+   this for free; .ct-input is named because its own 14px rule would
+   otherwise outrank them.
+   ================================================================== */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea,
+  .ct-input {
+    font-size: 16px;
+  }
+}
+
+/* ==================================================================
+   The mobile menu has to be readable, not just tinted
+
+   Both layers were dark glass at 80–85%: a near-black fill with a heavy
+   blur behind it. Over a near-black page that is plenty — the page
+   behind is barely lighter than the panel, so 20% of it coming through
+   changes nothing you can read.
+
+   Inverted, the same 20% is the *page* showing through a white panel,
+   and the page at this point is a 4.5rem headline in near-black. The
+   hero's line was legible straight through the open menu and competing
+   with the menu's own links, which is not a tint problem — it is the
+   navigation being hard to read.
+
+   Blur does not save it either. `backdrop-filter` softens what is
+   behind, but a blurred 60px letterform is still a large dark shape.
+   The only thing that removes it is opacity, so the light theme takes
+   most of it: the sheet is all but solid and the scrim close behind.
+   Dark keeps the glass it was designed with.
+   ================================================================== */
+.nav-scrim {
+  background: color-mix(in oklab, var(--ground) 85%, transparent);
+}
+
+.nav-sheet {
+  background: color-mix(in oklab, var(--ground-2) 80%, transparent);
+}
+
+:root[data-theme="light"] .nav-scrim {
+  background: color-mix(in oklab, var(--ground) 93%, transparent);
+}
+
+:root[data-theme="light"] .nav-sheet {
+  background: color-mix(in oklab, var(--ground-2) 98%, transparent);
+  /* With the panel opaque, the hairline alone stops carrying the edge —
+     it needs the shadow to read as a sheet lying over the page. */
+  box-shadow: var(--shadow-lift);
 }

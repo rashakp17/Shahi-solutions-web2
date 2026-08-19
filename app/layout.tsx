@@ -39,13 +39,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  /* The dark ground, and a single value rather than the two media-scoped
-     ones Next will happily generate. A media query tracks the *system*
-     preference, which is only the right answer until the visitor uses the
-     toggle — after that the address bar would be advertising a theme the
-     page is not in. ThemeToggle rewrites this tag directly instead, and the
-     inline script below corrects it before first paint. */
-  themeColor: "#04050a",
+  /* The light ground, matching the default theme, and a single value rather
+     than the two media-scoped ones Next will happily generate. A media query
+     tracks the *system* preference, which this site deliberately does not
+     follow — see the theme script below — so a media-scoped tag would have
+     the address bar advertising a theme the page is never in. ThemeToggle
+     rewrites this tag directly instead, and the script corrects it before
+     first paint for a returning visitor who chose dark. */
+  themeColor: "#ffffff",
   /* Both, so form controls, scrollbars and the rest of the UA's own
      furniture follow the page instead of staying dark under a light theme.
      The per-theme `color-scheme` in globals.css narrows this to whichever
@@ -63,16 +64,30 @@ export const viewport: Viewport = {
  * from under them. A flash of the wrong theme is the one bug every themed
  * site has, and it is caused entirely by asking too late.
  *
- * Stored choice wins over the system preference, because it *is* a choice:
- * someone who has pressed the toggle has told us something their OS setting
- * has not. With neither, the dark design is the default, since that is what
- * this site is.
+ * Light is the default, and it is the *only* default: the one thing that can
+ * override it is a choice the visitor made here, with the toggle. The OS
+ * `prefers-color-scheme` setting is deliberately not consulted.
+ *
+ * That is a decision worth stating rather than leaving to be discovered.
+ * Reading the system preference would mean every visitor on a dark desktop
+ * lands on the dark design no matter what this site's default says — which
+ * makes "the default is light" true only for the half of the audience whose
+ * OS already agreed. Ignoring it costs the visitor who keeps their machine
+ * dark for a reason; they get one click, and it is remembered from then on.
+ * If that trade should go the other way, this is the line to change:
+ *
+ *   var t=(s==="light"||s==="dark")?s
+ *     :(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+ *
+ * The `catch` falls back to light too. A browser that throws on localStorage
+ * — private mode on older Safari, storage disabled by policy — should still
+ * get the design the site actually ships, not the alternate.
  *
  * Written as a string rather than as source so that nothing in the build can
  * decide to defer, bundle or module-scope it. Kept small for the same reason
  * — it is parse-blocking, and every byte here is on the critical path.
  */
-const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");var t=(s==="light"||s==="dark")?s:(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t;if(t==="light"){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#ffffff");}}catch(e){document.documentElement.dataset.theme="dark";}})();`;
+const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");var t=(s==="dark")?"dark":"light";document.documentElement.dataset.theme=t;if(t==="dark"){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#04050a");}}catch(e){document.documentElement.dataset.theme="light";}})();`;
 
 export default function RootLayout({
   children,

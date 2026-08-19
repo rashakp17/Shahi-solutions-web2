@@ -7,7 +7,11 @@ export function Logo({ className }: { className?: string }) {
     <Link
       href="/"
       className={cn(
-        "group flex items-center gap-2.5 transition-opacity duration-300 hover:opacity-80",
+        // py-2 -mp: the mark plus wordmark is only 23px tall, which is under the
+        // 24px minimum for a tap target and well under what a thumb wants. The
+        // padding grows the hit area and the negative margin gives the space
+        // back, so the bar keeps its height.
+        "group -my-2 flex items-center gap-2.5 py-2 transition-opacity duration-300 hover:opacity-80",
         className,
       )}
       aria-label="Shahi Solutions — home"
