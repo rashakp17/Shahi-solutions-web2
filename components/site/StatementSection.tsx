@@ -127,7 +127,19 @@ export function StatementSection() {
             is free to run as far past the left and right edges as it likes,
             none of it can reach the document and cause a sideways scroll, and
             the line's own mask is left to do nothing but the vertical reveal. */}
-        <div className="sticky top-0 h-[62svh] overflow-hidden sm:h-[100svh]">
+        {/* min-height below sm, fixed height above it.
+
+              A fixed 62svh clips on short phones: the column needs roughly
+              590px for the label, the line, the note and three stats, and
+              62% of a 640px screen is 397. The pane has overflow-hidden, so
+              what did not fit simply vanished — the stats were cut off with
+              nothing to indicate it.
+
+              As a minimum it still fills most of the screen on a tall phone
+              and grows on a short one instead of hiding content. Above sm it
+              is a fixed viewport again, because there the pane IS the scene
+              and has to be exactly one screen for the pin to read. */}
+        <div className="sticky top-0 min-h-[62svh] overflow-hidden sm:h-[100svh] sm:min-h-0">
           {/* Genuinely black. The typography is the only event in this
               section, so the ground stays out of its way — no particle field,
               no drifting marks, one static source of light behind the type. */}
@@ -145,6 +157,31 @@ export function StatementSection() {
               the top back to ink-950 hides it, and once the pane pins it is
               just a darker top edge for the navbar to sit against. */}
           <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-ink-950 to-transparent" />
+
+          {/* ---------------- content over the layer ----------------
+
+              pointer-events-none on the column, auto on the two blocks inside
+              it. This column is h-full and sits at z-10, so as a solid box it
+              covers the canvas completely and every pointermove lands here
+              instead — the lens would only ever respond in the margins, which
+              is indistinguishable from it not working at all.
+
+              The blocks themselves take their events back, so the copy is
+              still selectable; they sit at the top and bottom of the pane and
+              the giant line runs through the middle, so they are not in its
+              way. Nothing in here is interactive, so nothing else is lost. */}
+          {/* The column is full-bleed now and the max-width sits on the two text
+              blocks instead. It has to be: the giant line is a child of this
+              column below sm, and a max-w-6xl parent would stop it running off
+              the edges, which is the whole composition. */}
+          <div className="pointer-events-none relative z-10 flex h-full flex-col justify-between pb-[7svh] pt-24 sm:py-24">
+            <p
+              className="anim-rise pointer-events-auto mx-auto w-full max-w-6xl px-5 font-mono text-[10px] uppercase tracking-[0.32em] text-fg/28 sm:px-8"
+              style={{ animationDelay: `${CONTENT.eyebrow}ms` }}
+            >
+              How we ship
+            </p>
+
 
           {/* ---------------- the typographic layer ----------------
 
@@ -164,7 +201,25 @@ export function StatementSection() {
             // cannot be removed. Placing the line a fixed distance below the
             // eyebrow instead lets the three parts sit at reading distance
             // from each other and the pane shrink to what they need.
-            className="absolute inset-0 z-0 grid items-start pt-[8.5rem] sm:items-center sm:pt-0"
+            // In the flex flow below sm, absolute above it.
+            //
+            // It was absolute at every width, positioned by a fixed
+            // pt-[8.5rem] on mobile. That could not hold: the pane is sized
+            // in svh and the supporting block is anchored to its bottom, so
+            // on any viewport short enough the fixed offset put the line
+            // straight through the stats. A number cannot be right for every
+            // screen height, and picking a safer one only moves the failure.
+            //
+            // As a flex child between the eyebrow and the block, it cannot
+            // overlap either of them at any height — the layout does the
+            // arithmetic. Above sm it goes back to spanning the pane, which
+            // is what lets the line run off both edges.
+            //
+            // pointer-events-auto is not optional: this now sits inside the
+            // pointer-events-none column and would otherwise inherit it,
+            // leaving the warp on its ambient idle with the cursor lens
+            // permanently dead.
+            className="pointer-events-auto relative z-0 grid w-full items-center sm:absolute sm:inset-0"
           >
             <h2 className="sr-only">{PHRASE}</h2>
 
@@ -223,27 +278,7 @@ export function StatementSection() {
             </div>
           </div>
 
-          {/* ---------------- content over the layer ----------------
-
-              pointer-events-none on the column, auto on the two blocks inside
-              it. This column is h-full and sits at z-10, so as a solid box it
-              covers the canvas completely and every pointermove lands here
-              instead — the lens would only ever respond in the margins, which
-              is indistinguishable from it not working at all.
-
-              The blocks themselves take their events back, so the copy is
-              still selectable; they sit at the top and bottom of the pane and
-              the giant line runs through the middle, so they are not in its
-              way. Nothing in here is interactive, so nothing else is lost. */}
-          <div className="pointer-events-none relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-5 pb-[7svh] pt-24 sm:px-8 sm:py-24">
-            <p
-              className="anim-rise pointer-events-auto font-mono text-[10px] uppercase tracking-[0.32em] text-fg/28"
-              style={{ animationDelay: `${CONTENT.eyebrow}ms` }}
-            >
-              How we ship
-            </p>
-
-            <div className="pointer-events-auto flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
+            <div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-10 px-5 sm:flex-row sm:items-end sm:justify-between sm:gap-16 sm:px-8">
               {/* The one piece of small type that gets the masked reveal —
                   the same rig as the hero headline, at a twentieth of the
                   size. It answers the giant line, so it arrives the way the
