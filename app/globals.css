@@ -1,0 +1,3619 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------
+   Design tokens — premium blue / near-black
+   ------------------------------------------------------------------ */
+/* ==================================================================
+   THEME — one design, two grounds
+   ==================================================================
+   The palette is published twice: once as runtime custom properties
+   that flip with `data-theme` on <html>, and once as Tailwind theme
+   tokens that point at them.
+
+   The indirection is the whole trick. `@theme inline` makes a utility
+   emit `var(--ground)` rather than a copy of the hex it resolved to at
+   build time, so `bg-ink-950` is a live reference and changing the
+   attribute on <html> repaints every one of its several hundred call
+   sites. Without `inline`, Tailwind would bake #04050a into the
+   stylesheet and the toggle would move nothing.
+
+   The token *names* are deliberately unchanged. `ink-950` reads oddly
+   for something that is near-white under one of the two themes, but
+   renaming it would mean touching every surface in the project to buy
+   a better word, and every one of those edits is a chance to change
+   something that was right. What the names mean now is a position on
+   the ramp — furthest from the ink, then three steps toward it — which
+   is true in both directions.
+
+   ── What does NOT flip ──
+   The accent ramp. It is the brand, it is the same blue on both
+   grounds, and a ramp that reverses under a toggle is two brands. What
+   changes instead is *which step* is reached for: `--accent-ink` is
+   the step that is legible as type against the current ground, and it
+   is the light end on dark and the dark end on light. Reach for that
+   rather than a numbered step whenever accent is being used as type.
+   ================================================================== */
+@theme inline {
+  --color-ink-950: var(--ground);
+  --color-ink-900: var(--ground-2);
+  --color-ink-800: var(--ground-3);
+  --color-ink-700: var(--ground-4);
+
+  /* The mark-making colour: type, hairlines, and the faint veils that
+     lift a card off the page. White on dark, near-black on light, so
+     that every `fg/[0.06]` in the project is a mark on its ground
+     rather than a literal white that only works on one of them. */
+  --color-fg: var(--fg);
+
+  /* Accent-as-type. See the note above. */
+  --color-accent-ink: var(--accent-ink);
+
+  /* Themed, so the light block can pull the whole ramp into its own
+     palette. On dark these are the original blues, unchanged. */
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-900: var(--accent-900);
+}
+
+/* ------------------------------------------------------------------
+   Dark — the original, and still the default.
+
+   On `:root` unqualified as well as on the explicit attribute, so the
+   page has a complete palette before any JS runs. A visitor with
+   scripting off, or one served the document before the theme script
+   executes, gets the dark design rather than a half-painted one.
+   ------------------------------------------------------------------ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ground: #04050a;
+  --ground-2: #070810;
+  --ground-3: #0b0d16;
+  --ground-4: #12141f;
+  /* The far edge of a vignette — deeper than the page, where an
+     atmosphere gradient falls away at the corners. */
+  --ground-deep: #020308;
+
+  --fg: #ffffff;
+  --body-ink: #e7eaf3;
+  --accent-ink: #6a9bff;
+
+  /* The house blue, restrained rather than neon. */
+  --accent-100: #d9e6ff;
+  --accent-200: #b3ccff;
+  --accent-300: #8db3ff;
+  --accent-400: #6a9bff;
+  --accent-500: #4d84f5;
+  --accent-600: #2f63d6;
+  --accent-700: #1e46a3;
+  /* The accent headline words — the ones carrying the resting bloom.
+     On dark they keep the three ramp steps their sections already
+     picked; this is here so the light theme has one name to move. */
+  --accent-heading: #6a9bff;
+
+  /* ── Veils and hairlines ──
+     The faint fills that lift a card off the page, and the edges that
+     bound it. Four steps and three, because the design uses that many
+     distinct weights and collapsing them would flatten a hierarchy that
+     is doing real work.
+
+     These exist as tokens rather than as `fg/[0.02]` utilities because
+     the two themes cannot share the numbers. See the light block. */
+  --veil-1: color-mix(in oklab, var(--fg) 2%, transparent);
+  --veil-2: color-mix(in oklab, var(--fg) 3.5%, transparent);
+  --veil-3: color-mix(in oklab, var(--fg) 6%, transparent);
+  --veil-4: color-mix(in oklab, var(--fg) 9%, transparent);
+  --hair-1: color-mix(in oklab, var(--fg) 5.5%, transparent);
+  --hair-2: color-mix(in oklab, var(--fg) 7.5%, transparent);
+  --hair-3: color-mix(in oklab, var(--fg) 14%, transparent);
+
+  --accent-900: #10245c;
+
+  /* The near-black ring that keeps the frame edges dark. */
+  --vignette-ring: rgba(2, 3, 7, 0.55);
+  --vignette-edge: rgba(2, 3, 7, 0.86);
+
+  /* ── Atmosphere ──
+     The glows are additive: a blue radial lightening a near-black
+     ground. That is a thing light can do and pigment cannot, which is
+     why these are the values that need a genuine counterpart on the
+     light theme rather than a recolour. See the light block. */
+  --glow-strength: 1;
+  --plane-strength: 1;
+  --glow-tint: color-mix(in oklab, var(--color-accent-600) 7%, transparent);
+  --glow-tint-strong: color-mix(in oklab, var(--color-accent-600) 14%, transparent);
+
+  /* The resting bloom under the headline type. Light on dark only —
+     glowing type on a white page reads as a printing fault. */
+  --type-bloom-1: rgba(255, 255, 255, 0.2);
+  --type-bloom-2: color-mix(in oklab, var(--color-accent-200) 14%, transparent);
+
+  /* The band of light that crosses a word as it lands. */
+  --shine-ink: rgba(255, 255, 255, 0.92);
+  --shine-glow: rgba(255, 255, 255, 0.55);
+
+  /* Depth. Near-black grounds cannot show a shadow, so on dark this is
+     barely there and the separation comes from the hairline instead. */
+  /* The colour every box-shadow on the page is mixed from, and a scale
+     factor applied to its alpha. Near-black at full strength here: on a
+     ground this dark a shadow is barely a shadow anyway, and the ones
+     that read at all are doing it through sheer depth. */
+  --shadow-ink: #000000;
+  --shadow-scale: 1;
+
+  /* The primary button plate. White on near-black, so its top edge takes
+     a brighter sheen and it drops a heavy shadow the ground swallows. */
+  --plate-hover: #f1f4f9;
+  --plate-sheen: rgba(255, 255, 255, 0.7);
+  --plate-shadow: rgba(0, 0, 0, 0.85);
+  --plate-shadow-hover: rgba(0, 0, 0, 0.9);
+
+  --scrollbar-thumb: #1a1e2c;
+  --scrollbar-thumb-hover: #262c40;
+
+  --shadow-card: 0 18px 50px -24px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 30px 80px -40px rgba(0, 0, 0, 0.95);
+}
+
+/* ------------------------------------------------------------------
+   Light — the counterpart, not the inverse.
+
+   A straight inversion of this design does not work, and the reason is
+   worth writing down because it drives every value below.
+
+   Nearly all of the depth here is made from *emitted light*: radial
+   glows, a particle field, a bloom under the headline, a band of light
+   crossing each word as it lands, hairlines that are white at 6% and
+   read as a lit edge. On a near-black ground those are all additive —
+   the effect is the surface being brighter than its surroundings. On
+   a white ground there is nothing above white to add, so every one of
+   them either disappears or turns into grey haze.
+
+   So the light theme rebuilds each of those effects out of the thing
+   that *does* work on paper — shadow, tint and contrast:
+
+     glows        become a faint warm-blue tint, near-invisible, doing
+                  the same job of stopping a large flat area reading as
+                  a blank sheet. Strength is dialled right down.
+     the bloom    is removed outright. It has no light-ground meaning.
+     hairlines    become black at low alpha, which is the same hairline
+                  and reads correctly because it is now the darker of
+                  the two, as it was the lighter before.
+     depth        moves from the hairline to real, soft shadows, which
+                  is what a white ground can actually show.
+   ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+   Light — built from four colours
+
+     #FFFFFF   the page, and every raised surface on it
+     #E5E5E5   the one step of tone: cards, vignette edges, hairlines
+     #14213D   the navy — body copy, and everything the accent used to do
+     #000000   the ink — headings, marks, the primary plate
+
+   Four is a tight brief for a design that had a nine-step blue ramp and
+   four greys, and the shortage falls almost entirely on *depth*. The
+   dark theme separates a card from the page by making it lighter; with
+   one grey there is exactly one such step available, so past that the
+   separation has to come from hairlines and shadow instead.
+
+   The other consequence is the accent. There is no blue in the four, so
+   the ramp does not survive as blue on this theme — every accent
+   position resolves into the navy family below. That is a real change
+   rather than a shade: the line the dark theme sets in #6a9bff is navy
+   here, because navy is what was asked for.
+   ------------------------------------------------------------------ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* White is the page AND the lifted surface, which is the opposite of
+     the dark theme's arrangement and forced by the palette: with one
+     grey there is nothing above white to lift *to*. So the tonal move
+     runs the other way — the page is the brightest thing and depth is
+     made by going down into the grey, not up out of it.
+
+     `--ground-4` is the centre of every atmosphere gradient, where the
+     dark theme puts its lightest tone. It stays white here for the same
+     reason it is lightest there: it is the lit middle of the frame.
+     `--ground-deep` is the far edge of those gradients and takes the
+     grey, so a section still reads as lit in the middle and settled at
+     the corners. */
+  --ground: #ffffff;
+  --ground-2: #ffffff;
+  --ground-3: #e5e5e5;
+  --ground-4: #ffffff;
+  --ground-deep: #e5e5e5;
+
+  /* Black marks, navy copy. Splitting them is what stops a page set
+     entirely in #000 from reading as harsh: the headings and the
+     hairlines are ink, the running text is the softer navy. */
+  --fg: #000000;
+  --body-ink: #14213d;
+  --accent-ink: #14213d;
+
+  /* ── The accent ramp, in navy ──
+     Held in a narrow band rather than spread across nine steps. The
+     original ramp runs pale-to-deep because on black the pale end is
+     the one that reads; on white every one of those pale steps is
+     invisible, so the whole ramp is pulled down into the navy and only
+     the last step reaches black. Any index a component asks for now
+     lands on something legible against the page, which is the property
+     that actually matters here. */
+  --accent-100: #26304f;
+  --accent-200: #212b48;
+  --accent-300: #1b2542;
+  --accent-400: #14213d;
+  --accent-500: #14213d;
+  --accent-600: #111b33;
+  --accent-700: #0b1224;
+  --accent-900: #000000;
+
+  /* The one place the light theme reaches outside the four colours.
+     The accent headline words sit at #14213D like everything else here
+     and read as body copy at display size — the navy is right for a
+     paragraph and too quiet for the line the page is built around. This
+     is that navy lifted toward the house blue: still unmistakably the
+     same family as the copy beneath it, but clearly the accent. */
+  --accent-heading: #334daf;
+
+  /* ── Veils and hairlines, roughly doubled ──
+     Not a stylistic preference — the same alpha does not buy the same
+     separation on both grounds. Near black, a 2% white veil is a large
+     *relative* change against a ground that is itself only a few
+     percent off zero, and the eye reads relative differences. Against
+     white the identical 2% is #FAFAFA on #FFFFFF, which is nothing.
+
+     So the light theme carries about twice the alpha to land the same
+     apparent lift. --hair-1 at 10%% is #E5E5E5 over the page, which is
+     the palette grey arriving exactly where it was wanted. */
+  --veil-1: color-mix(in oklab, var(--fg) 3.5%, transparent);
+  --veil-2: color-mix(in oklab, var(--fg) 5.5%, transparent);
+  --veil-3: color-mix(in oklab, var(--fg) 8.5%, transparent);
+  --veil-4: color-mix(in oklab, var(--fg) 12%, transparent);
+  --hair-1: color-mix(in oklab, var(--fg) 10%, transparent);
+  --hair-2: color-mix(in oklab, var(--fg) 14%, transparent);
+  --hair-3: color-mix(in oklab, var(--fg) 22%, transparent);
+
+  /* ── Atmosphere ──
+     The glows go out entirely. On black they are the light in the room;
+     on a white page built from four colours there is no colour for them
+     to be, and a grey radial over white is not atmosphere, it is a
+     smudge — which is exactly what the first pass at this theme looked
+     like. What replaces them is the plain white ground and the grey
+     vignette at the edges, which is enough. */
+  --glow-strength: 0;
+  /* The linework is not a glow — it is grid, ticks and brackets, and it
+     is structure rather than light, so it survives the glows going out.
+     Thinned rather than removed: at full strength navy rules on white
+     are a technical drawing, which is louder than this ground wants. */
+  --plane-strength: 0.4;
+  --glow-tint: transparent;
+  --glow-tint-strong: transparent;
+
+  /* The vignette that darkens the frame edges. Grey, and faint: the
+     same job as the dark theme's near-black ring, done with the one
+     tone the palette has for it. */
+  --vignette-ring: rgba(229, 229, 229, 0.85);
+  --vignette-edge: #e5e5e5;
+
+  /* No bloom on paper. */
+  --type-bloom-1: transparent;
+  --type-bloom-2: transparent;
+
+  /* The sweep survives, inverted: a shadow crossing the letterform
+     rather than a highlight. Kept weak — a dark band moving across
+     black type is far more visible than a white one on white. */
+  --shine-ink: rgba(20, 33, 61, 0.45);
+  --shine-glow: transparent;
+
+  /* Navy rather than black. A neutral shadow under a design whose only
+     colour is navy reads as dirt; tinting it to the same hue is what
+     keeps the shadows looking like part of the palette. Dialled to a
+     third of the alpha, because the dark theme could afford heavy
+     shadows precisely by being invisible against its ground. */
+  --shadow-ink: #14213d;
+  --shadow-scale: 0.34;
+
+  /* The primary plate is now black on white. A white sheen along its
+     top edge would be a highlight on ink — wrong twice over — so it
+     becomes a faint lift of the ink itself, and the hover goes one step
+     toward the navy rather than toward white, because on this ground
+     the plate softening is what reads as press. */
+  --plate-hover: #14213d;
+  --plate-sheen: rgba(255, 255, 255, 0.11);
+  --plate-shadow: rgba(20, 33, 61, 0.32);
+  --plate-shadow-hover: rgba(20, 33, 61, 0.4);
+
+  --scrollbar-thumb: #e5e5e5;
+  --scrollbar-thumb-hover: #14213d;
+
+  --shadow-card: 0 18px 40px -28px rgba(20, 33, 61, 0.26);
+  --shadow-lift: 0 30px 70px -40px rgba(20, 33, 61, 0.32);
+}
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-geist), ui-monospace, "SF Mono", monospace;
+  /* The display face. Geist, and used in exactly one place — the giant line
+     in the statement section. Inter is the fallback rather than a bare
+     system stack so that if the webfont is slow or blocked the line falls
+     back to the face the rest of the page is already set in, instead of to
+     whatever the OS offers. */
+  --font-display: var(--font-geist), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+
+  /* Cinematic easing curves */
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  /* Focus pull: slow at first, then decisive, then settles. */
+  --ease-focus: cubic-bezier(0.22, 0.68, 0.24, 1);
+  /* Editorial: a heavy object leaving decisively and taking its time to stop.
+     Close to the cinematic curve but with a shorter, firmer departure — which
+     is what keeps a line of type this large from looking like it is drifting
+     rather than being placed. */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    @apply font-sans;
+  }
+
+  /* The page ground, and it has to be right here rather than section by
+     section: any strip that does not paint its own background shows this one
+     through, and on a site that is otherwise near-black a single unpainted
+     band is a white hole in the middle of the page.
+
+     There was a `@apply bg-background text-foreground` on the end of this rule
+     until it caused exactly that. It is shadcn's pair, and shadcn's default
+     --background is oklch(1 0 0) — white — so those two utilities silently
+     overrode the two declarations at the top of this block. The tokens are
+     pointed at this palette further down the file now, so either route lands
+     in the same place, but the explicit values are what this rule says. */
+  body {
+    background-color: var(--ground);
+    color: var(--body-ink);
+    /* Both are themed, so the whole page answers to the toggle from one
+       place. The transition is what keeps the switch from reading as a
+       flash: ground and ink cross-fade rather than cutting. */
+    transition: background-color 320ms var(--ease-soft),
+      color 320ms var(--ease-soft);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* No `text-rendering: optimizeLegibility` — it forces the full kerning and
+       ligature pass on every text node, which shows up as a stall on first
+       paint and again on any reflow. Inter and JetBrains Mono already ship the
+       kerning the design relies on. */
+    overflow-x: hidden;
+  }
+
+  /* Every in-page anchor target clears the fixed navbar.
+
+     The bar's bottom edge sits at 76px, so a section landing flush with
+     the viewport top puts its first line underneath it — which is what
+     #shipping, #platform and #projects all did the moment the separate
+     routes became sections on one page. 5.5rem clears it with a little
+     air.
+
+     It belongs here rather than as padding on each section: padding is
+     space you can always see, and this is only ever consulted when
+     somebody follows a link. */
+  :is(#shipping, #platform, #stack, #projects, #testimonials, #about, #contact) {
+    scroll-margin-top: 5.5rem;
+  }
+
+  /* ------------------------------------------------------------------
+     The theme switch.
+
+     Which glyph is showing is decided here rather than in the component,
+     so that the markup React sends is identical on the server and the
+     client and the right icon is up on the very first paint. See the
+     note in ThemeToggle.tsx.
+
+     The icon is the destination, not the current state: on the dark
+     theme it offers a sun.
+     ------------------------------------------------------------------ */
+  .tt-moon {
+    display: none;
+  }
+  :root[data-theme="light"] .tt-sun {
+    display: none;
+  }
+  :root[data-theme="light"] .tt-moon {
+    display: block;
+  }
+
+  /* ------------------------------------------------------------------
+     Everything except the ground holds still during a theme swap.
+
+     The body's own ground and ink cross-fade, which is what stops the
+     switch reading as a flash. But the page carries several hundred
+     colour transitions of its own — every hairline, every hover state,
+     the navbar's glass — and left alone all of them fire at the same
+     moment on a document this long. That is a great deal of work in one
+     frame for an effect nobody asked for, and it arrives as a stutter
+     rather than as a fade.
+
+     The attribute is set for the length of the swap and removed after,
+     so this is the only moment on the page where transitions are
+     suppressed wholesale.
+     ------------------------------------------------------------------ */
+  :root[data-theme-switching] *:not(body) {
+    transition: none !important;
+  }
+
+  /* ------------------------------------------------------------------
+     Soft snap — the page settles onto a section instead of stopping
+     wherever the flick happened to run out.
+
+     This is the answer to content being outrun. Every entrance on the page
+     is a few hundred ms of curve released when its item reaches the
+     viewport, so a scroll that crosses three sections in a third of a
+     second shows three bands mid-assembly. The fix is not to make the
+     entrances faster or to skip them under speed — an entrance that changes
+     shape depending on how you arrived is two designs, and the rushed one
+     is always the worse one. The fix is for the page to come to rest
+     somewhere deliberate, and then let the content arrive at its own pace.
+
+     `proximity`, emphatically not `mandatory`. Mandatory has to land on a
+     snap point after every single scroll, and half the sections here are
+     taller than the viewport — the bottom of the projects deck would
+     become genuinely unreachable, because any scroll into it gets yanked
+     back to a start edge. Proximity only engages when the scroll comes to
+     rest near a snap point, which is exactly the case worth catching: it
+     turns "stopped halfway into a blank section" into "settled on the
+     section, watching it arrive", and otherwise stays out of the way. A
+     deliberate scroll is never blocked or slowed.
+
+     Snap points are the direct `section` children of main, which is the six
+     content sections and nothing else. Two exclusions matter and both are
+     structural rather than by omission:
+
+       The hero and the services grid live inside SceneCover, which renders
+       a div — the hero is pinned and the services section rides up over the
+       top of it, and a snap point in the middle of that would fight the
+       sticky pane for control of the same scroll.
+
+       The statement layer lives inside ScrollScrub, also a div. Its whole
+       effect is a phrase scrubbed across the viewport by the scroll
+       position; snapping is the one thing that would take that position out
+       of the visitor's hands.
+
+     scroll-margin-top keeps a snapped section clear of the fixed navbar,
+     the same 5.5rem the anchor targets above already use.
+     ------------------------------------------------------------------ */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-snap-type: y proximity;
+    }
+
+    main > section {
+      scroll-snap-align: start;
+      scroll-margin-top: 5.5rem;
+    }
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent-500) 38%, transparent);
+    color: var(--fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-400);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Keep the scrollbar in the same visual language */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 3px solid var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+/* ==================================================================
+   THE MASKED WORD REVEAL — type rising out from under the line
+   ==================================================================
+   Every word is its own two-part rig:
+
+     .reveal-word        the mask. Static in the layout, clipped just
+                         below the descenders, so nothing exists above
+                         that edge until the word climbs into it.
+     .reveal-word-inner  the word itself. Starts fully below the mask
+                         edge, heavily blurred and at zero opacity, and
+                         is carried up into place as the blur falls off.
+
+   The mask is a clip-path rather than overflow: hidden — overflow
+   moves an inline-block's baseline to its bottom margin edge, which
+   would silently re-seat the whole headline. clip-path leaves layout
+   and baseline alignment exactly as they were.
+
+   Per-word variation comes in through custom properties, so no two
+   neighbours resolve in lockstep:
+     --rw-blur   starting blur radius, in em so it tracks the type size
+     --rw-y      starting offset below the mask edge (a % of the word)
+
+   ── Why three animations instead of one ──
+   A single keyframe list with intermediate stops is not smooth: CSS
+   applies the timing function *between each pair of keyframes*, so an
+   eased curve restarts at every stop and the word visibly slows and
+   re-accelerates on the way up. Position, focus and opacity therefore
+   each get their own pure from → to animation running on the same
+   element — one uninterrupted curve per property, each free to have its
+   own shape and its own length.
+
+   Only opacity / filter / transform / clip-path animate.
+   ================================================================== */
+
+/* The climb. Gentle in, long soft landing — deliberately *not* an
+   expo-out: the first slice of the travel happens under the mask where
+   nobody can see it, so a front-loaded curve spends its speed in the
+   dark and then crawls through the part you actually watch. */
+@keyframes word-lift {
+  from {
+    transform: translate3d(0, var(--rw-y, 120%), 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* The focus pull. Ends before the climb does, so the word is already
+   crisp for the last few pixels of its settle. */
+@keyframes word-defog {
+  from {
+    filter: blur(var(--rw-blur, 0.15em));
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+@keyframes word-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The clip edge sits a touch under the descenders for the whole climb,
+   then opens out once the word has landed — so the finished headline is
+   never clipping its own residual atmosphere. */
+@keyframes word-unmask {
+  0%,
+  93% {
+    clip-path: inset(-1.2em -1.2em -0.16em -1.2em);
+  }
+  100% {
+    clip-path: inset(-1.2em -1.2em -1.8em -1.2em);
+  }
+}
+
+/* A band of light crossing the glyphs — a soft reflection, not a glow.
+   The band is a mask over a duplicate of the word, so only the sliver of
+   letterform under it brightens, and it leaves nothing behind. */
+@keyframes word-shine {
+  0% {
+    opacity: 0;
+    -webkit-mask-position: 118% 0;
+    mask-position: 118% 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  64% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    -webkit-mask-position: -18% 0;
+    mask-position: -18% 0;
+  }
+}
+
+.reveal-word {
+  display: inline-block;
+  /* The clip barely moves — no layer promotion is worth keeping alive
+     for it, so no will-change here. */
+  animation: word-unmask var(--rw-lift, 780ms) linear var(--rw-delay, 0ms) both;
+
+  /* The resting bloom — a light the type sits in rather than one it emits.
+     Two radii: a tight halo hugging the letterforms, and a wide, very faint
+     one that lifts the headline off the background. In em, so it holds its
+     proportion at every step of the clamp.
+
+     This glow is permanent, and stays after the reveal has finished. The
+     mask opens out to -1.2em at the end of word-unmask precisely so the
+     wide radius is not clipped once the word has landed. */
+  text-shadow:
+    0 0 0.17em var(--type-bloom-1),
+    0 0 0.6em var(--type-bloom-2);
+}
+
+.reveal-word-inner {
+  display: inline-block;
+  position: relative;
+  animation-name: word-lift, word-defog, word-fade;
+  animation-duration: var(--rw-lift, 780ms), var(--rw-defog, 610ms),
+    var(--rw-fade, 515ms);
+  animation-delay: var(--rw-delay, 0ms), var(--rw-delay, 0ms),
+    var(--rw-delay, 0ms);
+  animation-timing-function:
+    /* climb: eased in and out, weighted to a long tail */
+    cubic-bezier(0.3, 0.02, 0.14, 1),
+    /* focus: steady clearing, settles softly */ cubic-bezier(0.33, 1, 0.68, 1),
+    /* light: no sudden appearance out of the black */
+      cubic-bezier(0.4, 0, 0.35, 1);
+  animation-fill-mode: both;
+  /* No will-change. This is a one-shot entrance, and `will-change` has no
+     way to stand down when an animation finishes — the hint sticks, and so
+     does the promoted layer, for the rest of the session. A running
+     transform/opacity animation is promoted by the compositor anyway, and
+     a blur cannot be composited whatever we ask for, so the hint bought
+     nothing here and cost a pinned layer per word forever after. */
+}
+
+.reveal-word-inner::after {
+  content: attr(data-word);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  color: var(--rw-shine, var(--shine-ink));
+  /* One shadow, sized in em. Two stacked shadows on 7rem glyphs is a lot
+     of per-frame blur for something this quiet. */
+  text-shadow: 0 0 0.1em var(--rw-shine-glow, var(--shine-glow));
+  -webkit-mask-image: linear-gradient(
+    100deg,
+    transparent 43%,
+    #000 50%,
+    transparent 57%
+  );
+  mask-image: linear-gradient(
+    100deg,
+    transparent 43%,
+    #000 50%,
+    transparent 57%
+  );
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 118% 0;
+  mask-position: 118% 0;
+  animation-name: word-shine;
+  animation-duration: var(--rw-shine-duration, 620ms);
+  animation-delay: var(--rw-shine-delay, 0ms);
+  /* Linear on purpose: a reflection crosses at a constant speed. Easing it
+     dumps the whole sweep into the first third and leaves the band idling
+     off the end of the word. */
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+.reveal-word-accent {
+  text-shadow:
+    0 0 0.24em color-mix(in oklab, var(--color-accent-500) 30%, transparent),
+    0 0 0.64em color-mix(in oklab, var(--color-accent-600) 16%, transparent);
+  /* The sweep reads as a lighter blue on the accent line, never white. */
+  --rw-shine: var(--color-accent-100);
+  --rw-shine-glow: color-mix(
+    in oklab,
+    var(--color-accent-200) 55%,
+    transparent
+  );
+}
+
+/* ------------------------------------------------------------------
+   Supporting entrance — softer sibling of the focus pull
+   ------------------------------------------------------------------ */
+/* Built the same way as the headline, and for the same reason: intermediate
+   keyframes restart the timing function at every stop, so a single eased
+   curve becomes four of them stitched together and the element visibly
+   stalls and re-accelerates on its way in. One pure from → to per property,
+   each with its own curve and its own length.
+
+   The blur is in em, not px. A fixed 12px radius is proportionate on a
+   headline and catastrophic on 13px body copy — it was blurring small text by
+   roughly its own height, which reads as mush resolving rather than a lens
+   finding focus. In em it stays proportionate to whatever it is applied to. */
+@keyframes rise-lift {
+  from {
+    transform: translate3d(0, var(--rise-y, 14px), 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes rise-defog {
+  from {
+    filter: blur(var(--rise-blur, 0.34em));
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+@keyframes rise-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* A second, quieter rise for content *inside* something that is itself
+   rising — the lines of a card, for instance.
+
+   Transform only, deliberately. Fading a child inside a fading parent
+   multiplies the two opacities, so the child spends most of the entrance
+   dimmer than either animation asked for and the whole thing reads muddy.
+   Sliding the lines into place inside a fading frame keeps every element at
+   the opacity its own curve intends. */
+@keyframes rise-inner {
+  from {
+    transform: translate3d(0, var(--inner-y, 12px), 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.anim-rise-inner {
+  animation: rise-inner var(--rise-inner, 720ms) cubic-bezier(0.22, 0.72, 0.16, 1)
+    both;
+}
+
+.anim-rise {
+  animation-name: rise-lift, rise-defog, rise-fade;
+  /* Focus and opacity land before the lift does, so the element is already
+     sharp for the last few pixels of its settle.
+
+     Overridable per caller, because the right length depends on what fires
+     the entrance. Content that arrives on a clock — the hero, on load — is
+     racing the visitor's attention and wants to be brisk. Content released by
+     the scroll is being watched deliberately, one item at a time, and the
+     same speed there reads as a snap. The three stay in proportion: whatever
+     the lift is, focus is ~0.7 of it and the light ~0.63. */
+  animation-duration: var(--rise-lift, 900ms), var(--rise-defog, 620ms),
+    var(--rise-fade, 560ms);
+  animation-timing-function:
+    cubic-bezier(0.22, 0.72, 0.16, 1),
+    cubic-bezier(0.33, 1, 0.68, 1),
+    cubic-bezier(0.4, 0, 0.35, 1);
+  /* Callers set `animation-delay` inline as a single value; CSS repeats a
+     short list across all three names, so one delay still drives all of them. */
+  animation-fill-mode: both;
+  /* No will-change — see .reveal-word-inner. There are around fifty of these
+     on the page once the services grid is counted (eight cards plus four
+     lines inside each), and every one of them was holding a promoted layer
+     open long after its 900ms entrance had finished. */
+}
+
+/* ------------------------------------------------------------------
+   Held entrances — content that must wait to be uncovered.
+
+   A section further down the page cannot start its entrance on page load;
+   by the time it is reached the animation is long finished and the visitor
+   sees a static block. Rather than swapping in a second, JS-driven set of
+   animations, the same CSS animations are simply held at their first frame
+   until the scene covering the previous screen is deep enough to commit
+   (see SceneCover), then released to run on their own clock.
+
+   Held with `animation: none` plus an explicit first frame, rather than
+   `animation-play-state: paused`. A paused animation holds wherever its clock
+   happens to be, so once the section had played, scrolling back up would
+   freeze it fully-revealed and coming down again would show nothing move.
+   Clearing the name genuinely discards the animation; restoring it starts a
+   new one from zero, so the entrance replays every time the visitor scrolls
+   away and returns. The first frame has to be written out by hand here —
+   with no animation running there is no fill mode to supply it.
+
+   Scoped to the marked subtree, so the hero, which starts on load, is
+   untouched by any of it.
+   ------------------------------------------------------------------ */
+[data-cover-state="out"] .anim-rise {
+  animation: none;
+  opacity: 0;
+  filter: blur(var(--rise-blur, 0.34em));
+  transform: translate3d(0, var(--rise-y, 14px), 0);
+  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+}
+
+[data-cover-state="out"] .anim-rise-inner {
+  animation: none;
+  transform: translate3d(0, var(--inner-y, 12px), 0);
+  transition: transform 400ms var(--ease-soft);
+}
+
+[data-cover-state="out"] .reveal-word {
+  animation: none;
+  clip-path: inset(-1.2em -1.2em -0.16em -1.2em);
+  transition: clip-path 400ms var(--ease-soft);
+}
+
+[data-cover-state="out"] .reveal-word-inner {
+  animation: none;
+  opacity: 0;
+  filter: blur(var(--rw-blur, 0.15em));
+  transform: translate3d(0, var(--rw-y, 120%), 0);
+  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+}
+
+[data-cover-state="out"] .reveal-word-inner::after {
+  animation: none;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-soft);
+}
+
+/* ------------------------------------------------------------------
+   Held entrances, per item — released by the scroll rather than by the
+   section (see ScrollStagger).
+
+   Same mechanism as the block above, one level finer. The section-wide gate
+   answers "has this scene been reached"; this one answers "has this
+   particular card been reached", which is the question a list of eight needs
+   asked once each.
+
+   Both gates hold independently, and both have to let go before anything
+   moves: a card that is on screen still waits for the scene to commit, and a
+   committed scene still waits for each card to arrive.
+
+   `--reveal-delay` is written onto the item as it crosses, and inherits down
+   to the lines inside it, which add their own offsets on top with calc().
+   ------------------------------------------------------------------ */
+/* Both forms: the observed item may itself be the thing that rises (a services
+   card), or it may be a container holding several of them (a section intro). */
+[data-reveal="out"].anim-rise,
+[data-reveal="out"] .anim-rise {
+  animation: none;
+  opacity: 0;
+  filter: blur(var(--rise-blur, 0.34em));
+  transform: translate3d(0, var(--rise-y, 14px), 0);
+  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+}
+
+[data-reveal="out"] .anim-rise-inner {
+  animation: none;
+  transform: translate3d(0, var(--inner-y, 12px), 0);
+  transition: transform 400ms var(--ease-soft);
+}
+
+/* The masked headline rig answers to this gate too, so a heading further down
+   the page can wait for its own section the same way a card does. */
+[data-reveal="out"] .reveal-word {
+  animation: none;
+  clip-path: inset(-1.2em -1.2em -0.16em -1.2em);
+  transition: clip-path 400ms var(--ease-soft);
+}
+
+[data-reveal="out"] .reveal-word-inner {
+  animation: none;
+  opacity: 0;
+  filter: blur(var(--rw-blur, 0.15em));
+  transform: translate3d(0, var(--rw-y, 120%), 0);
+  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+}
+
+[data-reveal="out"] .reveal-word-inner::after {
+  animation: none;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-soft);
+}
+
+/* ------------------------------------------------------------------
+   Only one scene animates at a time.
+
+   The hero and the services section each carry a full atmosphere — four
+   wandering glows, three parallax planes, drifting linework and around fifty
+   drifting marks. Both were running from first paint to last, so the page was
+   permanently animating two of everything and the visitor could only ever see
+   one of them.
+
+   Three states, from three different places, all meaning "nobody is looking
+   at this":
+
+     [data-cover-state="out"]     not scrolled to yet
+     [data-scene-state="covered"] pinned, but completely buried
+     [data-offscreen="true"]      scrolled past, or not yet reached
+
+   The third exists because the first is deliberately sticky. Once an entrance
+   has committed it must not un-commit on a small scroll upward, so
+   `cover-state` stays "in" for the rest of the session — right for the content
+   it gates, wrong for anything with a running cost. Without a separate signal
+   every section the visitor has already gone past carries on animating
+   underneath the one they are actually reading, which is exactly what the
+   services atmosphere was doing beneath the statement section.
+
+   `animation-play-state` rather than `animation: none`: these are ambient
+   loops with no beginning to return to, and freezing them where they stand
+   means resuming is invisible. The entrances above genuinely do need
+   restarting, which is why they clear the name instead.
+
+   Deliberately not including .anim-ambient — that is the one-time lift out of
+   the dark, it costs nothing once it has run, and pausing it part-way could
+   strand the scene half-lit.
+   ------------------------------------------------------------------ */
+[data-scene-state="covered"]
+  :is(
+    .anim-glow-a,
+    .anim-glow-b,
+    .anim-glow-c,
+    .anim-glow-d,
+    .anim-plane-far,
+    .anim-plane-mid,
+    .anim-plane-near,
+    .anim-drift,
+    .anim-line-shift,
+    .anim-scroll-cue
+  ),
+:is([data-cover-state="out"], [data-offscreen="true"])
+  :is(
+    .anim-glow-a,
+    .anim-glow-b,
+    .anim-glow-c,
+    .anim-glow-d,
+    .anim-plane-far,
+    .anim-plane-mid,
+    .anim-plane-near,
+    .anim-drift,
+    .anim-line-shift
+  ) {
+  animation-play-state: paused;
+}
+
+/* The giant type is not in the list above and needs no entry of its own. It
+   used to be an infinite loop that had to be paused when nobody was looking;
+   it is now a single transition that runs once and stops, so there is nothing
+   left to switch off. */
+
+/* ------------------------------------------------------------------
+   Ambient lift — the atmosphere surfacing out of the dark.
+   Runs *ahead* of the headline: the scene lights up first, then the
+   typography is discovered inside it.
+   ------------------------------------------------------------------ */
+@keyframes ambient-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.anim-ambient {
+  animation: ambient-in var(--ambient-duration, 1800ms) var(--ease-soft) both;
+  animation-delay: var(--ambient-delay, 0ms);
+}
+
+/* ==================================================================
+   THE LIVING BACKGROUND
+   Continuous, never-resolving motion on several independent layers at
+   different speeds. Nothing here loops on a period short enough to be
+   consciously noticed — the scene should read as alive, not animated.
+   ================================================================== */
+
+/* --- Atmospheric glow: wanders and changes intensity, never pulses --- */
+@keyframes glow-wander-a {
+  0% {
+    transform: translate3d(-3%, -1.5%, 0) scale(1);
+    opacity: 0.82;
+  }
+  28% {
+    transform: translate3d(3.5%, 2%, 0) scale(1.07);
+    opacity: 1;
+  }
+  55% {
+    transform: translate3d(1%, -2.5%, 0) scale(0.97);
+    opacity: 0.88;
+  }
+  78% {
+    transform: translate3d(-2.5%, 1.5%, 0) scale(1.04);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(-3%, -1.5%, 0) scale(1);
+    opacity: 0.82;
+  }
+}
+
+@keyframes glow-wander-b {
+  0% {
+    transform: translate3d(2%, 2%, 0) scale(1.04);
+    opacity: 0.7;
+  }
+  32% {
+    transform: translate3d(-4%, -1%, 0) scale(0.95);
+    opacity: 0.92;
+  }
+  61% {
+    transform: translate3d(-1%, 3%, 0) scale(1.09);
+    opacity: 0.78;
+  }
+  100% {
+    transform: translate3d(2%, 2%, 0) scale(1.04);
+    opacity: 0.7;
+  }
+}
+
+/* Side light sources — light existing in the environment, off to the edges.
+   Longer periods than the central pair so the whole field never syncs up. */
+@keyframes glow-wander-c {
+  0% {
+    transform: translate3d(-6%, 3%, 0) scale(1);
+    opacity: 0.55;
+  }
+  37% {
+    transform: translate3d(5%, -4%, 0) scale(1.12);
+    opacity: 0.9;
+  }
+  68% {
+    transform: translate3d(-2%, 5%, 0) scale(0.94);
+    opacity: 0.66;
+  }
+  100% {
+    transform: translate3d(-6%, 3%, 0) scale(1);
+    opacity: 0.55;
+  }
+}
+
+@keyframes glow-wander-d {
+  0% {
+    transform: translate3d(4%, -3%, 0) scale(1.06);
+    opacity: 0.72;
+  }
+  44% {
+    transform: translate3d(-5%, 4%, 0) scale(0.93);
+    opacity: 0.48;
+  }
+  71% {
+    transform: translate3d(3%, 1%, 0) scale(1.1);
+    opacity: 0.84;
+  }
+  100% {
+    transform: translate3d(4%, -3%, 0) scale(1.06);
+    opacity: 0.72;
+  }
+}
+
+.anim-glow-a {
+  animation: glow-wander-a 38s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.anim-glow-b {
+  animation: glow-wander-b 27s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.anim-glow-c {
+  animation: glow-wander-c 44s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.anim-glow-d {
+  animation: glow-wander-d 33s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* --- Parallax planes: same path, different amplitude and period --- */
+@keyframes plane-far {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-1.1%, 0.7%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes plane-mid {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(1.9%, -1.3%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes plane-near {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-2.8%, 1.9%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.anim-plane-far {
+  animation: plane-far 54s ease-in-out infinite;
+  will-change: transform;
+}
+.anim-plane-mid {
+  animation: plane-mid 36s ease-in-out infinite;
+  will-change: transform;
+}
+.anim-plane-near {
+  animation: plane-near 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* --- Decorative glyphs: drift + extremely slow rotation + depth ---
+   No will-change here: there are ~50 of these on screen and pinning a layer
+   for each would cost far more memory than it saves. A continuously animating
+   transform gets promoted by the compositor on its own. */
+@keyframes glyph-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--glyph-scale-a, 1));
+  }
+  18% {
+    opacity: var(--drift-opacity, 0.05);
+  }
+  82% {
+    opacity: var(--drift-opacity, 0.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift-x, 12px), var(--drift-y, -52px), 0)
+      rotate(var(--glyph-rot, 6deg)) scale(var(--glyph-scale-b, 1.12));
+  }
+}
+
+.anim-drift {
+  animation: glyph-drift var(--drift-duration, 22s) linear infinite;
+  animation-delay: var(--drift-delay, 0s);
+}
+
+/* --- Technical linework: an almost imperceptible breathing of the strokes,
+   so the grid marks are never quite frozen --- */
+@keyframes line-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(var(--line-x, 10px), var(--line-y, -6px), 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+}
+
+.anim-line-shift {
+  animation: line-shift var(--line-duration, 40s) ease-in-out infinite;
+  animation-delay: var(--line-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@keyframes scroll-cue {
+  0% {
+    transform: translateY(-60%);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+.anim-scroll-cue {
+  animation: scroll-cue 2.4s var(--ease-soft) infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.anim-marquee {
+  /* Overridable per caller. A track of six words and a track of nine cards are
+     very different lengths, and a shared duration means the longer one scrolls
+     visibly faster — the eye reads speed off the content passing it, not off
+     the percentage travelled. */
+  animation: marquee var(--marquee-duration, 38s) linear infinite;
+  will-change: transform;
+}
+
+/* Pause marquee on hover */
+.anim-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ==================================================================
+   GIANT TYPE — the frame the React Bits warp draws into
+
+   There is no animation in this file. The sentence is rasterised to a
+   canvas and displaced by a fragment shader that lenses around the
+   cursor — see WarpText.jsx and the WARP constants in
+   StatementSection.tsx.
+
+   What is left here is the box: how tall the frame is, and what
+   typography the component measures itself against. The component
+   reads a hidden probe span it appends to this element, so the family
+   set here is the family the canvas draws in.
+
+   Deliberately no transform, filter or opacity on this container, and
+   no pointer-events-none anywhere above it. A transform would move the
+   sentence as one object on top of a per-fragment effect; blocking
+   pointer events would leave the shader stuck in its ambient idle,
+   which looks exactly like the component being broken.
+   ================================================================== */
+
+/* Sits on the component's own container, alongside .warp-text — the frame
+   height has to be on the element the canvas is measured from. */
+.giant-warp {
+  /* Inherited by the probe, and therefore by the canvas. Geist. */
+  font-family: var(--font-display);
+
+  /* Headroom. The frame has to be taller than the type, because the warp
+     pushes glyphs outside their own box and anything past the canvas edge is
+     simply not drawn — a clipped ascender at the crest of the lens reads as a
+     rendering fault rather than as motion.
+
+     Measured in vw, not svh, and that matters: the type is sized in vw, so on
+     a wide short window an svh-based frame shrinks while the text it has to
+     hold grows. Two lines at 7.9vw stand about 16.6vw tall, so 24vw leaves
+     half a line of clearance at every aspect ratio rather than only at the
+     tall ones. */
+  height: clamp(280px, 24vw, 38rem);
+
+  /* The horizontal crop stays where it has always been: the pinned pane's own
+     overflow: hidden. The canvas is exactly the width of the pane and the
+     sentence is drawn centred and oversized, so it runs off both ends. */
+  width: 100%;
+}
+
+/* ==================================================================
+   VENTURES — an ecosystem discovered one venture at a time
+
+   A deliberately different animation language from every other
+   entrance on this page, because it is doing a different job. The
+   hero, the services grid and the section intros all rise: content
+   arriving into a composition that is already laid out. A venture is
+   its own scene, so it arrives sideways, from behind the edge of the
+   column, alternating direction down the page. Read one after another
+   that alternation is what turns three blocks into a sequence.
+
+   Everything here is a transition between two states rather than a
+   keyframe animation, because that is what it actually is — the block
+   is either revealed or it is not, and ScrollStagger flips it. The
+   rise entrances elsewhere are animations because they have internal
+   choreography that has to run on its own clock.
+   ================================================================== */
+
+/* Stationary, so the block moves *inside* it. Clipped flush at the left and
+   right of the column and opened well past the top and bottom, which is what
+   makes a venture look uncovered rather than merely slid into place: while it
+   travels, the leading edge is genuinely cut off by the column. */
+.venture-clip {
+  clip-path: inset(-2.5rem 0 -2.5rem 0);
+}
+
+.venture-move {
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+  opacity: 1;
+  /* Three lengths, longest first. The travel outlasts the focus pull, which
+     outlasts the light — so a venture is sharp and lit for the last of its
+     movement rather than still resolving as it stops.
+
+     860ms for the travel, which with the parts inside finishing at ~890ms puts
+     the whole venture on screen inside 900ms. Longer than the intro lines by
+     design — a whole block settling should not move at the speed of one line
+     of type — but not so long that the venture below it, released 350ms later,
+     is queueing behind it.
+
+     The focus pull runs on --ease-focus rather than the soft curve. An ease-out
+     dumps almost the entire defog into the first third, so the block is sharp
+     while it is still visibly travelling and the blur reads as a flicker at the
+     start. The focus curve holds the radius through the middle of the move —
+     roughly 10px → 4px → 0 — which is a lens finding the subject. */
+  transition:
+    transform 860ms var(--ease-cinematic),
+    filter 700ms var(--ease-focus),
+    opacity 620ms var(--ease-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .venture-move {
+  /* --enter-x is set per block and alternates sign. Small on purpose: the
+     brief is a venture arriving, not a card flying across the screen. */
+  transform: translate3d(var(--enter-x, -2.8rem), 0.9rem, 0);
+  filter: blur(10px);
+  opacity: 0;
+}
+
+/* The number drifts against the block rather than with it, so the two do not
+   read as one flat object being pushed around. Slower, and it never quite
+   catches up until the block has settled. */
+.venture-num {
+  transform: translate3d(0, 0, 0);
+  /* Just past the block's own 860ms, so it is still closing the last of the
+     gap as the block stops — that lag is the whole effect. Any longer and it
+     is a separate element finishing on its own, after the venture has landed. */
+  transition: transform 900ms var(--ease-cinematic);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .venture-num {
+  transform: translate3d(calc(var(--enter-x, -2.8rem) * -0.55), 0, 0);
+}
+
+/* The connector between one venture and the next, drawn downward as the
+   venture below it arrives. Held at the very start of its block so the line
+   reaches the content rather than trailing after it. */
+.venture-link {
+  transform: scaleY(1);
+  transform-origin: top;
+  transition: transform 880ms var(--ease-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .venture-link {
+  transform: scaleY(0);
+}
+
+/* Prominence: full once the venture has arrived, held back before. No glow —
+   the accent simply comes up as the block lands. */
+.venture-accent {
+  transition: opacity 620ms var(--ease-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .venture-accent {
+  opacity: 0.4;
+}
+
+
+/* ==================================================================
+   LIGHT THEME — the atmosphere, rebuilt
+
+   Everything above this point flipped on its own, because it was made
+   of tokens. This block is the part that could not: the effects that
+   are additive light rather than colour, and which therefore have no
+   direct translation onto a white ground.
+
+   Each rule here is a judgement, not a conversion. They are gathered
+   in one place rather than scattered through the file so that tuning
+   the light theme is a single thing to read.
+   ================================================================== */
+
+/* ── The wandering glows ──
+   Blue radials at 10–20% alpha. On near-black they are barely-there
+   light; on white the *same* alpha is far more visible, because a mid
+   blue is much further from white than it is from black. Left alone
+   the light theme reads as a page with coloured stains on it.
+
+   Dialled back through `filter` rather than `opacity`, and that is
+   load-bearing: these elements animate their own opacity in the
+   glow-wander keyframes, and a declared `opacity` loses to a running
+   animation. `filter: opacity()` multiplies with it instead of
+   arguing with it, and stays on the compositor, which matters because
+   these layers are large and never stop moving. */
+:root[data-theme="light"] :is(.anim-glow-a, .anim-glow-b, .anim-glow-c, .anim-glow-d) {
+  filter: opacity(var(--glow-strength));
+}
+
+/* The same dial, for the glows that are not on the wandering set — the
+   single static source behind the tech strip, the statement line and the
+   ventures panel. They carry no .anim-glow class because they do not
+   move, which meant the rule above did not reach them and they were the
+   one blue thing left painting on a white page. */
+:root[data-theme="light"] .atmo-glow {
+  filter: opacity(var(--glow-strength));
+}
+
+/* ── The accent headline words ──
+   Every word carrying the resting bloom, brought onto one colour.
+
+   They arrive here from three different places: the hero takes the 400
+   step straight off a utility class, the testimonials heading has its
+   own --tm-blue, and projects, founder and contact each reach for 300.
+   That spread is deliberate on dark, where the three steps read as one
+   blue at three distances. Collapsed onto the navy ramp it stops being
+   a spread and starts being an inconsistency — three nearly-identical
+   darks that look like a mistake rather than a choice.
+
+   Every selector below is spelled out rather than relying on the bare
+   class, because .tm-heading .reveal-word-accent and friends outrank
+   it. Prefixing each with the theme attribute puts this one step above
+   whichever rule it is answering.
+
+   The bloom is re-tinted to match. Left on the ramp it would be a navy
+   halo around a blue word, which reads as a printing misregistration
+   rather than as light. */
+:root[data-theme="light"] .reveal-word-accent,
+:root[data-theme="light"] .tm-heading .reveal-word-accent,
+:root[data-theme="light"] .pj-heading .reveal-word-accent,
+:root[data-theme="light"] .fd-heading .reveal-word-accent,
+:root[data-theme="light"] .ct-heading .reveal-word-accent {
+  color: var(--accent-heading);
+  text-shadow:
+    0 0 0.24em color-mix(in oklab, var(--accent-heading) 18%, transparent),
+    0 0 0.64em color-mix(in oklab, var(--accent-heading) 10%, transparent);
+}
+
+/* The parallax linework — rays, grid, ticks, brackets. Same problem,
+   less of it: this is structure rather than light, so it is thinned
+   rather than nearly removed. */
+:root[data-theme="light"] :is(.anim-plane-far, .anim-plane-mid, .anim-plane-near) {
+  filter: opacity(var(--plane-strength));
+}
+
+/* ── The drifting glyph field ──
+   Around fifty marks set in the pale end of the accent ramp, which is
+   chosen to sit just above a black ground. Against white the same
+   colours are effectively invisible, so the field silently disappears
+   rather than looking wrong — the worst kind of theme bug, because
+   nothing about the page announces that something is missing.
+
+   Re-pointed at the dark end of the same ramp. The ramp itself does
+   not flip (it is the brand); which end of it is legible does. */
+:root[data-theme="light"] .anim-drift {
+  color: var(--color-accent-700);
+}
+
+/* ── Hairline separators ──
+   A border at 5–8% of the mark colour is a lit edge on black and a
+   grey smudge on white — black at 6% over a near-white ground is
+   lighter than the type around it but darker than the card it is
+   meant to be separating, which reads as blur rather than as an edge.
+   Light grounds want a hairline nearer 10%, and get most of their
+   separation from shadow instead. */
+:root[data-theme="light"] {
+  --hairline-lift: 1.6;
+}
+
+/* ── Backdrop-blurred glass ──
+   The navbar and the mobile sheet are dark glass: a near-black fill at
+   70–85% with a heavy blur behind it. Inverted, the fill token already
+   carries them to near-white, but the shadow underneath was tuned to
+   be invisible on black and is what separates the bar from the page
+   once the page is light. */
+:root[data-theme="light"] .nav-glass {
+  box-shadow: var(--shadow-card);
+}
+@media (prefers-reduced-motion: reduce) {
+  .venture-clip {
+    clip-path: none !important;
+  }
+
+  .venture-move,
+  .venture-num,
+  .venture-link {
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .venture-accent {
+    opacity: 1 !important;
+  }
+}
+
+/* ==================================================================
+   TESTIMONIALS — two clients, one either side of the heading
+
+   The placement is arithmetic, not a library. Each card carries its
+   own rotation, the stage supplies the perspective and one solved
+   distance, and that is the whole mechanism: no carousel state, no
+   transition between positions, nothing to keep in sync.
+
+   Three transforms, on three nested elements, because they change on
+   three different clocks and cannot share a property:
+
+     .tm-slot    where the card sits. Static, and staying that way.
+     .tm-float   the slow drift. Runs forever.
+     .tm-in      the scroll reveal. Runs once per arrival.
+
+   The turn on each card is 24deg, set in the component. Hover unwinds
+   it to zero, which is the whole reason a turn that steep is readable
+   at all — see the note on SLOTS before changing either.
+   ================================================================== */
+
+.tm-scope {
+  /* The electric blue this section is specified in. Deliberately a local
+     token rather than an addition to the global ramp: it belongs to this
+     composition, and the rest of the page stays on accent-500. */
+  --tm-blue: var(--color-accent-500);
+  --tm-card-bg: color-mix(in oklab, var(--ground) 62%, transparent);
+  --tm-card-edge: color-mix(in oklab, var(--color-accent-300) 14%, transparent);
+}
+
+/* The glow behind the heading. Sits under the cards but over the ground, so
+   the middle of the arc is lit and the ends fall away into black. */
+.tm-core {
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-accent-500) 16%, transparent) 0%,
+    color-mix(in oklab, var(--color-accent-600) 6%, transparent) 42%,
+    transparent 70%
+  );
+  filter: blur(58px);
+}
+
+/* ---- the pair ---- */
+
+.tm-stage {
+  perspective: 1500px;
+  perspective-origin: 50% 50%;
+
+  /* ---- where the two cards sit, as a distance from the centre line ----
+
+     One number, and it is solved rather than tuned, because with two cards
+     there is only one thing to decide and three things deciding it.
+
+     --tm-head is half the heading column. A card may not come nearer than that
+       plus its own half-width: the heading is the anchor of the composition and
+       nothing is allowed to cross it.
+     12.51rem is that half-width at its largest — 9.75rem of card, the 1.06 the
+       hover scales it by and the 1.056 the perspective adds on top of that —
+       plus 1.6rem of air. It is the *hovered* size that gets reserved, not the
+       resting one, which is what lets a card be picked up without anything
+       having to move out of its way.
+     25.5rem is where the pair sits when the window can afford it, which at this
+       card size is every width this layout is shown at.
+
+     min() takes the room in when the window is narrow; max() refuses to take
+     it past the heading. Neither binds above about 1220px, and below that this
+     layout is hidden anyway — the cards have gone under the heading instead. */
+  --tm-head: 11.5rem;
+  --tm-x: max(
+    calc(var(--tm-head) + 12.51rem),
+    min(25.5rem, calc(50vw - 12.51rem))
+  );
+}
+
+.tm-slot[data-side="left"] {
+  --tm-sign: -1;
+}
+
+.tm-slot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 19.5rem;
+
+  /* The four values the hover swaps. Held in their own properties rather than
+     written into the transform directly, because a transition can only
+     interpolate a transform against another transform built from the same
+     functions in the same order — swapping the inputs keeps one shape and lets
+     the browser tween it. */
+  --tm-x-now: var(--tm-x, 0rem);
+  --tm-z-now: 0px;
+  --tm-ry-now: var(--tm-ry, 0deg);
+  --tm-s-now: var(--tm-s, 1);
+
+  /* Promoted up front, not at hover time. Handing the compositor a layer on the
+     same frame the transition starts costs that frame, which is felt as a catch
+     at the very beginning of the move — the one place it is most visible. */
+  will-change: transform;
+
+  /* Read right to left: scale, then turn, then move into place. The offset is
+     applied last so it is not multiplied by the slot's own scale — a card at
+     0.86 would otherwise sit 14% closer to the centre than its number says.
+
+     The sign is a property rather than part of the distance, so both sides of
+     the arc read the same three ring variables and there is one set of numbers
+     to keep true instead of two mirrored sets. */
+  transform: translate3d(
+      calc(-50% + var(--tm-x-now) * var(--tm-sign, 1)),
+      -50%,
+      var(--tm-z-now)
+    )
+    rotateY(var(--tm-ry-now)) scale(var(--tm-s-now));
+
+  /* z-index is not interpolable, so it is stepped rather than eased, and the
+     step is timed by direction. Coming forward it applies at once, or the card
+     would grow while still behind its neighbour; going back it waits out the
+     full transform, or the card would drop behind mid-shrink and snap. */
+  transition:
+    transform 620ms var(--ease-editorial),
+    z-index 0s linear 620ms;
+}
+
+/* hover: hover only. On a touch screen :hover latches on tap and stays until
+   something else is tapped, which would leave one card stuck forward. */
+@media (hover: hover) {
+  .tm-slot:hover {
+    /* Above every sibling, but still under the heading — the centre column is
+       a separate stacking context at z-20 and is the anchor of the whole
+       composition. A card climbing over it would read as a bug. */
+    z-index: 30;
+
+    /* Square-on to the viewer and physically nearer: the rotation unwinds to
+       zero and the card moves 80px along z, which the stage's perspective
+       turns into its own magnification on top of the scale. This is the one
+       moment the type on an outer card is completely unsheared, which is the
+       point — hover is how you read it. */
+    --tm-z-now: 80px;
+    --tm-ry-now: 0deg;
+    --tm-s-now: calc(var(--tm-s, 1) + 0.06);
+
+    /* 0.947 is 1 / 1.056, the magnification 80px of z buys against the stage's
+       1500px perspective — and perspective magnifies the offset too, not just
+       the card. Pre-dividing it pins the card's centre exactly where it was, so
+       the card grows about itself instead of swinging outward.
+
+       That is the whole judder fix, and it is worth being explicit about why.
+       Without it, a hovered card walks a couple of dozen pixels away from the
+       centre line the instant it is picked up. A pointer resting near its inner
+       edge is then outside it, hover drops, the card falls back under the
+       pointer, hover returns — a loop the card can run at frame rate for as
+       long as the pointer sits there. Nothing about hover may move the surface
+       that hover is being tested against. */
+    --tm-x-now: calc(var(--tm-x, 0rem) * 0.947);
+
+    transition:
+      transform 620ms var(--ease-editorial),
+      z-index 0s;
+  }
+
+  /* Hold still while it is being read. */
+  .tm-slot:hover .tm-float {
+    animation-play-state: paused;
+  }
+
+  /* The lighting fades in on the pre-painted overlay rather than on the card,
+     for the same reason: this is happening during the 620ms the card is also
+     being scaled, and a box-shadow that changes has to be redrawn on every one
+     of those frames. Opacity on a layer that is already drawn does not. */
+  .tm-slot:hover .tm-card::after {
+    opacity: 1;
+  }
+
+  /* The floor answers too — a card lifting off the ground casts a fainter
+     reflection. Opacity only: the blur radius is held constant, because moving
+     it re-rasterises a full mirrored copy of the card, text and all, on every
+     frame of the same move. */
+  .tm-slot:hover .tm-reflect {
+    opacity: 0.075;
+  }
+}
+
+/* ---- a note on what is deliberately absent ----
+
+   There used to be a rule here that re-solved the layout while a card was
+   hovered, because the composition was six cards wide and the outer ones ran
+   off the side of the window: hovering one closed the whole arc up to make room
+   for it.
+
+   It was also the cause of the stutter. Asking the layout to move the card that
+   the pointer is holding is asking it to argue with its own input — the card
+   slid inward, left the pointer behind, lost the hover that was moving it, slid
+   back out, caught the pointer again, at frame rate, for as long as the pointer
+   sat there. No amount of compositing fixes that.
+
+   Two cards do not need it. --tm-x already reserves the hovered half-width, so
+   a card is fully on screen before it is picked up and nothing has to give way
+   when it is. Hover moves the card and only the card, and --tm-x-now keeps even
+   that centred on the spot the pointer found it. Nothing about hovering this
+   section can move the surface being hovered — which is the property that has
+   to hold, and the reason to keep it a still arrangement. */
+
+/* ---- the drift ----
+
+   Never lines up: the two periods are mutually indivisible, and both cards
+   start on a negative delay so the pair is already in motion on the first frame
+   rather than setting off together from rest. */
+@keyframes tm-float {
+  0%,
+  100% {
+    transform: translate3d(0, calc(var(--tm-lift, 6px) * -1), 0);
+  }
+  50% {
+    transform: translate3d(0, var(--tm-lift, 6px), 0);
+  }
+}
+
+.tm-float {
+  animation: tm-float var(--tm-float-dur, 11s) ease-in-out infinite;
+  animation-delay: var(--tm-float-delay, 0s);
+}
+
+/* ---- the arrival ----
+
+   Gated by ScrollStagger, which writes --reveal-delay onto each slot in DOM
+   order — left card, then right. */
+.tm-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 760ms var(--ease-soft),
+    transform 900ms var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .tm-in {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+}
+
+/* ---- the card ---- */
+
+.tm-card {
+  position: relative;
+  width: var(--tm-w, 100%);
+  border-radius: 12px;
+  border: 1px solid var(--tm-card-edge);
+  padding: 1.1rem 1.1rem 1rem;
+
+  /* A column, so the attribution can be pinned to the bottom. The two quotes
+     are very different lengths, and in a symmetrical composition two names
+     floating at two different heights is the first thing the eye finds. */
+  display: flex;
+  flex-direction: column;
+
+  /* Glass, painted rather than sampled.
+
+     A backdrop-filter has to re-read and re-blur everything behind the element
+     on every frame the element moves, and it cannot be cached across those
+     frames. Two of them on a perspective stage, each with a mirrored copy
+     underneath, is the difference between a hover that glides and one that
+     arrives in steps.
+
+     What is behind these cards is a smooth radial wash and 2% grain, and a
+     blurred smooth gradient is very nearly the same gradient — so the pane is
+     drawn instead of computed: a lit diagonal sheen over a dark translucent
+     body, with the section's blue carried in the top corner where the backdrop
+     saturate used to pick it up. It costs one paint, once. */
+  background:
+    linear-gradient(
+      158deg,
+      color-mix(in oklab, var(--color-accent-600) 20%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent-700) 12%, transparent) 46%,
+      color-mix(in oklab, var(--ground) 14%, transparent) 100%
+    ),
+    var(--tm-card-bg);
+
+  /* Depth from two shadows and one inner highlight: a tight contact shadow, a
+     wide soft one for the lift off the ground, and a hairline of light along
+     the top edge so the pane has a lit rim. */
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--fg) 4.5%, transparent) inset,
+    0 2px 8px -2px color-mix(in oklab, var(--shadow-ink) calc(60% * var(--shadow-scale)), transparent),
+    0 24px 50px -22px color-mix(in oklab, var(--shadow-ink) calc(85% * var(--shadow-scale)), transparent);
+}
+
+/* The hover lighting, drawn once at zero opacity and faded in.
+   inset: -1px puts it exactly over the card's border box, so its blue hairline
+   lands on the resting one rather than beside it, and its shadows fall outside
+   the card and never touch the type.
+
+   Shorter than the slot's 620ms move, so the card is fully lit a beat before it
+   stops travelling rather than still brightening after it has arrived. */
+.tm-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-accent-500) 42%, transparent);
+  box-shadow:
+    0 2px 10px -2px color-mix(in oklab, var(--shadow-ink) calc(65% * var(--shadow-scale)), transparent),
+    0 30px 60px -24px color-mix(in oklab, var(--shadow-ink) calc(90% * var(--shadow-scale)), transparent),
+    0 0 34px -6px color-mix(in oklab, var(--color-accent-500) 28%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms var(--ease-soft);
+}
+
+/* A floor under the longer of the two quotes, so both cards on the stage are
+   the same height without either being truncated. The shorter one spends the
+   difference as air above its attribution, which the auto margin on .tm-foot
+   puts at the bottom of the card either way. Below xl the grid stretches them
+   to match and this does nothing. */
+.tm-stage .tm-card {
+  min-height: 21.5rem;
+}
+
+.tm-foot {
+  margin-top: auto;
+  padding-top: 1.1rem;
+}
+
+.tm-quote {
+  color: var(--tm-blue);
+  opacity: 0.85;
+}
+
+/* The rating. Filled stars in the section's blue; anything unearned is left as
+   a dim outline rather than dropped, so four out of five would still read as
+   four out of five and not as a shorter row. */
+.tm-stars {
+  display: inline-flex;
+  gap: 3px;
+  color: var(--tm-blue);
+}
+
+.tm-stars svg {
+  height: 11px;
+  width: 11px;
+  fill: currentColor;
+  opacity: 0.22;
+}
+
+.tm-stars svg[data-on] {
+  opacity: 0.95;
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-accent-500) 45%, transparent));
+}
+
+.tm-rule {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-accent-300) 22%, transparent) 22%,
+    color-mix(in oklab, var(--color-accent-300) 22%, transparent) 78%,
+    transparent
+  );
+}
+
+.tm-role {
+  color: var(--tm-blue);
+  opacity: 0.9;
+}
+
+/* ---- the floor ----
+
+   A real mirrored copy of the card, not a painted smudge, so the silhouette
+   and the type positions are genuinely those of the card above it.
+
+   position: absolute at top: 100% keeps it out of flow. In flow it would add
+   its own height to a slot that is centred on the arc, and every card would
+   ride upward by half the length of its own reflection.
+
+   The mask reads inverted because the element is flipped: its local bottom is
+   what ends up adjacent to the card, so the opaque end of the gradient is the
+   bottom one.
+
+   56%, so the floor is gone within 44% of the card's own height. It is not a
+   taste call: the reflection is absolutely positioned below a card that is
+   centred in the stage, so it runs past the stage into the section's padding,
+   and the section clips its overflow. The shorter the fade, the tighter that
+   padding can be before the clip lands somewhere the reflection is still
+   visible — which would read as a mirror sawn off in a straight line. Tighten
+   the section padding further and this number has to come up with it. */
+.tm-reflect {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  transform: scaleY(-1);
+  opacity: 0.14;
+  filter: blur(5px);
+  pointer-events: none;
+
+  /* Opacity only. A blur radius that changes forces this whole mirrored copy —
+     border, sheen, type and all — to be re-rasterised on every frame of a move
+     that is already the busiest moment in the section. */
+  transition: opacity 620ms var(--ease-soft);
+
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 56%,
+    color-mix(in oklab, var(--shadow-ink) calc(85% * var(--shadow-scale)), transparent) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 56%,
+    color-mix(in oklab, var(--shadow-ink) calc(85% * var(--shadow-scale)), transparent) 100%
+  );
+}
+
+/* The reflection must not repeat the card's own depth cues — a mirrored drop
+   shadow is a light source under the floor. The lit edge does carry over,
+   because a reflection of a lit card has one. */
+.tm-reflect .tm-card,
+.tm-reflect .tm-card::after {
+  box-shadow: none;
+}
+
+/* ---- the heading ---- */
+
+/* The accent line of the heading, in this section's blue rather than the
+   page's. .reveal-word-accent supplies the resting bloom; this only moves it
+   along the ramp. */
+.tm-heading .reveal-word-accent {
+  color: var(--tm-blue);
+  --rw-shine: var(--shine-ink);
+  text-shadow:
+    0 0 0.22em color-mix(in oklab, var(--color-accent-500) 35%, transparent),
+    0 0 0.7em color-mix(in oklab, var(--color-accent-500) 18%, transparent);
+}
+
+/* Hairline under the centre: brightest in the middle, gone at both ends, with
+   its own bloom sitting under it. */
+.tm-line {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-accent-500) 55%, transparent) 32%,
+    color-mix(in oklab, var(--color-accent-300) 85%, transparent) 50%,
+    color-mix(in oklab, var(--color-accent-500) 55%, transparent) 68%,
+    transparent
+  );
+  position: relative;
+}
+
+.tm-line::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: -2px;
+  height: 5px;
+  background: radial-gradient(
+    60% 100% at 50% 50%,
+    color-mix(in oklab, var(--color-accent-500) 50%, transparent),
+    transparent 70%
+  );
+  filter: blur(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The arrangement is the design; the drift and the arrival are not. Both
+     cards keep their places and simply are, from the first frame. */
+  .tm-float {
+    animation: none !important;
+  }
+
+  .tm-in,
+  [data-reveal="out"] .tm-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ==================================================================
+   PROJECTS — a deck of cards dealt by the scroll
+
+   The stack is `position: sticky` and nothing else. Each card pins at
+   its own offset, a step lower than the one before it, so scrolling
+   pins them one after another and the ones already dealt stay behind
+   as a row of edges. That much works with JavaScript switched off.
+
+   What the component adds is --pj-cover per card: 0 while the card
+   owns the screen, 1 once the next one has fully covered it. Every
+   depth cue below is a function of that one number, which is why they
+   cannot drift apart from each other.
+   ================================================================== */
+
+.pj-scope {
+  /* Where the first card pins, and how far each one after it drops. The step
+     is what makes the stack legible — it is the strip of the previous card
+     left showing above the current one — and it is small on purpose: three
+     visible edges at 0.9rem read as a deck, at 2rem they read as a list that
+     failed to scroll. */
+  /* Lower on a phone than anywhere else, and this is the constraint the whole
+     card is sized against: a sticky element taller than the space below its
+     own offset has its bottom cut off by the viewport and never recovers it,
+     because it is pinned. Card height plus --pj-top has to clear the shortest
+     screen this is meant to work on. */
+  --pj-top: 5.25rem;
+  --pj-step: 0.9rem;
+
+  /* Scroll distance between one card pinning and the next. Margin rather than
+     height, deliberately: sticky is bounded by the parent's padding box, and
+     a slot padded out to create the gap would unpin its own card early and
+     drop it out of the stack near the end of the deck. Margin is outside the
+     sticky box and costs nothing. */
+  --pj-gap: 34vh;
+}
+
+@media (min-width: 640px) {
+  .pj-scope {
+    --pj-top: 6.75rem;
+    --pj-gap: 42vh;
+  }
+}
+
+.pj-deck {
+  /* Holds the finished stack on screen for a beat before the whole thing
+     scrolls away — sticky is constrained by this box, so the padding is the
+     dwell. */
+  padding-bottom: 10vh;
+}
+
+.pj-slot {
+  position: sticky;
+  top: calc(var(--pj-top) + var(--i, 0) * var(--pj-step));
+}
+
+.pj-slot:not(:last-child) {
+  margin-bottom: var(--pj-gap);
+}
+
+/* ---- the card ---- */
+
+.pj-card {
+  --pj-cover: 0;
+
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--fg) 7%, transparent);
+  background: var(--ground-2);
+  padding: 1.5rem 1.35rem;
+
+  /* Scaled from the top edge, not the middle. Anchoring the top is what keeps
+     the step between the dealt cards exactly the step the stylesheet asked
+     for — scale about the centre and every card behind the current one slides
+     its own edge down by half of whatever it shrank. */
+  transform-origin: 50% 0%;
+  transform: translate3d(0, calc(var(--pj-cover) * -12px), 0)
+    scale(calc(1 - var(--pj-cover) * 0.055));
+
+  /* The radius tightens very slightly as a card goes back, which is the cue
+     that sells the depth: things further away have smaller corners. */
+  border-radius: calc(26px - var(--pj-cover) * 4px);
+
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--fg) 4%, transparent) inset,
+    0 40px 80px -50px color-mix(in oklab, var(--shadow-ink) calc(100% * var(--shadow-scale)), transparent);
+
+  /* No transition on the transform. It is scrubbed off the scrollbar at three
+     decimal places, which is already finer than a pixel here — easing it as
+     well would only add lag between the scroll and the card. */
+  will-change: transform;
+
+  transition:
+    border-color 400ms var(--ease-soft),
+    box-shadow 400ms var(--ease-soft);
+}
+
+@media (min-width: 640px) {
+  .pj-card {
+    padding: 2rem 1.9rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pj-card {
+    padding: 2.4rem;
+  }
+}
+
+/* The recede. A flat veil in the page's own black rather than an opacity drop
+   on the card — fading the card would take its border and its shadow with it,
+   and a stacked edge with no edge stops reading as a card at all.
+
+   z-index 2 puts it over the stretched link below, and pointer-events: none is
+   what keeps that from mattering: it dims the whole card, including the part
+   that is clickable, without ever intercepting the click. */
+.pj-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  background: var(--ground);
+  opacity: calc(var(--pj-cover) * 0.62);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .pj-card:hover {
+    border-color: color-mix(in oklab, var(--fg) 14%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--fg) 6%, transparent) inset,
+      0 40px 80px -46px color-mix(in oklab, var(--shadow-ink) calc(100% * var(--shadow-scale)), transparent);
+  }
+}
+
+.pj-grid {
+  display: grid;
+  gap: 1.75rem;
+}
+
+@media (min-width: 1024px) {
+  .pj-grid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+    gap: 2.75rem;
+    align-items: stretch;
+  }
+}
+
+/* ---- type ---- */
+
+.pj-title {
+  margin-top: 0.5rem;
+  font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: var(--fg);
+  /* max-width in ch so the longest title breaks where the shortest would, and
+     the column does not resize card to card. */
+  max-width: 16ch;
+}
+
+/* The label above the title. Caps and wide tracking rather than sentence case:
+   at this size it has to read as a category and not as a first line of copy. */
+.pj-cat {
+  margin-top: 1.15rem;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: color-mix(in oklab, var(--fg) 42%, transparent);
+}
+
+/* The index, and the rule that carries it across to the title. The rule is a
+   pseudo-element so the number stays one text node — nothing here is content. */
+.pj-num {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--color-accent-300);
+}
+
+.pj-num::after {
+  content: "";
+  height: 1px;
+  width: 3.5rem;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent-500) 0%,
+    color-mix(in oklab, var(--fg) 0%, transparent) 100%
+  );
+  opacity: 0.6;
+}
+
+.pj-desc {
+  margin-top: 1rem;
+  max-width: 32ch;
+  font-size: 13px;
+  line-height: 1.65;
+  color: color-mix(in oklab, var(--fg) 45%, transparent);
+}
+
+@media (min-width: 640px) {
+  .pj-desc {
+    font-size: 13.5px;
+    max-width: 34ch;
+  }
+}
+
+/* ---- what it does ---- */
+
+/* Two columns everywhere, including the phone. A single column of four is four
+   rows of card height in a card that is already fighting the viewport for it,
+   and these labels are short enough to survive half a column. */
+.pj-features {
+  margin-top: 1.35rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 1rem;
+  max-width: 26rem;
+}
+
+.pj-feature {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: color-mix(in oklab, var(--fg) 58%, transparent);
+}
+
+@media (min-width: 640px) {
+  .pj-feature {
+    font-size: 12.5px;
+  }
+}
+
+/* ---- what it is made of ---- */
+
+.pj-stack {
+  margin-top: 1.5rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid color-mix(in oklab, var(--fg) 6%, transparent);
+  max-width: 26rem;
+}
+
+.pj-stack-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: color-mix(in oklab, var(--fg) 28%, transparent);
+}
+
+.pj-chips {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pj-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--fg) 8%, transparent);
+  background: color-mix(in oklab, var(--fg) 3%, transparent);
+  padding: 0.25rem 0.7rem 0.25rem 0.3rem;
+  font-size: 11px;
+  color: color-mix(in oklab, var(--fg) 62%, transparent);
+  transition: border-color 320ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .pj-card:hover .pj-chip {
+    border-color: color-mix(in oklab, var(--fg) 13%, transparent);
+  }
+}
+
+.pj-chip-mark {
+  display: grid;
+  place-items: center;
+  height: 1.15rem;
+  width: 1.15rem;
+  flex: none;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--fg) 6%, transparent);
+}
+
+.pj-chip-mono {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: currentColor;
+}
+
+/* ---- the action ---- */
+
+.pj-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  align-self: flex-start;
+  width: 100%;
+  max-width: 13rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--fg) 72%, transparent);
+  transition: color 320ms var(--ease-soft);
+}
+
+/* The underline is a border on the label rather than text-decoration: it has
+   to sit clear of the descenders and change colour on its own. */
+.pj-cta-label {
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--fg) 22%, transparent);
+  transition: border-color 320ms var(--ease-soft);
+}
+
+/* Reaches across to the arrow, so the pair reads as one movement to the right
+   instead of a link with a stray glyph after it. */
+.pj-cta-rule {
+  flex: 1;
+  height: 1px;
+  min-width: 0.75rem;
+  background: color-mix(in oklab, var(--fg) 12%, transparent);
+  transition: background-color 320ms var(--ease-soft);
+}
+
+/* The whole card, made clickable by one link rather than by wrapping the card
+   in a second one. Two anchors around the same content is invalid HTML, and
+   the browser's recovery for it is to close the outer one early — which is how
+   "the card is a link" quietly becomes "the top half of the card is a link".
+   Stretching the pseudo-element of the single anchor it already has costs
+   nothing and keeps one link, one label, one tab stop.
+
+   z-index 1 because .pj-art is positioned and comes after this in the DOM, so
+   at the default z-index the preview would paint over the hit area and the
+   right-hand half of the card would stop responding. */
+.pj-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.pj-arrow {
+  transition: transform 420ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .pj-card:hover .pj-cta,
+  .pj-cta:hover {
+    color: var(--fg);
+  }
+
+  .pj-card:hover .pj-cta-label {
+    border-color: var(--color-accent-400);
+  }
+
+  .pj-card:hover .pj-cta-rule {
+    background-color: color-mix(in oklab, var(--fg) 20%, transparent);
+  }
+
+  .pj-card:hover .pj-arrow {
+    transform: translateX(4px);
+  }
+
+  /* The outbound arrow already points up and to the right, so it leaves along
+     the line it is drawn on rather than sliding sideways off its own head. */
+  .pj-card:hover .pj-arrow[data-out] {
+    transform: translate(3px, -3px);
+  }
+}
+
+/* ---- the preview ---- */
+
+.pj-art {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--fg) 6%, transparent);
+  background: radial-gradient(120% 120% at 50% 0%, var(--ground-3) 0%, var(--ground-2) 100%);
+  padding: 0.85rem;
+  /* Shorter than it was on a phone, and the copy column is why: the features
+     grid and the stack row added roughly a third to the card, and the card as
+     a whole still has to fit between --pj-top and the bottom of the smallest
+     viewport or sticky pins its own bottom edge off the screen. The preview is
+     the part that can give the height back without losing anything it says. */
+  height: 9rem;
+}
+
+@media (min-width: 640px) {
+  .pj-art {
+    height: 13.5rem;
+    padding: 1.1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pj-art {
+    height: auto;
+    min-height: 18rem;
+  }
+}
+
+/* A screenshot is its own composition and needs no mat around it — the frame's
+   padding exists to hold the drawn previews off the edge. */
+.pj-art--shot {
+  padding: 0;
+}
+
+/* The zoom lives on an inner wrapper rather than on .pj-art itself: scaling
+   the frame would scale its border and its radius with it, and the frame is
+   the part that has to hold still while the contents move inside it. */
+.pj-art-in {
+  position: relative;
+  height: 100%;
+  transform: scale(1);
+  transition: transform 700ms var(--ease-cinematic);
+}
+
+/* Anchored to the top, not the middle. A site screenshot is nearly twice as
+   wide as this frame, so something is always cropped; cropping from the bottom
+   keeps the header and the hero — the part that identifies the site — and
+   loses the part that was going to be a strip of footer. */
+.pj-shot {
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* next/image lays itself over the frame when it is `fill`; a video has to be
+   told. Same box either way, so the two swap without the panel resizing. */
+video.pj-shot {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+@media (hover: hover) {
+  .pj-card:hover .pj-art-in {
+    transform: scale(1.035);
+  }
+}
+
+.pj-heading .reveal-word-accent {
+  color: var(--color-accent-300);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pj-card {
+    transform: none !important;
+    border-radius: 26px !important;
+  }
+
+  .pj-card::after {
+    opacity: 0 !important;
+  }
+
+  .pj-art-in {
+    transition: none !important;
+  }
+}
+
+/* ==================================================================
+   FOUNDER — three panels sharing a width, one of them open
+
+   Three portraits in a row. The open one takes a little over half the
+   row and the other two split what is left; at rest the open one is
+   the founder, and pointing at either of the others hands it to them.
+   Nothing is positioned, nothing overlaps, nothing travels — the only
+   thing that changes is how the width is divided.
+
+   ── The one number ──
+   Every distance in this block is written in em, and .fd-rig sets its
+   own font-size from --fd-u. So --fd-u is a scale on the whole row:
+   the height, the gap, the corner radii and the label type all move
+   together, and the three breakpoints below set that one value and
+   nothing else.
+
+   Writing it in rem instead would have meant re-solving every
+   distance at each breakpoint against a height that had also changed
+   — a dozen numbers that all have to stay consistent with each other,
+   when there is really only one decision being made.
+
+   ── What this replaced, and why the machinery went with it ──
+   This was a ring: three cards on an ellipse that rotated so the one
+   you pointed at came to the front. It worked, but it needed two
+   invisible hit zones, a re-entry guard and a rule about never moving
+   the surface the pointer is testing against — all of it because
+   promoting a card moved that card out from under the cursor.
+
+   Expanding inverts the problem. Pointing at a panel makes that panel
+   wider, so both its edges move *away* from the cursor and the
+   pointer that started the hover is still inside it. The interaction
+   cannot chase itself, so the zones, the guard, the ellipse, the
+   registered angle property and the whole rotation are gone. What is
+   left is a flex row and one transitioned number.
+   ================================================================== */
+
+.fd-scope {
+  /* Local to this composition, like --tm-blue is to the testimonials:
+     the founder's key light is warmer and tighter than the section
+     glows elsewhere, and the global ramp stays where it is. */
+  --fd-key: var(--color-accent-500);
+
+  /* Opaque, and it has to be.
+
+     These were translucent, which is free everywhere except the one
+     place it matters: a promotion sends two cards past each other, and
+     two 68%-alpha bodies crossing let each one show through the other —
+     the founder's white plate reading straight through a dark label
+     for the third of a second they overlap. It looks like a rendering
+     fault rather than like motion.
+
+     Nothing behind a card is ever meant to be seen through it, so the
+     alpha bought nothing to begin with: these values are what the old
+     translucent pair already resolved to over this section's ground. */
+  --fd-card-bg: var(--ground-3);
+  --fd-card-edge: color-mix(in oklab, var(--color-accent-300) 14%, transparent);
+}
+
+/* ---- the row ----
+
+   Three panels sharing one width. The one being pointed at takes a
+   little over half of it and the other two split what is left; at rest
+   that one is the founder. Nothing is positioned, nothing overlaps and
+   nothing travels — the only thing that changes is how the width is
+   divided, which is `flex-grow` and nothing else.
+
+   ── Why this is stable without any of the old machinery ──
+   The ring needed two fixed hit zones, a re-entry guard and a rule
+   about never moving what the pointer is testing against, because
+   promoting a card moved it out from under the cursor.
+
+   Expanding is the opposite: pointing at a panel makes that panel
+   *bigger*, so the pointer that started the hover is still inside it —
+   and both its edges move away from the cursor rather than toward it.
+   The interaction cannot chase itself, so the pointer touches the real
+   panels, there are no invisible zones, and there is no guard. What is
+   left is a flex row.
+
+   The one thing kept from the ring is where the reset lives: on the
+   wrapper rather than on each panel, so crossing the gap between two
+   panels does not collapse the row back to the founder and start an
+   animation nobody asked for. */
+
+.fd-rig {
+  /* Tablet. Everything at just over three quarters — the brief's
+     "reduce card sizes while maintaining the hierarchy", which one
+     scale on the whole row does exactly. */
+  --fd-u: 0.78;
+
+  /* How long the width takes to redistribute. Read by .fd-panel and
+     by nothing else, so this is the single knob for the pace. */
+  --fd-open-dur: 1150ms;
+
+  /* How much more of the row the open panel takes than a closed one.
+     2.2 against 1 gives it 52% and leaves 24% each to the other two —
+     wide enough to read as the subject, narrow enough that a closed
+     panel still carries a legible name. Push it much past this and the
+     closed pair stop being cards and become spines. */
+  --fd-open: 2.2;
+
+  font-size: calc(var(--fd-u) * 1rem);
+  position: relative;
+  width: 100%;
+
+  /* Held well inside the page. The open panel is ~52% of this, so the
+     max width is really a statement about how wide the *subject* gets:
+     at 46em the open panel lands a touch narrower than it is tall,
+     which keeps it reading as a portrait rather than a landscape. */
+  max-width: 46em;
+  margin-inline: auto;
+}
+
+@media (min-width: 1024px) {
+  .fd-rig {
+    --fd-u: 1;
+  }
+}
+
+@media (min-width: 1280px) {
+  .fd-rig {
+    --fd-u: 1.15;
+  }
+}
+
+.fd-row {
+  display: flex;
+  gap: 0.6em;
+  height: 26em;
+}
+
+/* The height has to be carried all the way down by hand.
+
+   .fd-panel is a flex item and stretches to the row on its own, but
+   the two wrappers between it and the card — the drift and the
+   entrance — are ordinary auto-height divs, and `height: 100%` on the
+   card resolves against the nearest ancestor with a *definite* height.
+   Without this the chain reads 26em, auto, auto, 100%-of-auto, and
+   every panel collapses to a hairline. */
+.fd-row .fd-float,
+.fd-row .fd-in {
+  height: 100%;
+}
+
+.fd-panel {
+  /* `0` basis, not `auto`: with an auto basis the panels would size
+     themselves from their content first and only share out the
+     remainder, so the ratio below would be diluted by whatever the
+     labels happen to measure. From zero, grow *is* the width. */
+  flex: var(--fd-grow, 1) 1 0;
+
+  /* Flex items floor at their content's min-content width unless told
+     otherwise, and a closed panel is narrower than its own label. */
+  min-width: 0;
+
+  position: relative;
+
+  transition: flex-grow var(--fd-open-dur) var(--ease-editorial);
+}
+
+/* Open. Applied to the founder at rest and to whichever panel is being
+   pointed at otherwise — the component decides which, because the
+   pointer has to be able to leave the gap between two panels without
+   the row collapsing (see the note above). */
+.fd-panel[data-open] {
+  --fd-grow: var(--fd-open);
+}
+
+/* Closed panels give up a little light. Only a little: these are named
+   people with named roles, not scenery, and the width already says
+   which one is the subject. */
+.fd-panel:not([data-open]) .fd-card {
+  opacity: 0.86;
+}
+
+/* The key light, and it rides with the founder rather than with the
+   open panel — the founder is what the section is about, whoever
+   happens to be widest at the moment. Sits behind the card and outside
+   its rounded clip, so the panel must not hide its overflow. */
+.fd-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30em;
+  height: 26em;
+  transform: translate3d(-50%, -50%, 0);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-accent-500) 16%, transparent) 0%,
+    color-mix(in oklab, var(--color-accent-600) 6%, transparent) 44%,
+    transparent 72%
+  );
+  filter: blur(54px);
+}
+
+/* ---- the drift ----
+
+   Never lines up: no two periods here share a factor, and every card
+   starts on a negative delay so the arc is already in motion on the
+   first frame rather than setting off together from rest. */
+@keyframes fd-float {
+  0%,
+  100% {
+    transform: translate3d(0, calc(var(--fd-lift, 5px) * -1), 0);
+  }
+  50% {
+    transform: translate3d(0, var(--fd-lift, 5px), 0);
+  }
+}
+
+.fd-float {
+  position: relative;
+  animation: fd-float var(--fd-float-dur, 14s) ease-in-out infinite;
+  animation-delay: var(--fd-float-delay, 0s);
+}
+
+/* ---- the arrival ----
+
+   Gated by ScrollStagger, which writes --reveal-delay onto each item
+   in DOM order: founder, near pair, far pair.
+
+   One class for both moves. The founder is handed a --fd-from-s and no
+   x, so it fades and scales up into place; a satellite is handed an x
+   and no scale, so it slides in from its own side. Same rule, same
+   curve, two different starting conditions — which keeps the arc
+   arriving as one gesture instead of as two competing ones. */
+.fd-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    opacity 820ms var(--ease-soft),
+    transform 980ms var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .fd-in {
+  opacity: 0;
+  transform: translate3d(var(--fd-from-x, 0px), var(--fd-from-y, 14px), 0)
+    scale(var(--fd-from-s, 1));
+}
+
+/* ---- the card ---- */
+
+.fd-card {
+  position: relative;
+  width: 100%;
+
+  /* Fills its panel rather than setting its own aspect. In the row the
+     height is fixed and the width is what changes, so a card that kept
+     a 4:5 ratio would grow taller as it opened and shove the row
+     around. The column below md still wants an aspect, and gets one
+     back on .fd-column .fd-portrait. */
+  height: 100%;
+
+  border-radius: 1.15em;
+  overflow: hidden;
+  border: 1px solid var(--fd-card-edge);
+  background: var(--fd-card-bg);
+
+  /* Follows the panel's width, so the light comes up as a panel opens
+     rather than snapping at the start of the move. */
+  transition: opacity var(--fd-open-dur, 1150ms) var(--ease-soft);
+
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--fg) 5%, transparent) inset,
+    0 18px 40px -22px color-mix(in oklab, var(--shadow-ink) calc(90% * var(--shadow-scale)), transparent);
+}
+
+/* The founder's card, and the difference is light rather than size.
+   A deeper drop, a lit edge and the key glow underneath.
+
+   This travels with the founder around the ring rather than belonging
+   to the front seat, which is the whole hierarchy now that any card
+   can be at the front: size says who is being looked at, and this says
+   who the section is about. */
+.fd-card--lead {
+  border-color: color-mix(in oklab, var(--color-accent-300) 20%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--fg) 8%, transparent) inset,
+    0 0 0 1px color-mix(in oklab, var(--color-accent-500) 8%, transparent),
+    0 34px 70px -30px color-mix(in oklab, var(--shadow-ink) calc(95% * var(--shadow-scale)), transparent),
+    0 0 60px -20px color-mix(in oklab, var(--color-accent-500) 28%, transparent);
+}
+
+/* hover: hover only. On a touch screen :hover latches on tap and stays
+   until something else is tapped, which would leave one card stuck
+   forward with no way to put it back.
+
+   Scoped to the column, which is the only place a card is hovered
+   directly — on the ring the pointer meets a hit zone instead, and the
+   promotion is the feedback. Scaling about the card's own centre keeps
+   even this one stable: the centroid does not move and the hit area
+   only grows, so the pointer that started the hover is still inside
+   the card at the end of it. */
+@media (hover: hover) {
+  .fd-column .fd-card {
+    transform: translate3d(0, 0, 0) scale(1);
+    transition: transform 520ms var(--ease-editorial);
+  }
+
+  .fd-column .fd-card:hover {
+    transform: translate3d(0, 0, 0) scale(1.035);
+  }
+
+  /* Hold still while the row is being used. */
+  .fd-rig:hover .fd-float {
+    animation-play-state: paused;
+  }
+}
+
+.fd-portrait {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  /* The floor under a missing photograph, and the ground the real one
+     is composited over — a portrait with a dark corner reads as lit
+     rather than as cut out.
+
+     Opaque for the same reason as --fd-card-bg: this covers most of a
+     card's area, so leaving alpha here would keep the ghosting during
+     a promotion even with the body solid underneath. These are the
+     colours the old alpha stops already resolved to. */
+  background:
+    radial-gradient(
+      120% 90% at 50% 18%,
+      var(--ground-4) 0%,
+      var(--ground-3) 62%,
+      var(--ground) 100%
+    );
+}
+
+/* The scrim under the label. This is what makes the label legible over
+   a photograph rather than the label's own background — a plate opaque
+   enough to survive any portrait on its own would be a solid bar
+   across the bottom third of every card.
+
+   Painted, not sampled: a backdrop-filter has to re-read and re-blur
+   everything behind it on every frame the element moves, and it cannot
+   be cached across those frames. There are five of these cards and all
+   five drift continuously, so a sampled blur here would never stop
+   working. (The same call, for the same reason, is documented at
+   length on .tm-card.) */
+.fd-portrait::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46%;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--ground) 86%, transparent) 0%,
+    color-mix(in oklab, var(--ground) 50%, transparent) 42%,
+    transparent 100%
+  );
+}
+
+.fd-photo {
+  object-fit: cover;
+  /* Faces sit above centre in a 4:5 crop, so the frame is pulled up
+     rather than centred — a centred crop puts the label across the
+     chin of anyone photographed head-on. */
+  object-position: 50% 22%;
+}
+
+/* The monogram that stands in for a portrait nobody has supplied.
+   Deliberately quiet: it is a blank, and a blank that shouts is worse
+   than the gap it is filling. */
+.fd-mono {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 2.4em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: color-mix(in oklab, var(--fg) 14%, transparent);
+}
+
+/* ---- the label ----
+
+   Laid over the foot of the portrait rather than sitting under it, so
+   the card stays one object. The gradient above it is what keeps the
+   type legible over whatever the photograph happens to be doing at
+   that point — a plate alone would sit on a face as often as not. */
+.fd-label {
+  position: absolute;
+  left: 0.7em;
+  right: 0.7em;
+  bottom: 0.7em;
+  padding: 0.62em 0.85em;
+  border-radius: 0.68em;
+  border: 1px solid color-mix(in oklab, var(--fg) 8%, transparent);
+  background: color-mix(in oklab, var(--ground) 82%, transparent);
+
+  /* ---- the one place the type does *not* follow --fd-u ----
+
+     Everything else in this block scales off the stage's font-size,
+     which is the whole point of the composition. Type cannot: at the
+     tablet's 0.66 the role line would resolve to about 7px, and a
+     label nobody can read is not a smaller label, it is a broken one.
+
+     So each size is a max() of a floor in rem and a proportion in em.
+     The proportion wins while there is room and the floor takes over
+     once there is not — the labels shrink with the cards down to the
+     10px the rest of this site treats as the bottom of the scale, and
+     then stop. */
+  font-size: max(0.66rem, 0.8em);
+}
+
+/* The white plate, and the single strongest thing separating the
+   founder from the bench — more than the 29% size difference, which is
+   real but is not what the eye lands on first. It is the only light
+   surface in the section. */
+.fd-card--lead .fd-label {
+  left: 0.85em;
+  right: 0.85em;
+  bottom: 0.85em;
+  padding: 0.78em 1em;
+  border-radius: 0.78em;
+  border-color: color-mix(in oklab, var(--fg) 60%, transparent);
+  background: color-mix(in oklab, var(--fg) 95%, transparent);
+  box-shadow: 0 12px 30px -14px color-mix(in oklab, var(--shadow-ink) calc(80% * var(--shadow-scale)), transparent);
+
+  /* Deliberately *not* larger here — see the open-state rule below. */
+  transition: font-size var(--fd-open-dur, 1150ms) var(--ease-editorial);
+}
+
+/* The plate only gets its full size when the founder's panel is open,
+   or in the column below md where the founder is the hero card.
+
+   It used to take that size unconditionally, which was fine while the
+   name was a two-word placeholder and wrong the moment a real one
+   arrived: "Shahi Rahman MP" at the open size has no chance of fitting
+   a closed panel, so it wrapped to three lines and the plate grew to
+   swallow nearly half the card. Dropping to the standard label size
+   when closed keeps it to a line or two. */
+.fd-panel[data-open] .fd-card--lead .fd-label,
+.fd-column .fd-card--lead .fd-label {
+  font-size: max(0.8rem, 0.98em);
+}
+
+.fd-name {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--fg);
+
+  /* Wraps rather than truncating. The ring could not allow this — a
+     label there was anchored to the foot of a card that overlapped its
+     neighbour, so a second line grew upward into the clearance that
+     kept it from being painted over. Panels do not overlap, so the
+     only cost of a long name is a taller plate. */
+  overflow-wrap: anywhere;
+}
+
+.fd-role {
+  display: block;
+  margin-top: 0.15em;
+  font-family: var(--font-mono);
+  font-size: max(0.6rem, 0.76em);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: color-mix(in oklab, var(--fg) 42%, transparent);
+
+  /* Wraps for the same reason as the name above, and it matters more
+     here: a closed panel is about a quarter of the row, and
+     "Chief Technology Officer" has no chance of fitting on one line
+     at that width. */
+  overflow-wrap: anywhere;
+}
+
+.fd-card--lead .fd-name {
+  font-size: 1.15em;
+  color: var(--ground);
+}
+
+.fd-card--lead .fd-role {
+  font-size: max(0.66rem, 0.8em);
+  color: color-mix(in oklab, var(--ground) 62%, transparent);
+}
+
+/* ---- below md ----
+
+   The column borrows the card, the label and the type floors
+   wholesale, and sets the only thing the stage was providing: a
+   font-size. Two of them, because down here the hierarchy has no arc
+   and no lighting to carry it — the size gap and the white plate are
+   the whole of it. */
+.fd-column .fd-card {
+  font-size: 1.1rem;
+}
+
+.fd-column li:not(:first-child) .fd-card {
+  font-size: 1rem;
+}
+
+/* The column has no fixed height to fill, so the card gets its aspect
+   back here. .fd-card and .fd-portrait stretch to their panel in the
+   row above, which down here would collapse them to nothing. */
+.fd-column .fd-portrait {
+  height: auto;
+  aspect-ratio: 4 / 5;
+}
+
+/* Caps want their tracking opened, not closed. The rest of the page's
+   headings sit at -0.04em because they are sentence case at display
+   sizes; this one is the exception and says so. */
+.fd-heading {
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+}
+
+.fd-heading .reveal-word-accent {
+  color: var(--color-accent-300);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The row is a composition, not a performance — it survives losing
+     the drift and the entrance completely. What it may not lose is the
+     hierarchy, so the width split, the light and the white plate all
+     stay exactly where they are.
+
+     Note that .fd-panel is deliberately absent below: its flex-grow
+     *is* the layout, and clearing it would give all three panels an
+     equal third of the row and flatten the whole point of the
+     section. Only the transition is dropped, by the global rule
+     further down, which leaves the split snapping rather than easing —
+     correct here, since the visitor asked for less motion and the
+     widths still say who the subject is. */
+  .fd-float {
+    animation: none !important;
+  }
+
+  .fd-card {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .fd-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ==================================================================
+   CONTACT — the detail on the left, the form on the right
+
+   Two columns from lg up and one below it, which is the only breakpoint
+   decision in here: the form is the point of the page, and a form
+   sharing a row with a paragraph needs about 26rem to itself before the
+   fields stop looking like slots.
+
+   The reference for this page was dark type on white. It is inverted
+   here rather than dropped in as a light panel, for the same reason the
+   projects deck was: this site has no light page, and a white card in
+   the middle of a near-black one stops reading as a card and starts
+   reading as a different website.
+   ================================================================== */
+
+.ct-scope {
+  /* Local to this composition. The form is the only place on the site
+     that asks for input, so it gets its own surface values rather than
+     borrowing the card tokens from sections that only display. */
+  --ct-field-bg: color-mix(in oklab, var(--fg) 3%, transparent);
+  --ct-field-edge: color-mix(in oklab, var(--color-accent-300) 14%, transparent);
+  --ct-field-edge-hover: color-mix(in oklab, var(--color-accent-300) 26%, transparent);
+}
+
+.ct-grid {
+  display: grid;
+  gap: 3.5rem;
+}
+
+@media (min-width: 1024px) {
+  .ct-grid {
+    /* 1fr to 1.05fr, so the form is a shade wider than the column of
+       detail beside it. Dead even would be the obvious split and the
+       wrong one — the two sides are not equals here, one is read and
+       the other is used. */
+    grid-template-columns: 1fr 1.05fr;
+    gap: 4.5rem;
+    align-items: start;
+  }
+}
+
+/* ---- the detail ---- */
+
+.ct-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+/* The boxed glyph. Same rounded square as the footer's, at the larger
+   size the reference draws it. */
+.ct-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--color-accent-300) 14%, transparent);
+  background: color-mix(in oklab, var(--fg) 3%, transparent);
+  color: color-mix(in oklab, var(--fg) 62%, transparent);
+}
+
+.ct-detail-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--fg) 38%, transparent);
+}
+
+.ct-detail-value {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--fg) 82%, transparent);
+
+  /* Held to a measure rather than left to fill the column. Only the
+     address is long enough to care, and without this it runs the full
+     width of the left column and wraps with two words on the second
+     line — which reads as an accident rather than as an address. */
+  max-width: 24rem;
+}
+
+/* Underline grown from the left on hover, matching .ft-link. Drawn on a
+   pseudo-element rather than with text-decoration so it can animate. */
+.ct-link {
+  position: relative;
+  color: inherit;
+  transition: color 300ms var(--ease-soft);
+}
+
+.ct-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.4;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 380ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .ct-link:hover {
+    color: var(--fg);
+  }
+
+  .ct-link:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+.ct-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* ---- the form ---- */
+
+.ct-form {
+  border-radius: 1.35rem;
+  border: 1px solid color-mix(in oklab, var(--color-accent-300) 13%, transparent);
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--color-accent-600) 9%, transparent) 0%,
+      color-mix(in oklab, var(--fg) 1.4%, transparent) 34%,
+      color-mix(in oklab, var(--fg) 0%, transparent) 62%
+    ),
+    color-mix(in oklab, var(--ground) 72%, transparent);
+  padding: 1.75rem;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--fg) 5%, transparent) inset,
+    0 30px 70px -40px color-mix(in oklab, var(--shadow-ink) calc(95% * var(--shadow-scale)), transparent);
+}
+
+@media (min-width: 640px) {
+  .ct-form {
+    padding: 2.25rem;
+  }
+}
+
+.ct-field {
+  margin-top: 1.25rem;
+}
+
+.ct-field:first-child {
+  margin-top: 0;
+}
+
+.ct-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: color-mix(in oklab, var(--fg) 72%, transparent);
+}
+
+.ct-input {
+  display: block;
+  width: 100%;
+  border-radius: 0.7rem;
+  border: 1px solid var(--ct-field-edge);
+  background: var(--ct-field-bg);
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg);
+
+  /* Colour and border only. A field that moves when it is focused
+     shifts the caret the visitor is already looking at. */
+  transition:
+    border-color 240ms var(--ease-soft),
+    background-color 240ms var(--ease-soft),
+    box-shadow 240ms var(--ease-soft);
+}
+
+.ct-input::placeholder {
+  color: color-mix(in oklab, var(--fg) 26%, transparent);
+}
+
+@media (hover: hover) {
+  .ct-input:hover {
+    border-color: var(--ct-field-edge-hover);
+  }
+}
+
+/* The focus ring is drawn here rather than left to the global
+   :focus-visible outline, which is offset 3px and would sit away from
+   a field this size like a halo. Same accent, tight to the edge. */
+.ct-input:focus,
+.ct-input:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-500);
+  background: color-mix(in oklab, var(--fg) 5%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent-500) 22%, transparent);
+}
+
+.ct-textarea {
+  min-height: 8.5rem;
+  /* Vertical only. A textarea dragged wider than its column breaks the
+     card it sits in. */
+  resize: vertical;
+}
+
+/* The submit is the house primary pill, stretched to the card. The
+   width is the only override — a full-width action is what says "this
+   is the end of the form" once the fields above it are all full-width
+   too. */
+.ct-submit {
+  height: 3.1rem;
+}
+
+.ct-note {
+  margin-top: 0.9rem;
+  font-size: 12px;
+  line-height: 1.55;
+  color: color-mix(in oklab, var(--fg) 34%, transparent);
+}
+
+.ct-heading .reveal-word-accent {
+  color: var(--color-accent-300);
+}
+
+/* ==================================================================
+   FOOTER — the directory at the end of the page
+
+   Almost no motion by design. Everything above this point is a
+   composition that performs on arrival, and a footer that does the
+   same reads as the page refusing to finish. What it gets instead is
+   one soft column-by-column settle as it comes into view, and hovers
+   that are precise rather than showy — this is the part of the page
+   people arrive at knowing what they came for.
+   ================================================================== */
+
+/* The light on the seam. Sits centred on the footer's top border and half
+   above it, so the border reads as a lit edge rather than a ruled line. */
+.ft-seam {
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-accent-500) 13%, transparent) 0%,
+    color-mix(in oklab, var(--color-accent-600) 5%, transparent) 44%,
+    transparent 70%
+  );
+  filter: blur(52px);
+}
+
+/* ---- links ----
+
+   Colour plus a rule that wipes in from the left. The rule is drawn once and
+   scaled, not grown from zero width, so it stays on the compositor and does
+   not relayout the line it sits under; and it fades out along its length,
+   which keeps it from reading as an underlined word. */
+.ft-link {
+  position: relative;
+  display: inline-block;
+  color: color-mix(in oklab, var(--fg) 48%, transparent);
+  transition: color 300ms var(--ease-soft);
+}
+
+.ft-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent-500),
+    color-mix(in oklab, var(--color-accent-500) 0%, transparent)
+  );
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 420ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .ft-link:hover {
+    color: var(--fg);
+  }
+
+  .ft-link:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* Keyboard users get the same rule the pointer does — the focus ring alone
+   lands on a transparent inline box and is easy to lose in a column of six. */
+.ft-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* ---- the social row ---- */
+.ft-social {
+  display: grid;
+  place-items: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--fg) 8%, transparent);
+  background: color-mix(in oklab, var(--fg) 2%, transparent);
+  color: color-mix(in oklab, var(--fg) 45%, transparent);
+  transition:
+    color 300ms var(--ease-soft),
+    border-color 300ms var(--ease-soft),
+    background-color 300ms var(--ease-soft),
+    transform 300ms var(--ease-cinematic),
+    box-shadow 300ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .ft-social:hover {
+    color: var(--fg);
+    border-color: color-mix(in oklab, var(--color-accent-500) 45%, transparent);
+    background: color-mix(in oklab, var(--fg) 5%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px -14px color-mix(in oklab, var(--color-accent-500) 75%, transparent);
+  }
+}
+
+/* ---- the contact glyphs ----
+
+   Boxed rather than bare, so three icons of quite different silhouettes —
+   an envelope, a handset, a pin — still line up as a column of one shape. */
+.ft-glyph {
+  display: grid;
+  place-items: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--fg) 7%, transparent);
+  background: color-mix(in oklab, var(--fg) 2.5%, transparent);
+  color: var(--color-accent-400);
+}
+
+/* ---- the arrival ----
+
+   Gated by ScrollStagger, which writes --reveal-delay onto each column in DOM
+   order. Shorter and shallower than the sections above: this is a settle, not
+   an entrance. */
+.ft-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 640ms var(--ease-soft),
+    transform 760ms var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="out"] .ft-in {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-in,
+  [data-reveal="out"] .ft-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Texture
+   ------------------------------------------------------------------ */
+.bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion — the design must still land, just without the show
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal-word,
+  .reveal-word-inner,
+  .anim-rise,
+  .anim-rise-inner {
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+
+  /* No sweep at all — the duplicate glyphs stay out of the way entirely. */
+  .reveal-word-inner::after {
+    animation: none !important;
+    display: none !important;
+  }
+
+  .anim-ambient,
+  .anim-glow-a,
+  .anim-glow-b,
+  .anim-glow-c,
+  .anim-glow-d,
+  .anim-plane-far,
+  .anim-plane-mid,
+  .anim-plane-near,
+  .anim-drift,
+  .anim-line-shift,
+  .anim-scroll-cue,
+  .anim-marquee {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Drifting glyphs have no static opacity of their own. */
+  .anim-drift {
+    opacity: var(--drift-opacity, 0.05) !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@theme inline {
+  /* `--font-sans: var(--font-sans)` was here, from the shadcn scaffold. It
+     assumes nothing else defines the token and that next/font publishes it on
+     <html> — but this project defines it in its own @theme above, and this
+     block comes later, so the definition that won was one referencing itself.
+     A self-referential custom property is invalid at computed-value time, so
+     `var(--font-sans)` resolved to nothing and both `body { font-family }` and
+     `html { @apply font-sans }` fell back to the browser default serif. The
+     line is gone; the token above stands. */
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+/* ------------------------------------------------------------------
+   Ground truth for the shadcn tokens
+
+   The two blocks above are shadcn's generated light and dark themes,
+   and this site is neither — it is one dark palette with no toggle.
+   Left alone, --background resolves to white, which is how a `body`
+   that had already been told to be ink-950 ended up painting a white
+   band wherever a section did not cover it.
+
+   Only the two that describe the page itself are re-pointed. The rest
+   of the set is left as generated: nothing here uses them, and a
+   wholesale rewrite is a much larger promise to keep than this file
+   needs to make. Kept last in the file so it survives the generated
+   blocks being regenerated above it.
+
+   Now pointed at the themed tokens rather than at fixed values, so the
+   pair tracks the toggle along with everything else. Both selectors are
+   spelled out because the generated `:root` and `.dark` blocks above
+   set these same two names, and matching their specificity is what
+   keeps this block winning wherever the visitor has landed.
+   ------------------------------------------------------------------ */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] {
+  --background: var(--ground);
+  --foreground: var(--body-ink);
+}

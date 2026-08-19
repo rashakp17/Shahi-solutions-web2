@@ -1,0 +1,256 @@
+import { ThemedWarpText } from "@/components/site/ThemedWarpText";
+import { BlurReveal } from "@/components/ui/BlurReveal";
+import { ScrollScrub } from "@/components/ui/ScrollScrub";
+
+/* ------------------------------------------------------------------
+   Copy. All of it, in one place.
+   ------------------------------------------------------------------ */
+
+/**
+ * The giant line, broken over two.
+ *
+ * The newline is the break — WarpText splits the string on it and rasterises
+ * one line per part, each centred. Broken after "That" rather than after
+ * "Move", so "Move Businesses Forward" stays intact: splitting a verb from its
+ * object is the one place a two-line headline reads as an accident.
+ *
+ * Still not solved against the viewport. The crop is the composition, so the
+ * copy is free to be any length and the only thing the window decides is how
+ * much of the longer line you get.
+ */
+const PHRASE = "Building Ideas That\nMove Businesses Forward";
+
+/**
+ * Placeholder claims, in the manner of the rest of this template — the
+ * uptime figures in the hero and the company names in the trust strip are
+ * invented too. Worth replacing with real numbers before this goes anywhere
+ * near a customer.
+ */
+const STATS: Array<{ value: string; label: string }> = [
+  { value: "99.99%", label: "Release success" },
+  { value: "0", label: "Manual rollbacks" },
+  { value: "24/7", label: "Automated recovery" },
+];
+
+/**
+ * Delays for the small content, in ms from the moment it is released, which
+ * ScrollScrub does at 45% of the scrub — with the giant line part way up.
+ *
+ * Overlapping rather than sequential. Waiting for the typography to finish
+ * completely leaves a hole in the middle of the section where nothing is
+ * happening; coming in over its tail reads as one continuous arrival, which
+ * is what the rest of the page does too.
+ */
+const CONTENT = { eyebrow: 0, note: 140, stats: 380, statStagger: 90 } as const;
+
+/**
+ * The warp, at the component's own defaults.
+ *
+ * These are the React Bits values, unchanged — the glass lens that follows the
+ * cursor, with its ambient undulation underneath. Nothing in this section
+ * drives the animation: the component owns its loop, and it stops itself
+ * whenever the section is off screen or the tab is hidden.
+ *
+ * The one thing this section has to get right is that the cursor can actually
+ * reach the canvas. See the pointer-events notes in the markup below — the
+ * effect is invisible without them, however the shader is tuned.
+ */
+const WARP = {
+  strength: 0.08,
+  scale: 1.7,
+  speed: 0.55,
+  pointerInfluence: 0.42,
+  pointerStrength: 0.38,
+  refraction: 0.018,
+} as const;
+
+/**
+ * The fill for the giant line, left to right across the frame — the same ramp
+ * the CSS version painted through the glyphs.
+ *
+ * Literal hex, not tokens: this goes into a canvas `fillStyle`, which resolves
+ * neither custom properties nor `color-mix()`. The values are the existing
+ * blue ramp read out by hand — accent-500, accent-300, a near-white through
+ * the middle where the sentence is actually read, then down to a muted
+ * blue-grey as it runs to the right edge.
+ */
+const GIANT_FILL = {
+  dark: ["#4d84f5", "#8db3ff", "#eef2fb", "#5f7099", "#39435e"],
+  /**
+   * The same five stops, re-derived rather than inverted.
+   *
+   * The dark ramp runs blue → pale → near-white through the middle, because
+   * on black the middle of the sentence — the part actually being read — has
+   * to be the *brightest* thing in the gradient. On white the same role needs
+   * the opposite: near-black through the middle, since contrast against the
+   * ground is what legibility is made of, and there is nothing paler than the
+   * page to reach for.
+   *
+   * The two ends stay blue and stay quieter than the centre, which is what
+   * the effect is really about — a line that resolves as it reaches you and
+   * falls back into the ground at both edges.
+   */
+  light: ["#14213D", "#14213D", "#000000", "#14213D", "#E5E5E5"],
+} as const;
+
+export function StatementSection() {
+  return (
+    // span 1.0, down from 1.25: the scrub now completes exactly as the pane
+    // pins, instead of a quarter-viewport later. The approach was spending
+    // that quarter on an almost-empty screen.
+    //
+    // releaseAt 0.45, down from 0.62: the eyebrow and the stats are what fill
+    // the top and bottom of this pane, and holding them back that long left it
+    // a blank slab for most of the way in. At 0.45 the giant line is still well
+    // ahead of them — it is released at 0.25 and takes a beat over a second —
+    // so the typography establishes the scene first, just not into a vacuum.
+    <ScrollScrub className="relative isolate bg-ink-950" span={1} releaseAt={0.45}>
+      {/* 106svh, down from 112, 125 and originally 150. Everything past 100 is
+          pinned dwell — the pane held on screen with nothing new happening —
+          and the warp is a hover effect rather than a scroll-driven one, so it
+          does not need scroll distance to play out. 6svh still registers as a
+          held beat; much less and the pane starts leaving as it arrives. */}
+      <section id="shipping" className="relative min-h-[106svh]">
+        {/* Pinned for the length of the scrub, so the line arrives, holds the
+            screen and settles, rather than sliding straight back off the top
+            while it is still resolving.
+
+            The crop lives here, and this is the only place it lives: the type
+            is free to run as far past the left and right edges as it likes,
+            none of it can reach the document and cause a sideways scroll, and
+            the line's own mask is left to do nothing but the vertical reveal. */}
+        <div className="sticky top-0 h-[100svh] overflow-hidden">
+          {/* Genuinely black. The typography is the only event in this
+              section, so the ground stays out of its way — no particle field,
+              no drifting marks, one static source of light behind the type. */}
+          <div className="absolute inset-0 bg-[radial-gradient(125%_85%_at_50%_46%,var(--ground-4)_0%,var(--ground)_52%,var(--ground-deep)_100%)]" />
+          <div className="atmo-glow absolute left-1/2 top-1/2 h-[38rem] w-[68rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(47,99,214,0.13)_0%,rgba(30,70,163,0.05)_45%,transparent_70%)] blur-[64px]" />
+          {/* No mix-blend here, unlike the other sections. A blend mode needs
+              its backdrop resolved before it can composite, which stops this
+              pane from being flattened. At 2% over near-black the blend was
+              buying nothing. */}
+          <div className="bg-grain absolute inset-0 opacity-[0.025]" />
+
+          {/* The join. The services section ends on the dark end of its own
+              vignette and this one opens on the light middle of a radial, which
+              put a visible horizontal step exactly where the two meet. Fading
+              the top back to ink-950 hides it, and once the pane pins it is
+              just a darker top edge for the navbar to sit against. */}
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-ink-950 to-transparent" />
+
+          {/* ---------------- the typographic layer ----------------
+
+              Emphatically NOT pointer-events-none, unlike every other
+              decorative layer on this page. The warp is a cursor lens: the
+              canvas has to receive pointermove or the shader never leaves its
+              ambient idle, which is the whole effect missing. */}
+          <div
+            data-scrub-target=""
+            className="absolute inset-0 z-0 grid items-center"
+          >
+            <h2 className="sr-only">{PHRASE}</h2>
+
+            {/* display: contents, so .giant-warp lands on the component's own
+                container rather than on a box wrapped around it — the frame
+                height has to be on the element the canvas measures. aria-hidden
+                still covers the subtree, keeping the component's own role="img"
+                from announcing the phrase a second time. */}
+            <div aria-hidden="true" className="contents">
+              <ThemedWarpText
+                className="giant-warp"
+                text={PHRASE}
+                warpStrength={WARP.strength}
+                warpScale={WARP.scale}
+                speed={WARP.speed}
+                pointerInfluence={WARP.pointerInfluence}
+                pointerStrength={WARP.pointerStrength}
+                refraction={WARP.refraction}
+                ripple
+                // The line is meant to run off both edges, so it must not be
+                // shrunk to fit the frame.
+                fitToContainer={false}
+                colors={GIANT_FILL}
+                // The component measures a probe span with exactly these
+                // styles; the family is inherited from .giant-warp.
+                //
+                // 7.9vw, up from 5.2. Two lines halves the longest run of
+                // characters — 23 now against 42 before — so at the old size
+                // the type would have stopped running off the edges and the
+                // composition would have quietly become a normal centred
+                // heading. This holds the longer line at roughly 106% of the
+                // viewport, which is the same crop as before at a little over
+                // half again the size.
+                fontFamily="inherit"
+                fontSize="clamp(3.2rem, 7.9vw, 12rem)"
+                fontWeight={600}
+                letterSpacing="-0.05em"
+                lineHeight={1.05}
+              />
+            </div>
+          </div>
+
+          {/* ---------------- content over the layer ----------------
+
+              pointer-events-none on the column, auto on the two blocks inside
+              it. This column is h-full and sits at z-10, so as a solid box it
+              covers the canvas completely and every pointermove lands here
+              instead — the lens would only ever respond in the margins, which
+              is indistinguishable from it not working at all.
+
+              The blocks themselves take their events back, so the copy is
+              still selectable; they sit at the top and bottom of the pane and
+              the giant line runs through the middle, so they are not in its
+              way. Nothing in here is interactive, so nothing else is lost. */}
+          <div className="pointer-events-none relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-5 py-20 sm:px-8 sm:py-24">
+            <p
+              className="anim-rise pointer-events-auto font-mono text-[10px] uppercase tracking-[0.32em] text-fg/28"
+              style={{ animationDelay: `${CONTENT.eyebrow}ms` }}
+            >
+              How we ship
+            </p>
+
+            <div className="pointer-events-auto flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
+              {/* The one piece of small type that gets the masked reveal —
+                  the same rig as the hero headline, at a twentieth of the
+                  size. It answers the giant line, so it arrives the way the
+                  giant line does. */}
+              <BlurReveal
+                as="p"
+                lines={[
+                  { text: "Staged rollouts and" },
+                  { text: "automatic rollback.", accent: true },
+                ]}
+                delay={CONTENT.note}
+                lineDelay={40}
+                stagger={70}
+                duration={520}
+                className="max-w-xs text-[15px] font-medium leading-snug tracking-[-0.01em] text-fg/70 sm:text-base"
+              />
+
+              <dl className="flex flex-wrap items-end gap-x-10 gap-y-6 sm:gap-x-14">
+                {STATS.map((stat, i) => (
+                  <div
+                    key={stat.label}
+                    className="anim-rise"
+                    style={{
+                      animationDelay: `${
+                        CONTENT.stats + i * CONTENT.statStagger
+                      }ms`,
+                    }}
+                  >
+                    <dt className="font-mono text-[clamp(1.5rem,3.5vw,2.1rem)] font-medium tabular-nums leading-none tracking-[-0.03em] text-fg">
+                      {stat.value}
+                    </dt>
+                    <dd className="mt-2.5 text-[11px] uppercase tracking-[0.16em] text-fg/35">
+                      {stat.label}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+    </ScrollScrub>
+  );
+}
