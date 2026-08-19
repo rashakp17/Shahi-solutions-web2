@@ -90,7 +90,15 @@ const GIANT_FILL = {
    * the effect is really about — a line that resolves as it reaches you and
    * falls back into the ground at both edges.
    */
-  light: ["#14213D", "#14213D", "#000000", "#14213D", "#E5E5E5"],
+  // The last two stops carry the fall-off, and they have to fall *toward* the
+  // ground without reaching it. #E5E5E5 was the honest palette answer and the
+  // wrong one in practice: it is the page, so the tail of "Forward" simply
+  // disappeared. It went unnoticed while the line was cropped off the screen
+  // anyway; once it fitted, the last word read as a rendering fault.
+  //
+  // These two are the navy walked most of the way to the grey — still clearly
+  // receding, still clearly type.
+  light: ["#14213D", "#14213D", "#000000", "#3d4a6b", "#8892a8"],
 } as const;
 
 export function StatementSection() {
@@ -110,7 +118,7 @@ export function StatementSection() {
           and the warp is a hover effect rather than a scroll-driven one, so it
           does not need scroll distance to play out. 6svh still registers as a
           held beat; much less and the pane starts leaving as it arrives. */}
-      <section id="shipping" className="relative min-h-[106svh]">
+      <section id="shipping" className="relative min-h-[68svh] sm:min-h-[106svh]">
         {/* Pinned for the length of the scrub, so the line arrives, holds the
             screen and settles, rather than sliding straight back off the top
             while it is still resolving.
@@ -119,7 +127,7 @@ export function StatementSection() {
             is free to run as far past the left and right edges as it likes,
             none of it can reach the document and cause a sideways scroll, and
             the line's own mask is left to do nothing but the vertical reveal. */}
-        <div className="sticky top-0 h-[100svh] overflow-hidden">
+        <div className="sticky top-0 h-[62svh] overflow-hidden sm:h-[100svh]">
           {/* Genuinely black. The typography is the only event in this
               section, so the ground stays out of its way — no particle field,
               no drifting marks, one static source of light behind the type. */}
@@ -146,7 +154,17 @@ export function StatementSection() {
               ambient idle, which is the whole effect missing. */}
           <div
             data-scrub-target=""
-            className="absolute inset-0 z-0 grid items-center"
+            // items-start with a top offset below sm, centred above it.
+            //
+            // Centring is the right instinct on a full-height pane and the
+            // wrong one here. The supporting block at the bottom is 206px
+            // tall, so pinning the line to the pane centre forces the eyebrow
+            // roughly 220px clear of it whatever the pane height is — the gap
+            // moves between the top of the pane and the middle of it, but it
+            // cannot be removed. Placing the line a fixed distance below the
+            // eyebrow instead lets the three parts sit at reading distance
+            // from each other and the pane shrink to what they need.
+            className="absolute inset-0 z-0 grid items-start pt-[8.5rem] sm:items-center sm:pt-0"
           >
             <h2 className="sr-only">{PHRASE}</h2>
 
@@ -181,7 +199,23 @@ export function StatementSection() {
                 // viewport, which is the same crop as before at a little over
                 // half again the size.
                 fontFamily="inherit"
-                fontSize="clamp(3.2rem, 7.9vw, 12rem)"
+                // The floor, not the vw term, is what has to be right here.
+                //
+                // 7.9vw holds the longest line at ~90% of the screen at every
+                // width it actually governs. But `clamp` stops honouring it
+                // below 648px, and from there down the line is locked at
+                // 3.2rem while the screen keeps shrinking: 155% of a 375px
+                // phone, 182% of a 320px one. The crop IS the composition in
+                // this section, but a crop that eats 27% off each side stops
+                // being a composition and starts eating the words — "Move
+                // Businesses Forward" arrived on a phone as "ve Businesses
+                // Forw".
+                //
+                // 1.95rem puts the same line back at 111%/94%/90% across
+                // 320/375/414, so it still bleeds off the edges on the
+                // smallest screens and reads everywhere. Nothing at or above
+                // 648px changes at all — the floor never applied there.
+                fontSize="clamp(1.95rem, 7.9vw, 12rem)"
                 fontWeight={600}
                 letterSpacing="-0.05em"
                 lineHeight={1.05}
@@ -201,7 +235,7 @@ export function StatementSection() {
               still selectable; they sit at the top and bottom of the pane and
               the giant line runs through the middle, so they are not in its
               way. Nothing in here is interactive, so nothing else is lost. */}
-          <div className="pointer-events-none relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-5 py-20 sm:px-8 sm:py-24">
+          <div className="pointer-events-none relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-5 pb-[7svh] pt-24 sm:px-8 sm:py-24">
             <p
               className="anim-rise pointer-events-auto font-mono text-[10px] uppercase tracking-[0.32em] text-fg/28"
               style={{ animationDelay: `${CONTENT.eyebrow}ms` }}

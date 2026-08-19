@@ -27,7 +27,14 @@ export type TechKey =
   | "stripe"
   | "typescript"
   | "postgres"
-  | "vercel";
+  | "vercel"
+  /* Not frameworks, and deliberately still here. A stack line is a
+     statement about what a build is made of, and on these two projects
+     the live tracking and the analytics layer are as load-bearing as the
+     runtime under them. Neither has a logotype worth tracing at 16px, so
+     both take the monogram path the registry already provides. */
+  | "gps"
+  | "analytics";
 
 type Tech = {
   name: string;
@@ -128,6 +135,8 @@ const TECH: Record<TechKey, Tech> = {
     glyph: <path d="M12 3.4 22.4 20.6H1.6L12 3.4Z" fill="currentColor" />,
   },
   stripe: { name: "Stripe", color: "#8C85FF", mono: "S" },
+  gps: { name: "Real-Time GPS", color: "#4DB6AC", mono: "GPS" },
+  analytics: { name: "Analytics", color: "#7E9CF5", mono: "AN" },
   typescript: { name: "TypeScript", color: "#4C8FD8", mono: "TS" },
   postgres: { name: "PostgreSQL", color: "#6B8CE8", mono: "PG" },
 };

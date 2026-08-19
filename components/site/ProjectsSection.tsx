@@ -184,17 +184,26 @@ const PROJECTS: Project[] = [
     ),
   },
   {
-    title: "ERP Management System",
-    category: "Operations Platform",
+    title: "Emarath ERP",
+    category: "Enterprise Resource Planning System",
     description:
-      "Inventory, invoicing and reporting in one place, with role-based access and an audit trail on every record that changes.",
+      "A comprehensive ERP platform that unifies core business operations — inventory, procurement, finance, HR and reporting — into a single system. Role-based access control, real-time dashboards and automated workflows throughout.",
     features: [
-      "Inventory Control",
-      "Invoicing & Billing",
+      "Inventory & Procurement",
+      "Finance & HR Modules",
       "Role-Based Access",
-      "Audit Trail",
+      "Real-Time Dashboards",
     ],
-    stack: ["react", "node", "postgres", "typescript"],
+    stack: ["react", "node", "postgres"],
+    // Paths written before the files exist, on purpose: Shot swaps back to the
+    // drawing below on the first onError, so the card is correct today and
+    // correct again the moment the capture is dropped in (see the note on
+    // `shot` in the Project type). Nothing here changes when it lands.
+    shot: {
+      src: "/projects/emarath-erp.png",
+      clip: "/projects/emarath-erp.mp4",
+      alt: "The Emarath ERP dashboard: revenue and expense totals across the top, a trend chart, and a task summary beside a list of recent entries.",
+    },
     art: (
       <div className="flex h-full gap-2.5">
         <Panel className="hidden w-24 shrink-0 flex-col gap-2 p-3 sm:flex">
@@ -232,17 +241,22 @@ const PROJECTS: Project[] = [
     ),
   },
   {
-    title: "SaaS Dashboard",
-    category: "Product Interface",
+    title: "Fleet Management",
+    category: "Logistics & Vehicle Tracking",
     description:
-      "The product surface itself. Usage, billing and team management, built to stay readable as the data behind it grows.",
+      "A fleet solution for tracking vehicles, drivers, trips and maintenance schedules in real time. Live GPS, fuel and expense monitoring, automated service alerts, and the analytics to cut operating cost rather than just report it.",
     features: [
-      "Usage Analytics",
-      "Billing & Plans",
-      "Team Management",
-      "Live Charts",
+      "Live GPS Tracking",
+      "Driver & Trip Logs",
+      "Maintenance Alerts",
+      "Fuel & Expense Reports",
     ],
-    stack: ["next", "typescript", "postgres", "tailwind"],
+    stack: ["react", "node", "gps", "analytics"],
+    shot: {
+      src: "/projects/fleet-management.png",
+      clip: "/projects/fleet-management.mp4",
+      alt: "The Fleet Management console: a live map of vehicle positions across a coastline, with a per-vehicle status list down the left.",
+    },
     art: (
       <div className="flex h-full flex-col gap-2.5">
         <div className="grid grid-cols-3 gap-2.5">
@@ -269,17 +283,22 @@ const PROJECTS: Project[] = [
     ),
   },
   {
-    title: "Marketing Website",
-    category: "Growth & Acquisition",
+    title: "VRS Real Invest",
+    category: "Real Estate Website",
     description:
-      "Landing pages that load instantly and are built to be tested. Sections, offers and forms swapped over without touching code.",
+      "A professional real estate site built around property investment opportunities, company services and consultation booking — a clean, unhurried experience whose whole job is turning an interested visitor into an enquiry.",
     features: [
-      "Landing Page Builder",
-      "A/B Testing",
-      "Lead Capture Forms",
-      "Instant Page Loads",
+      "Property Showcase",
+      "Investment Enquiries",
+      "Consultation Booking",
+      "SEO & Responsive Build",
     ],
-    stack: ["next", "tailwind", "vercel"],
+    stack: ["react", "tailwind", "vercel"],
+    shot: {
+      src: "/projects/vrs-real-invest.png",
+      clip: "/projects/vrs-real-invest.mp4",
+      alt: "The VRS Real Invest home page: a featured luxury portfolio of properties beside an investment performance dashboard.",
+    },
     art: (
       <div className="flex h-full flex-col gap-2.5">
         <Panel className="flex flex-1 flex-col items-center justify-center p-5">

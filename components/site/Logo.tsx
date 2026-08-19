@@ -1,49 +1,72 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-/** Wordmark + geometric glyph. Kept flat and small — no gradient logo. */
+/**
+ * Intrinsic size of the artwork, after the white ground was unpremultiplied
+ * into alpha and the canvas cropped to the ink. Passed to next/image so the
+ * box is reserved before the file arrives and the bar never reflows around it.
+ */
+const ART = { w: 2201, h: 773 };
+
+/**
+ * The wordmark.
+ *
+ * Two files rather than one, and CSS picks between them.
+ *
+ * The supplied artwork is a navy lockup on an opaque white ground — the file
+ * was 70% white by area — which is right for paper and unusable on a dark
+ * page twice over: the white would print as a rectangle around the mark, and
+ * the navy itself is barely off the ground it would be sitting on. So the
+ * ground was removed into the alpha channel (coverage derived from distance
+ * from white, which keeps the anti-aliased edges instead of leaving the halo
+ * a hard threshold gives), and a second copy was recoloured for dark: the
+ * wordmark to near-white, the accent "A" and "Solutions" to the house blue.
+ * That split is the artwork's own — those two are a brighter blue than SHAHI
+ * in the original, so the mark keeps its two-tone relationship rather than
+ * flattening to one silhouette.
+ *
+ * Swapped in CSS rather than by reading the theme in JS, for the same reason
+ * the theme toggle's icons are: both are in the markup the server sends, so
+ * there is nothing to hydrate and the right one is up on the first paint.
+ *
+ * `alt=""` on both, deliberately. The link already carries the accessible
+ * name; captioning the images too would announce the company twice.
+ */
 export function Logo({ className }: { className?: string }) {
   return (
     <Link
       href="/"
       className={cn(
-        // py-2 -mp: the mark plus wordmark is only 23px tall, which is under the
-        // 24px minimum for a tap target and well under what a thumb wants. The
-        // padding grows the hit area and the negative margin gives the space
-        // back, so the bar keeps its height.
-        "group -my-2 flex items-center gap-2.5 py-2 transition-opacity duration-300 hover:opacity-80",
+        // py-2 with a matching negative margin: the artwork alone is under the
+        // 24px minimum for a tap target on the shortest bar, and this grows
+        // the hit area without the bar growing with it.
+        // w-fit because `flex` makes the anchor block-level, so in the footer
+        // — where it is not a flex child — it stretched the full column width
+        // and clicking empty space navigated home.
+        "group -my-2 flex w-fit items-center py-2 transition-opacity duration-300 hover:opacity-80",
         className,
       )}
       aria-label="Shahi Solutions — home"
     >
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 22 22"
-        fill="none"
-        aria-hidden="true"
-        className="shrink-0"
-      >
-        <rect
-          x="1"
-          y="1"
-          width="20"
-          height="20"
-          rx="6"
-          stroke="currentColor"
-          className="text-accent-300/22 origin-center transition-all duration-700 ease-cinematic group-hover:rotate-45 group-hover:text-accent-400/45"
-        />
-        <path
-          d="M7 14.2c1.1.9 2.3 1.3 3.7 1.3 1.9 0 3-.8 3-2 0-1.1-.8-1.6-2.6-2-2.5-.5-3.7-1.4-3.7-3.2C7.4 6.5 8.8 5.4 11 5.4c1.3 0 2.4.3 3.4 1"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          className="text-accent-400 transition-colors duration-500 ease-cinematic group-hover:text-accent-200"
-        />
-      </svg>
-      <span className="text-[15px] font-semibold tracking-[-0.02em] text-fg">
-        Shahi<span className="text-fg/45"> Solutions</span>
-      </span>
+      <Image
+        src="/brand/shahi-logo.png"
+        alt=""
+        width={ART.w}
+        height={ART.h}
+        // In the header on every route, so it is never worth lazy-loading —
+        // that only buys a blank box where the wordmark should be.
+        priority
+        className="logo-light h-9 w-auto sm:h-10"
+      />
+      <Image
+        src="/brand/shahi-logo-dark.png"
+        alt=""
+        width={ART.w}
+        height={ART.h}
+        priority
+        className="logo-dark h-9 w-auto sm:h-10"
+      />
     </Link>
   );
 }

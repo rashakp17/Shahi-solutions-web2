@@ -55,6 +55,16 @@ export function HeroBackground() {
       {/* 1 — base. Painted immediately: it *is* the darkness. */}
       <div className="absolute inset-0 bg-[radial-gradient(140%_100%_at_50%_0%,var(--ground-4)_0%,var(--ground)_45%,var(--ground)_100%)]" />
 
+      {/* 1b — the light theme's wash, and nothing on dark.
+
+          The base above is a radial between two ground tokens, and on the
+          light theme both of them are white — right for the page, and the
+          reason the hero read as a blank sheet. This layer only exists to
+          give that theme somewhere to put its colour; the rule is scoped to
+          [data-theme="light"] in globals.css, so on dark this div paints
+          nothing at all and costs one empty box. */}
+      <div className="hero-wash absolute inset-0" />
+
       {/* 2 — atmospheric light. Two bodies behind the headline reshaping each
           other, plus two weaker sources raking in from the sides. */}
       <div className="anim-ambient absolute inset-0" style={AMBIENT}>

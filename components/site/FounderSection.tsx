@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, type CSSProperties } from "react";
+import { FounderSlider } from "@/components/site/FounderSlider";
 import { BlurReveal } from "@/components/ui/BlurReveal";
 import { ScrollStagger } from "@/components/ui/ScrollStagger";
 import { cn } from "@/lib/cn";
@@ -391,47 +392,55 @@ export function FounderSection() {
 
       {/* ============ below md ============
 
-          Founder at the top and still the largest thing on screen, the
-          other two in a two-up underneath. No row, no opening and no
-          float — all three are a composition, and at this width there
-          is no composition to have.
+          A slider, one card at a time, advancing on its own.
 
-          Rebuilt in reading order rather than row order: the founder
-          sits in the middle of the row so that opening spreads both
-          ways, but a column has no middle, and the subject of the page
-          goes first. */}
+          The three of them are a composition in the row above — the
+          founder in the middle with the other two opening away from
+          him — and at this width there is no composition to have. The
+          stacked column that replaced it was honest but long: three
+          full-width cards is most of a screen and a half of scrolling
+          past faces, and the founder, who is the subject, stopped being
+          the largest thing on screen the moment you scrolled past him.
+
+          A slider gives each person the whole width and none of the
+          scroll. Reading order rather than row order, so the founder
+          leads: a row has a middle to build outward from, a sequence
+          does not.
+
+          ScrollStagger wraps the slider rather than its cards. Gating
+          each card individually would ask an IntersectionObserver about
+          slides that are scrolled out of the track sideways — they do
+          not intersect the viewport, so they would be held at opacity 0
+          and the slider would advance onto blank frames. */}
       <ScrollStagger
-        as="ul"
-        stagger={110}
+        as="div"
         inRatio={0.12}
-        className="fd-column relative z-10 mx-auto mt-12 grid max-w-[22rem] grid-cols-2 gap-3.5 px-5 md:hidden"
+        className="relative z-10 mt-12 block md:hidden"
       >
-        {[
-          PEOPLE[FOUNDER_AT],
-          ...PEOPLE.filter((_, i) => i !== FOUNDER_AT),
-        ].map((person, i) => (
-          <li
-            key={`${person.name}-${person.role}`}
-            className={i === 0 ? "col-span-2" : undefined}
+        <div>
+          <FounderSlider
+            label="Leadership team"
+            className="fd-column mx-auto max-w-[24rem] px-4"
           >
-            <div
-              className="fd-in"
-              style={
-                i === 0
-                  ? ({
-                      "--fd-from-s": "0.94",
-                      "--fd-from-y": "20px",
-                    } as CSSProperties)
-                  : ({
-                      "--fd-from-x": i === 1 ? "-24px" : "24px",
-                      "--fd-from-y": "12px",
-                    } as CSSProperties)
-              }
-            >
-              <Card person={person} lead={i === 0} />
-            </div>
-          </li>
-        ))}
+            {[
+              PEOPLE[FOUNDER_AT],
+              ...PEOPLE.filter((_, i) => i !== FOUNDER_AT),
+            ].map((person, i) => (
+              <div
+                key={`${person.name}-${person.role}`}
+                className="fd-in"
+                style={
+                  {
+                    "--fd-from-s": "0.96",
+                    "--fd-from-y": "16px",
+                  } as CSSProperties
+                }
+              >
+                <Card person={person} lead={i === 0} />
+              </div>
+            ))}
+          </FounderSlider>
+        </div>
       </ScrollStagger>
     </section>
   );

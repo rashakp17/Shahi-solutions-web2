@@ -134,6 +134,23 @@
      light theme rather than a recolour. See the light block. */
   --glow-strength: 1;
   --plane-strength: 1;
+
+  /* The scrim over a project card once the next one has covered it.
+
+     Off. It is kept as a token rather than deleted because the effect is
+     sound and the calibration is not: --pj-cover reaches 1 well before
+     the incoming card has physically covered the outgoing one, so there
+     is a stretch of scroll where a card is fully dimmed and still fully
+     on screen. That does not read as depth, it reads as one card being
+     broken and the next one being fine — which is exactly how it was
+     reported.
+
+     The stack still has its depth: the cards scale down, lift, and
+     tighten their corner radius as they go back, and none of those touch
+     legibility. Raise --pj-dim to bring the scrim back once the cover
+     ramp is tied to real occlusion rather than to scroll distance. */
+  --pj-dim-ink: var(--ground);
+  --pj-dim: 0;
   --glow-tint: color-mix(in oklab, var(--color-accent-600) 7%, transparent);
   --glow-tint-strong: color-mix(in oklab, var(--color-accent-600) 14%, transparent);
 
@@ -242,9 +259,13 @@
      the corners. */
   --ground: #ffffff;
   --ground-2: #ffffff;
-  --ground-3: #e5e5e5;
+  --ground-3: #d5deef;
   --ground-4: #ffffff;
-  --ground-deep: #e5e5e5;
+  /* White, not the palette blue. As a vignette this tinted the outer edge
+     of every section — fine in isolation, and a hard horizontal seam
+     wherever a tinted section met an untinted one. The blue earns its keep
+     on cards and hairlines, where it has an edge to sit against. */
+  --ground-deep: #ffffff;
 
   /* Black marks, navy copy. Splitting them is what stops a page set
      entirely in #000 from reading as harsh: the headings and the
@@ -297,26 +318,48 @@
   --hair-3: color-mix(in oklab, var(--fg) 22%, transparent);
 
   /* ── Atmosphere ──
-     The glows go out entirely. On black they are the light in the room;
-     on a white page built from four colours there is no colour for them
-     to be, and a grey radial over white is not atmosphere, it is a
-     smudge — which is exactly what the first pass at this theme looked
-     like. What replaces them is the plain white ground and the grey
-     vignette at the edges, which is enough. */
+     The glows were switched off in the first pass at this theme, and
+     the reason was sound: the palette had no colour for them to be, and
+     a *grey* radial over white is not atmosphere, it is a smudge.
+
+     Two blues later there is a colour for them, so they are back. On
+     black these are additive — light added to a dark room. Here they
+     are the opposite and have to be: a wash laid over white, deepest at
+     the centre and falling to nothing, which is what a tint does on
+     paper. Same shapes, same drift, opposite physics.
+
+     The pair reads as one light source rather than two colours: the
+     deeper blue is the core and the lighter one the falloff, so a glow
+     is a single soft body and not a ring. */
+  /* Off. The glow layers are `rounded-full` boxes up to 60rem x 34rem
+     carrying a `radial-gradient(circle, ...)` — a circle inside a heavily
+     non-square clip, offset from centre, two or three of them overlapping
+     each other and the section vignette underneath. On near-black at 4-11%
+     alpha that reads as atmosphere. Repainted at this theme's strength it
+     reads as what it geometrically is: blobs, with visible seams where they
+     cross.
+
+     The colour the page needed is in .hero-wash instead — one gradient,
+     shaped deliberately, which is why it does not have this problem. */
   --glow-strength: 0;
   /* The linework is not a glow — it is grid, ticks and brackets, and it
      is structure rather than light, so it survives the glows going out.
      Thinned rather than removed: at full strength navy rules on white
      are a technical drawing, which is louder than this ground wants. */
   --plane-strength: 0.4;
-  --glow-tint: transparent;
-  --glow-tint-strong: transparent;
 
-  /* The vignette that darkens the frame edges. Grey, and faint: the
-     same job as the dark theme's near-black ring, done with the one
-     tone the palette has for it. */
-  --vignette-ring: rgba(229, 229, 229, 0.85);
-  --vignette-edge: #e5e5e5;
+  /* Off here too, and for the same reason — see the dark block. The
+     palette blue stays as the scrim colour so that restoring the effect
+     is one number rather than a rewrite. */
+  --pj-dim-ink: var(--ground-3);
+  --pj-dim: 0;
+  --glow-tint: rgba(213, 222, 239, 0.5);
+  --glow-tint-strong: rgba(177, 201, 239, 0.55);
+
+  /* The vignette settling the frame edges — the same job as the dark
+     theme's near-black ring, in the palette's own blue. */
+  --vignette-ring: transparent;
+  --vignette-edge: transparent;
 
   /* No bloom on paper. */
   --type-bloom-1: transparent;
@@ -346,7 +389,7 @@
   --plate-shadow: rgba(20, 33, 61, 0.32);
   --plate-shadow-hover: rgba(20, 33, 61, 0.4);
 
-  --scrollbar-thumb: #e5e5e5;
+  --scrollbar-thumb: #b1c9ef;
   --scrollbar-thumb-hover: #14213d;
 
   --shadow-card: 0 18px 40px -28px rgba(20, 33, 61, 0.26);
@@ -2150,8 +2193,8 @@
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  background: var(--ground);
-  opacity: calc(var(--pj-cover) * 0.62);
+  background: var(--pj-dim-ink);
+  opacity: calc(var(--pj-cover) * var(--pj-dim));
   pointer-events: none;
 }
 
@@ -3013,6 +3056,15 @@ video.pj-shot {
   aspect-ratio: 4 / 5;
 }
 
+/* With the plate now spanning a full-width card it covers much more of
+   the photograph, and 82% was tuned against a 160px plate on a dark
+   portrait. Over a bright one at this width the type was fighting the
+   image. Opaque enough to read on any photograph, still clearly a plate
+   laid on the picture rather than a bar under it. */
+.fd-column .fd-card:not(.fd-card--lead) .fd-label {
+  background: color-mix(in oklab, var(--ground) 92%, transparent);
+}
+
 /* Caps want their tracking opened, not closed. The rest of the page's
    headings sit at -0.04em because they are sentence case at display
    sizes; this one is the exception and says so. */
@@ -3796,4 +3848,257 @@ video.pj-shot {
   /* With the panel opaque, the hairline alone stops carrying the edge —
      it needs the shadow to read as a sheet lying over the page. */
   box-shadow: var(--shadow-lift);
+}
+
+/* ==================================================================
+   PHONES — the entrance stops blurring the page
+
+   The focus pull is the signature of this design and it is tuned for a
+   72px headline, where a 0.15em radius is ~11px of haze around strokes
+   that are themselves ~8px thick: clearly type, clearly resolving.
+
+   The radius is in em so it scales with the type — and that is exactly
+   what goes wrong here, because the *headline* does not scale with it.
+   On a phone the clamp bottoms out at 1.95rem, so the same 0.15em is
+   4.7px of blur on 31px glyphs. Relative to a stroke barely 3px wide
+   that is not a focus pull, it is illegibility, and it is held for the
+   1.8s the entrance takes to run. The first thing a visitor sees is a
+   page that appears to have failed to render, or a screen they want to
+   wipe. Several people will decide the site is broken and leave inside
+   that window.
+
+   So on phones the radius comes down to something that still reads as
+   a resolve — the type arrives soft and sharpens — without ever being
+   unreadable, and the travel is shortened so the whole hero settles in
+   about a second instead of nearly two.
+
+   `!important` is unavoidable and deliberate: every one of these is set
+   as an inline custom property by BlurReveal and by the callers of
+   .anim-rise, and an inline declaration outranks any stylesheet rule
+   whatever its selector. This is the one place in the file that needs
+   it; it is not a licence to reach for it elsewhere.
+   ================================================================== */
+@media (max-width: 639px) {
+  .reveal-word-inner {
+    /* ~1.5px at the clamped headline size, against 4.7px before. */
+    --rw-blur: 0.05em !important;
+    --rw-lift: 340ms !important;
+    --rw-defog: 260ms !important;
+    --rw-fade: 220ms !important;
+  }
+
+  /* The mask opens on the same clock as the climb, so it moves too or the
+     word lands and then waits to be uncovered. */
+  .reveal-word {
+    --rw-lift: 340ms !important;
+  }
+
+  .anim-rise {
+    /* Body copy at 15px was carrying 5px of blur — the same problem one
+       size down, and on the text that actually has to be read. */
+    --rise-blur: 0.1em !important;
+    --rise-lift: 560ms !important;
+    --rise-defog: 400ms !important;
+    --rise-fade: 360ms !important;
+  }
+
+  /* The sweep is a 60px band of light crossing a letterform. At this size
+     it crosses in a couple of frames and costs a full repaint of the word
+     to do it, so it buys nothing and is simply switched off. */
+  .reveal-word-inner::after {
+    display: none;
+  }
+}
+
+/* ==================================================================
+   THE LEADERSHIP SLIDER — below md only
+
+   One card at a time, advancing on its own, on a track that is a real
+   scroll container rather than a transform. See FounderSlider.tsx for
+   why; the short version is that a scroll container already knows how
+   to be dragged with a thumb and this does not have to reinvent it.
+
+   Every card is the same 4/5 frame here, including the founder's. In
+   the stacked column the two supporting cards took a shorter 4/3 so
+   the section did not run to 1300px of scroll — but a track cannot
+   have slides of different heights without the whole thing changing
+   size as it moves, and nothing looks more broken than a carousel that
+   grows and shrinks under your finger.
+   ================================================================== */
+.fd-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* Mandatory is right here and wrong on the page as a whole: this
+     track holds nothing but full-width slides, so there is no position
+     between two of them worth resting at, and no tall content that
+     could be made unreachable by always snapping. */
+  gap: 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* The vertical page scroll must win when the gesture is mostly
+     vertical, or the slider steals every upward swipe that begins on a
+     face. */
+  touch-action: pan-y pinch-zoom;
+  overscroll-behavior-x: contain;
+}
+
+.fd-track::-webkit-scrollbar {
+  display: none;
+}
+
+.fd-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: center;
+  /* The cards keep their own rounding and shadow, so the breathing room
+     between them is padding on the slide rather than a gap on the track
+     — a gap would break the 100% arithmetic that makes scrollLeft /
+     clientWidth a slide index. */
+  padding-inline: 0.25rem;
+}
+
+.fd-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+
+.fd-dots button {
+  /* 8px of dot inside a 24px target: the dot is the smallest thing on
+     the page and the tap area is the largest it can be without the row
+     of them reading as buttons. */
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.fd-dots button::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--fg) 22%, transparent);
+  transition:
+    background-color 320ms var(--ease-soft),
+    width 320ms var(--ease-cinematic);
+}
+
+.fd-dots button[data-active]::before {
+  width: 20px;
+  background: var(--accent-heading);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-track {
+    scroll-behavior: auto;
+  }
+  .fd-dots button::before {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   The warp frame, at phone size
+
+   The frame is deliberately taller than the type it holds: the lens
+   pushes glyphs outside their own box and anything past the canvas edge
+   is simply not drawn, so a clipped ascender at the crest of the warp
+   reads as a rendering fault. 24vw buys about half a line of clearance.
+
+   But `clamp` floors that at 280px, and on a phone the type is floored
+   too — at 1.95rem, two lines stand about 66px. So the frame was 280px
+   of canvas around 66px of letterforms: 100px of empty picture above
+   the line and 100px below, which is most of the empty space in this
+   section and none of it doing any work.
+
+   150px keeps roughly the same *proportional* headroom the 24vw rule
+   was buying — about 40px each side, comfortably more than half a line
+   at this size — and gives the rest back.
+   ------------------------------------------------------------------ */
+@media (max-width: 639px) {
+  .giant-warp {
+    height: 150px;
+  }
+}
+
+/* ==================================================================
+   LIGHT ATMOSPHERE — the glows, repainted
+
+   The glow layers carry their gradient inline, as a Tailwind arbitrary
+   `bg-[radial-gradient(...)]`, and every one of those stops is a blue
+   tuned to sit on near-black. Reusing them here would mean a dark
+   accent blue smeared across a white page.
+
+   So the light theme paints its own. Same elements, same sizes, same
+   drift — only the fill is replaced, and it is replaced rather than
+   tinted because the two grounds want genuinely different colours, not
+   the same colour at a different opacity.
+
+   No `!important` needed: the theme attribute plus the class is (0,3,0)
+   against a utility's (0,1,0), so this simply wins. The `filter` line
+   stays because --glow-strength is still the single dial for how much
+   of this the page gets.
+   ================================================================== */
+:root[data-theme="light"] :is(
+    .anim-glow-a,
+    .anim-glow-b,
+    .anim-glow-c,
+    .anim-glow-d,
+    .atmo-glow
+  ) {
+  background-image: radial-gradient(
+    circle,
+    var(--glow-tint-strong) 0%,
+    var(--glow-tint) 42%,
+    transparent 72%
+  );
+  filter: opacity(var(--glow-strength));
+}
+
+/* The hero's base wash.
+
+   The section grounds are a radial from --ground-4 through --ground,
+   and on this theme both of those are white — correct for the page,
+   and the reason the hero read as a blank sheet. This lays the palette
+   over the top of it: the deeper blue gathered at the top of the frame
+   where the navbar sits, falling through the lighter one and out to
+   clean white by the time it reaches the copy, so the type is always
+   on white and only the air around it is coloured. */
+:root[data-theme="light"] .hero-wash {
+  background-image:
+    radial-gradient(
+      120% 78% at 50% -8%,
+      var(--glow-tint-strong) 0%,
+      var(--glow-tint) 38%,
+      transparent 72%
+    ),
+    radial-gradient(
+      90% 60% at 88% 8%,
+      color-mix(in oklab, var(--glow-tint) 70%, transparent) 0%,
+      transparent 60%
+    );
+}
+
+/* ------------------------------------------------------------------
+   The wordmark, one file per ground.
+
+   Both are in the markup so the server and the client render the same
+   thing and the correct one is painted on the first frame — the same
+   reasoning as the theme toggle's two icons. See Logo.tsx.
+   ------------------------------------------------------------------ */
+.logo-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .logo-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .logo-dark {
+  display: block;
 }
