@@ -1493,11 +1493,19 @@
    Dialled back through `filter` rather than `opacity`, and that is
    load-bearing: these elements animate their own opacity in the
    glow-wander keyframes, and a declared `opacity` loses to a running
-   animation. `filter: opacity()` multiplies with it instead of
-   arguing with it, and stays on the compositor, which matters because
-   these layers are large and never stop moving. */
+   animation, so a declared `opacity` would simply lose to it.
+
+   `filter: opacity()` was the way around that, and it turned out to be
+   the expensive way: a filter puts the element in its own rasterisation
+   buffer whether the value is 1 or 0, so these were being drawn and
+   filtered purely in order to be invisible.
+
+   --glow-strength is 0 on this theme, and the honest expression of zero
+   is `display: none` — nothing to draw, nothing to filter, nothing to
+   composite. Restoring the glows means changing this rule rather than
+   the token, which is the trade for not paying for hidden layers. */
 :root[data-theme="light"] :is(.anim-glow-a, .anim-glow-b, .anim-glow-c, .anim-glow-d) {
-  filter: opacity(var(--glow-strength));
+  display: none;
 }
 
 /* The same dial, for the glows that are not on the wandering set — the
@@ -1506,7 +1514,7 @@
    move, which meant the rule above did not reach them and they were the
    one blue thing left painting on a white page. */
 :root[data-theme="light"] .atmo-glow {
-  filter: opacity(var(--glow-strength));
+  display: none;
 }
 
 /* ── The accent headline words ──
@@ -1541,9 +1549,21 @@
 
 /* The parallax linework — rays, grid, ticks, brackets. Same problem,
    less of it: this is structure rather than light, so it is thinned
-   rather than nearly removed. */
+   rather than nearly removed.
+
+   `opacity`, and emphatically not `filter: opacity()`. The two look
+   identical and cost nothing alike: a filter forces the element into
+   its own rasterisation buffer, redrawn on the CPU whenever anything
+   under it moves — and these are full-viewport layers that never stop
+   translating. Profiled on a throttled phone, this one declaration was
+   the whole difference between 15fps and 60fps while scrolling.
+
+   It is safe here only because the plane keyframes animate transform
+   and nothing else. A declared opacity loses to a running animation, so
+   this would silently stop working if opacity were ever added to them —
+   which is exactly why the glow layers below cannot use it. */
 :root[data-theme="light"] :is(.anim-plane-far, .anim-plane-mid, .anim-plane-near) {
-  filter: opacity(var(--plane-strength));
+  opacity: var(--plane-strength);
 }
 
 /* ── The drifting glyph field ──
@@ -4101,4 +4121,88 @@ video.pj-shot {
 
 :root[data-theme="dark"] .logo-dark {
   display: block;
+}
+
+/* ==================================================================
+   PHONES — no blur, anywhere it is decoration
+
+   Measured, not guessed. On a 4x-throttled phone this page scrolled at
+   15fps with 96% of frames over budget, and the entrance ran at 7fps.
+   Disabling one thing at a time moved nothing — not the two particle
+   canvases, not backdrop-filter, not the CSS animations, not the grain
+   — until `filter: none` went on everything, and it jumped to 60fps.
+
+   The cause is count, not radius. At any moment there were 131 elements
+   carrying a blur filter, totalling 5.2 megapixels of blurred area:
+
+     72   the drifting glyph field, blurred per-glyph for depth
+     ~40  entrance states — every .anim-rise and .reveal-word-inner
+          below the fold sits at its held first frame, and that frame
+          has a blur on it, so they are all paying before they are even
+          on screen
+     6    the large soft cores behind sections, at 52-58px
+     rest section entrances holding their own blur
+
+   Every one of those is a separate rasterisation the compositor cannot
+   help with — a blur is the one property that has to be redrawn on the
+   CPU each time the thing under it moves. Shrinking the radius, which
+   is what the first attempt at this did, barely helps: it is the number
+   of blurred layers that costs, not how wide each one is.
+
+   So on phones the blur comes off entirely and the entrances keep the
+   parts that are free — opacity and transform both composite. What is
+   lost is the focus-pull, which at 31px type was never doing much
+   anyway; what is gained is the page running at frame rate.
+
+   Deliberately NOT a blanket `filter: none`: the glow layers use
+   `filter: opacity()` as their only dial, and blanketing would turn
+   every one of them fully on. Each rule below names its own target.
+   ================================================================== */
+@media (max-width: 639px) {
+  /* The entrance rigs. Setting the radius to zero rather than clearing
+     the filter keeps one code path — the animations still run, they
+     just have nothing to blur. */
+  .reveal-word-inner {
+    --rw-blur: 0px !important;
+  }
+
+  .anim-rise {
+    --rise-blur: 0px !important;
+  }
+
+  /* The glyph field: 72 elements, the single largest contributor, and
+     the depth it buys is invisible at this size. */
+  .anim-drift {
+    filter: none !important;
+  }
+
+  /* Held entrance states. These sit blurred while off screen, so the
+     cost is paid for the whole scroll rather than for the animation. */
+  [data-reveal="out"] .venture-move,
+  [data-reveal="out"] .fd-in,
+  [data-reveal="out"] .tm-in,
+  [data-reveal="out"] .ft-in {
+    filter: none;
+  }
+
+  /* The parallax plane children — the hero's two light rays at a 64px
+     radius over 130% of the viewport height, and the technical linework
+     over them. Five elements left after everything above, and still 3.5
+     of the original 5.2 megapixels: a blur costs area x radius, and
+     these are the largest of both on the page. */
+  :is(.anim-plane-far, .anim-plane-mid, .anim-plane-near) > *,
+  .anim-line-shift {
+    filter: none !important;
+  }
+
+  /* The large soft cores behind sections — 52-58px radii over most of
+     the viewport, which is the most expensive kind of blur there is.
+     They are a wash behind content; the gradient alone reads as one. */
+  .tm-core,
+  .fd-core,
+  .ft-seam,
+  .tm-reflect,
+  .tm-line::after {
+    filter: none;
+  }
 }
