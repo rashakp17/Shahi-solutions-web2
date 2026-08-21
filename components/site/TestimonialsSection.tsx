@@ -223,6 +223,7 @@ export function TestimonialsSection() {
   return (
     <section
       id="testimonials"
+      data-motion-scope
       className="tm-scope relative isolate overflow-hidden bg-ink-950 py-16 sm:py-20"
     >
       {/* Ground and glow. One radial behind the centre, one wide wash under

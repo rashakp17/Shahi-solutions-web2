@@ -116,13 +116,6 @@ export function Navbar() {
             {/* Desktop actions */}
             <div className="hidden items-center gap-1 lg:flex">
               <ThemeToggle className="mr-1" />
-
-              <Link
-                href="#login"
-                className="rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
-              >
-                Log in
-              </Link>
               <Button href={START_HREF} size="sm" className="px-5">
                 Get started
               </Button>
@@ -231,14 +224,6 @@ export function Navbar() {
           </div>
 
           <div className="mt-2 flex flex-col gap-2 border-t border-[color:var(--hair-1)] p-2 pt-4">
-            <Button
-              href="#login"
-              variant="secondary"
-              size="md"
-              className="w-full"
-            >
-              Log in
-            </Button>
             <Button href={START_HREF} size="md" className="w-full">
               Get started
             </Button>

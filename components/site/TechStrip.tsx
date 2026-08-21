@@ -82,6 +82,7 @@ export function TechStrip() {
   return (
     <section
       id="stack"
+      data-motion-scope
       className="relative isolate border-t border-[color:var(--hair-1)] bg-ink-950 py-16 sm:py-20"
     >
       {/* One quiet source of light, as in the ventures section above. No

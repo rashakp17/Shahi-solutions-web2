@@ -120,7 +120,11 @@ export function VenturesSection() {
     // clips without establishing a scroll container, which leaves the sticky
     // panel measuring against the viewport exactly as before. That difference
     // is the entire reason this rule is `clip`; do not "simplify" it.
-    <section id="ventures" className="relative isolate overflow-x-clip bg-ink-950">
+    <section
+      id="ventures"
+      data-motion-scope
+      className="relative isolate overflow-x-clip bg-ink-950"
+    >
       {/* Kept deliberately quiet — this is the one section whose subject is
           content rather than spectacle. The particle field is the only moving
           part, and it stops itself whenever the section is off screen, so it

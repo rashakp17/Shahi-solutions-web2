@@ -69,20 +69,9 @@ export function ScrollScrub({
       return;
     }
 
-    // `data-cover-state` is sticky once released, by design — the content it
-    // gates should not re-run every time the visitor nudges the scroll. That
-    // makes it the wrong signal for anything that costs something to keep
-    // running, so on-screen-ness is published separately.
-    const view = new IntersectionObserver(
-      (entries) => {
-        if (entries[entries.length - 1].isIntersecting) delete wrap.dataset.offscreen;
-        else wrap.dataset.offscreen = "true";
-      },
-      { rootMargin: "10%" },
-    );
-    view.observe(wrap);
-
     let frame = 0;
+    let onScreen = true;
+
     let lastFine = -1;
     let lastStep = -1;
     let released = false;
@@ -130,8 +119,35 @@ export function ScrollScrub({
     };
 
     const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(measure);
+      if (frame || !onScreen) return;
+      frame = requestAnimationFrame(measure);
     };
+
+    // `data-cover-state` is sticky once released, by design — the content it
+    // gates should not re-run every time the visitor nudges the scroll. That
+    // makes it the wrong signal for anything that costs something to keep
+    // running, so on-screen-ness is published separately.
+    //
+    // It gates this rig's own reads as well as the CSS, which is the bigger
+    // half. Publishing the attribute was all this observer used to do, and the
+    // handler under it went on measuring for the rest of the session — a
+    // getBoundingClientRect, which is a forced layout, on every frame of every
+    // scroll anywhere on the page, for a pane the visitor left three sections
+    // ago.
+    //
+    // One last read on the way out, so the pane freezes at the end of its
+    // travel rather than wherever it happened to be when the observer fired.
+    // `read` clamps, so from outside the band that is exactly 0 or 1.
+    const view = new IntersectionObserver(
+      (entries) => {
+        onScreen = entries[entries.length - 1].isIntersecting;
+        if (onScreen) delete wrap.dataset.offscreen;
+        else wrap.dataset.offscreen = "true";
+        measure();
+      },
+      { rootMargin: "10%" },
+    );
+    view.observe(wrap);
 
     measure();
     window.addEventListener("scroll", onScroll, { passive: true });

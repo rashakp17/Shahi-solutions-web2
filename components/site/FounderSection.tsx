@@ -251,6 +251,7 @@ export function FounderSection() {
   return (
     <section
       id="about"
+      data-motion-scope
       className="fd-scope relative isolate overflow-hidden bg-ink-950 py-20 sm:py-24"
     >
       {/* Ground and key light. One wash for the section floor, one soft

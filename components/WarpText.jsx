@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { Renderer, Program, Mesh, Triangle, Texture } from 'ogl';
-import './WarpText.css';
 
 /* ------------------------------------------------------------------
    React Bits "Warp Text", from the @react-bits registry.
@@ -371,6 +370,7 @@ const WarpText = ({
     let pageVisible = !document.hidden;
     let reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     let rasterVersion = 0;
+    let fontSettled = false;
 
     const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, active: 0, activeTarget: 0 };
     const startTime = performance.now();
@@ -437,29 +437,50 @@ const WarpText = ({
       renderer.render({ scene: mesh });
     };
 
-    const rasterize = async () => {
-      const version = ++rasterVersion;
-      if (document.fonts?.ready) {
-        try {
-          await document.fonts.ready;
-        } catch {}
-      }
-      if (disposed || contextLost || version !== rasterVersion) return;
-
+    const draw = () => {
       const rect = container.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
+      if (rect.width <= 0 || rect.height <= 0) return false;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const textCanvas = buildTextCanvas({
+      texture.image = buildTextCanvas({
         container,
         width: rect.width,
         height: rect.height,
-        dpr,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
         props: propsRef.current
       });
-      texture.image = textCanvas;
       texture.needsUpdate = true;
       renderOnce();
+      return true;
+    };
+
+    /* Drawn twice on the first pass, and the second one is not belt-and-braces.
+
+       `document.fonts.ready` resolves when no font load is *pending* — not
+       when a particular face has arrived. The display face here is not
+       preloaded (see the note in app/layout.tsx) and nothing else on the page
+       asks for it, so at this point there is nothing pending and the wait
+       returns instantly, against a font the browser has not fetched. Drawing
+       there rasterises the sentence in the fallback, and since this is a
+       canvas rather than text the swap-in never reaches it.
+
+       The probe inside buildTextCanvas is what finally requests the face. So
+       the first draw puts something correct-in-shape on screen immediately,
+       and the second — awaited *after* the probe has made the request — lands
+       once the real face is in. Only ever done once; a resize redraws in the
+       font that is by then already loaded. */
+    const rasterize = async () => {
+      const version = ++rasterVersion;
+      if (disposed || contextLost) return;
+      if (!draw()) return;
+      if (fontSettled || !document.fonts?.ready) return;
+
+      try {
+        await document.fonts.ready;
+      } catch {}
+      if (disposed || contextLost || version !== rasterVersion) return;
+
+      fontSettled = true;
+      draw();
     };
 
     const resize = () => {

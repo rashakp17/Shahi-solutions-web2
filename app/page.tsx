@@ -1,3 +1,4 @@
+import { MotionGate } from "@/components/ui/MotionGate";
 import { ContactSection } from "@/components/site/ContactSection";
 import { Footer } from "@/components/site/Footer";
 import { FounderSection } from "@/components/site/FounderSection";
@@ -39,6 +40,9 @@ export default function Home() {
   return (
     <>
       <Navbar />
+      {/* Pauses the ambient loops in every section that is not on screen.
+          Renders nothing; see the note in the component. */}
+      <MotionGate />
       <main>
         {/* The hero is pinned and the section beneath rides up over it, so the
             move from one to the next is a scene being covered rather than a

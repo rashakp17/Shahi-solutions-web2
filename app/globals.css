@@ -1,6 +1,19 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+/* `@import "tw-animate-css"` was here, from the scaffold, and nothing in this
+   project ever used it — there is not one `animate-in`, `fade-in` or
+   `slide-in-from-*` in the whole codebase, because every entrance here is a
+   hand-written keyframe in this file.
+
+   Its utilities were tree-shaken, so it was never shipping classes. What it
+   was shipping is the eighteen `--tw-enter-*` / `--tw-exit-*` / `--tw-animation-*`
+   custom properties it registers, and those land in the universal
+   `*, ::before, ::after` reset that gives every property its initial value —
+   which means eighteen extra property slots on every element on the page,
+   paid at style computation rather than at download.
+
+   Put it back the moment a `animate-*` utility is actually wanted. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -514,55 +527,34 @@
   }
 
   /* ------------------------------------------------------------------
-     Soft snap — the page settles onto a section instead of stopping
-     wherever the flick happened to run out.
+     Scroll-snap: removed, and worth saying why so it is not reintroduced.
 
-     This is the answer to content being outrun. Every entrance on the page
-     is a few hundred ms of curve released when its item reaches the
-     viewport, so a scroll that crosses three sections in a third of a
-     second shows three bands mid-assembly. The fix is not to make the
-     entrances faster or to skip them under speed — an entrance that changes
-     shape depending on how you arrived is two designs, and the rushed one
-     is always the worse one. The fix is for the page to come to rest
-     somewhere deliberate, and then let the content arrive at its own pace.
+     This page had `scroll-snap-type: y proximity` on the root with every
+     section a snap target, to make the page settle onto a section rather
+     than stop wherever a flick ran out.
 
-     `proximity`, emphatically not `mandatory`. Mandatory has to land on a
-     snap point after every single scroll, and half the sections here are
-     taller than the viewport — the bottom of the projects deck would
-     become genuinely unreachable, because any scroll into it gets yanked
-     back to a start edge. Proximity only engages when the scroll comes to
-     rest near a snap point, which is exactly the case worth catching: it
-     turns "stopped halfway into a blank section" into "settled on the
-     section, watching it arrive", and otherwise stays out of the way. A
-     deliberate scroll is never blocked or slowed.
+     It was the wrong mechanism for this page, and the reason is the
+     proportions. Snap assumes a section is roughly one screen, so that
+     coming to rest on one means something. Here they run from 0.58x the
+     viewport (the tech strip) to 5.69x (the project deck). Most of the
+     scrolling on this page happens *inside* a section, nowhere near a
+     snap point — and proximity snap re-evaluates every time the scroll
+     settles, so each pause between wheel ticks or touch flicks pulled
+     the page backwards toward an edge it had already left.
 
-     Snap points are the direct `section` children of main, which is the six
-     content sections and nothing else. Two exclusions matter and both are
-     structural rather than by omission:
+     Measured, scrolling each section with real wheel input: 39 backward
+     jerks in ventures, 58 in about, 42 in contact, 29 in testimonials.
+     Zero anywhere with snap off. That is the stutter it produced.
 
-       The hero and the services grid live inside SceneCover, which renders
-       a div — the hero is pinned and the services section rides up over the
-       top of it, and a snap point in the middle of that would fight the
-       sticky pane for control of the same scroll.
+     What the snap was meant to solve — content being outrun by a fast
+     scroll — is handled where it belongs, in ScrollStagger: entrances are
+     released with a run-up before their item is on screen, so they are
+     already arriving by the time it is. That fix does not need the page
+     to stop moving.
 
-       The statement layer lives inside ScrollScrub, also a div. Its whole
-       effect is a phrase scrubbed across the viewport by the scroll
-       position; snapping is the one thing that would take that position out
-       of the visitor's hands.
-
-     scroll-margin-top keeps a snapped section clear of the fixed navbar,
-     the same 5.5rem the anchor targets above already use.
+     scroll-margin-top stays on the anchor targets above; that is for
+     in-page links landing clear of the fixed navbar and is unrelated.
      ------------------------------------------------------------------ */
-  @media (prefers-reduced-motion: no-preference) {
-    html {
-      scroll-snap-type: y proximity;
-    }
-
-    main > section {
-      scroll-snap-align: start;
-      scroll-margin-top: 5.5rem;
-    }
-  }
 
   ::selection {
     background: color-mix(in oklab, var(--color-accent-500) 38%, transparent);
@@ -1021,6 +1013,17 @@
    Deliberately not including .anim-ambient — that is the one-time lift out of
    the dark, it costs nothing once it has run, and pausing it part-way could
    strand the scene half-lit.
+
+   ── The list below the fold ──
+   The three loops at the end of each list — the two marquees, and the float
+   arcs under the testimonial pair and the leadership row — were not in it,
+   and nothing published a gate for them either. From first paint the page was
+   running a ~5000px-wide track and five float loops in sections four screens
+   down, while the visitor was still on the hero. MotionGate is what marks
+   those sections now; these are the animations inside them.
+
+   The marquee keeps its own hover pause. Two rules setting the same property
+   is fine — `paused` is `paused` whichever of them wins.
    ------------------------------------------------------------------ */
 [data-scene-state="covered"]
   :is(
@@ -1045,7 +1048,10 @@
     .anim-plane-mid,
     .anim-plane-near,
     .anim-drift,
-    .anim-line-shift
+    .anim-line-shift,
+    .anim-marquee,
+    .tm-float,
+    .fd-float
   ) {
   animation-play-state: paused;
 }
@@ -1164,24 +1170,27 @@
   }
 }
 
+/* No will-change on the four below, for the reason spelled out on
+   .anim-marquee: transform and opacity animations promote themselves while
+   they run, so the hint only ever changed what happens when they *stop*.
+   These are the largest surfaces on the page — up to 62rem square, four of
+   them, and there are two full atmospheres on the page — and both scenes now
+   pause when nobody is looking at them. Held, that was tens of megabytes of
+   video memory reserved for glows behind a covered screen. */
 .anim-glow-a {
   animation: glow-wander-a 38s ease-in-out infinite;
-  will-change: transform, opacity;
 }
 
 .anim-glow-b {
   animation: glow-wander-b 27s ease-in-out infinite;
-  will-change: transform, opacity;
 }
 
 .anim-glow-c {
   animation: glow-wander-c 44s ease-in-out infinite;
-  will-change: transform, opacity;
 }
 
 .anim-glow-d {
   animation: glow-wander-d 33s ease-in-out infinite;
-  will-change: transform, opacity;
 }
 
 /* --- Parallax planes: same path, different amplitude and period --- */
@@ -1317,7 +1326,19 @@
      visibly faster — the eye reads speed off the content passing it, not off
      the percentage travelled. */
   animation: marquee var(--marquee-duration, 38s) linear infinite;
-  will-change: transform;
+
+  /* No will-change, and its absence is the point.
+   *
+   * A running transform animation is promoted to its own compositor layer
+   * without being asked — that is what makes this cheap in the first place —
+   * so the hint was buying nothing while the track was moving. What it did
+   * buy was the layer being held when the track is *not* moving, and this one
+   * is now paused for as long as the section is off screen. At ~5000px wide
+   * by the height of a card that is a large surface to keep in video memory
+   * for a band the visitor is nowhere near.
+   *
+   * Dropped, so the compositor takes the layer while the marquee runs and
+   * gives it back when it stops. */
 }
 
 /* Pause marquee on hover */
@@ -4204,5 +4225,105 @@ video.pj-shot {
   .tm-reflect,
   .tm-line::after {
     filter: none;
+  }
+}
+
+/* ==================================================================
+   THE PROJECT DECK ON A PHONE — making the card fit, and giving up
+   gracefully when it cannot
+
+   The deck has one hard requirement, written into the note beside
+   --pj-top: a card plus its top offset has to clear the viewport. It is
+   `position: sticky`, so a card taller than the space it pins into has
+   its bottom edge pinned off the screen — and because the next card is
+   already rising over the middle of it, what the visitor gets is one
+   card sliced in half with the rest of it hanging out below the next.
+
+   Measured on a 393x800 phone the card was 727px against 716px of
+   available space. Eleven pixels over on a *tall* phone; on a 640px one
+   it was ~200px over. It has been broken on every phone, just not
+   always visibly.
+
+   Two things happen here. First the card is tightened until it fits at
+   ordinary phone heights — the description is clamped, the preview
+   loses a third of its height, and the vertical rhythm closes up.
+   Second, below a height where no amount of tightening would be
+   honest, the deck stops being a deck.
+   ================================================================== */
+@media (max-width: 639px) {
+  .pj-card {
+    padding: 1.25rem 1.15rem;
+  }
+
+  /* Five lines, not seven. The copy is written long because on desktop
+     it sits in a column beside the preview with room to spare; here it
+     is the single tallest thing in the card. Clamped rather than
+     shortened so the same string serves both layouts. */
+  .pj-desc {
+    margin-top: 0.85rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pj-features {
+    margin-top: 1rem;
+    gap: 0.5rem 0.9rem;
+  }
+
+  .pj-stack {
+    margin-top: 1.1rem;
+    padding-top: 0.9rem;
+  }
+
+  .pj-cta {
+    margin-top: 1.25rem;
+  }
+
+  /* 6rem from 9rem. It is a preview, and at this width it is a thumbnail
+     of a preview — the height was buying detail nobody can resolve. */
+  .pj-art {
+    height: 6rem;
+    padding: 0.6rem;
+  }
+}
+
+/* ── Below this, stop pretending ──
+   Where the card still cannot fit behind --pj-top, the choice is between
+   a broken deck and no deck, and static wins: the cards become an
+   ordinary stack that scrolls, which is what the effect degrades to
+   anyway once the last card is reached.
+
+   Three thresholds, not one, because the height a card needs depends on
+   how narrow it is — the same copy wraps to more lines and the card
+   grows. Measured against the tallest card at each width:
+
+     430 / 412px wide   needs 685px of viewport
+     390 / 375px wide   needs 700px
+     360px wide         needs 732px
+     320px wide         needs 767px
+
+   So a 412x690 phone keeps the deck while a 320x760 one does not, which
+   a single height cutoff could not express. Each rule below carries the
+   same declarations; the narrow ones simply catch earlier.
+
+   The transform has to go with position. --pj-cover keeps being
+   published by the scroll handler, and left applied it would scale and
+   lift cards that are no longer stacking — drift rather than depth. */
+@media (max-width: 639px) and (max-height: 710px),
+  (max-width: 374px) and (max-height: 740px),
+  (max-width: 340px) and (max-height: 775px) {
+  .pj-slot {
+    position: static;
+  }
+
+  .pj-slot:not(:last-child) {
+    margin-bottom: 1.5rem;
+  }
+
+  .pj-card {
+    transform: none;
+    border-radius: 22px;
   }
 }

@@ -1,16 +1,30 @@
 "use client";
 
-import Image from "next/image";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { BlurReveal } from "@/components/ui/BlurReveal";
+import { ProjectDeckScrub } from "@/components/site/ProjectDeckScrub";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { TechChip, type TechKey } from "@/components/site/TechMarks";
 import { cn } from "@/lib/cn";
+
+/* Still a client component, and that was measured rather than assumed.
+ *
+ * The obvious move here is to drop `"use client"` and keep only the two parts
+ * that need a browser — the deck scrub and the capture — as leaves, so five
+ * projects' worth of copy, features and drawn previews stop being compiled
+ * into the bundle. It works, and it is a worse page: a server component's
+ * whole rendered tree is serialised into the flight payload inlined in the
+ * document, so the markup comes back as data. Built both ways, that trade was
+ * 8KB gzipped onto the initial document to take 2.5KB off the JavaScript.
+ *
+ * So the boundary stays where it was and the two leaves stand on their own
+ * anyway, because they earn it for other reasons: ProjectDeckScrub keeps the
+ * scroll rig out of the render path, and Preview below is what lets a capture
+ * stay unmounted until its card is near. If this section ever grows a route of
+ * its own, or the copy grows enough to change that arithmetic, measure it
+ * again before moving the line — the answer is not obvious in either
+ * direction. */
 
 /* ------------------------------------------------------------------
    Projects — a deck of cards dealt by the scroll
@@ -115,7 +129,7 @@ const PROJECTS: Project[] = [
     stack: ["react", "node", "mongodb", "tailwind", "stripe"],
     href: "https://www.fetchkids.in/",
     shot: {
-      src: "/projects/fetch-kids.png",
+      src: "/projects/fetch-kids.webp",
       clip: "/projects/fetch-kids.mp4",
       alt: "The Fetch Kids storefront: a personalised lunchbox, bottle and name-label set above a row of delivery and quality promises.",
     },
@@ -153,7 +167,7 @@ const PROJECTS: Project[] = [
     stack: ["next", "react", "tailwind", "vercel"],
     href: "https://moodbyteal.com/",
     shot: {
-      src: "/projects/mood-by-teal.png",
+      src: "/projects/mood-by-teal.webp",
       clip: "/projects/mood-by-teal.mp4",
       alt: "The MOODbyTEAL home page: the studio's wordmark across a glass wall, with a dark fitted-out office visible through it.",
     },
@@ -195,7 +209,7 @@ const PROJECTS: Project[] = [
       "Real-Time Dashboards",
     ],
     stack: ["react", "node", "postgres"],
-    // Paths written before the files exist, on purpose: Shot swaps back to the
+    // Paths written before the files exist, on purpose: Preview swaps back to the
     // drawing below on the first onError, so the card is correct today and
     // correct again the moment the capture is dropped in (see the note on
     // `shot` in the Project type). Nothing here changes when it lands.
@@ -328,6 +342,16 @@ const PROJECTS: Project[] = [
 ];
 
 /**
+ * How far ahead of the viewport a clip is mounted.
+ *
+ * One viewport of run-up. The element does not exist before this — see the
+ * note on `armed` below — so the margin has to cover fetching a poster and
+ * opening a video decoder on a slow connection, without arming five cards
+ * while the visitor is still in the hero.
+ */
+const ARM_MARGIN = "100% 0px";
+
+/**
  * The right-hand panel: the capture where there is one, the drawing where
  * there is not.
  *
@@ -336,33 +360,71 @@ const PROJECTS: Project[] = [
  * position on it; this way the drawing is still the floor, and the only thing
  * a missing file costs is the photograph.
  *
- * The clip plays only while its card is on screen. A muted loop is cheap to
- * hold but not cheap to decode, and a deck of five of them all running behind
- * each other is five decodes for one visible card — so the observer starts it
- * on arrival and pauses it on the way out. `preload="none"` keeps the same
- * promise for the network: nothing is fetched for a card the visitor may never
- * reach, and the poster is what stands in until it is.
+ * ── The two gates on the clip ──
+ * `armed` decides whether the <video> exists at all; the observer under it
+ * decides whether that video is playing.
+ *
+ * They are separate because `preload="none"` does not cover the poster. A
+ * poster is fetched as soon as the element is parsed, whatever the preload
+ * hint says — so two video elements in this deck were pulling down their full
+ * stills during the initial page load, for a section three screens below the
+ * fold, and between them that was most of a megabyte before anything on the
+ * first screen had finished. Not mounting the element until its card is
+ * approaching is the only thing that actually makes `preload` honest.
+ *
+ * The second gate is the older one and still earns its place. A muted loop is
+ * cheap to hold but not cheap to decode, and a deck of five all running behind
+ * each other is five decodes for one visible card — so the clip starts on
+ * arrival and pauses on the way out.
+ *
+ * Until it arms — and forever, under reduced motion — the still stands in, and
+ * it goes through next/image rather than the video's own `poster` attribute.
+ * A poster is a plain URL fetched as-is; through the loader the same frame is
+ * negotiated down to AVIF and sized to the panel rather than to whatever the
+ * file happens to measure.
+ *
+ * Reduced motion keeps that still and nothing else. The clip is a site
+ * scrolling itself — there is no way to show it calmly, and the frame already
+ * says what the card needs it to say.
  */
 function Preview({ project }: { project: Project }) {
   const [failed, setFailed] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const holderRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
   const shot = failed ? undefined : project.shot;
   const clip = shot?.clip;
+
+  useEffect(() => {
+    const holder = holderRef.current;
+    if (!holder || !clip) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const view = new IntersectionObserver(
+      (entries) => {
+        if (!entries[entries.length - 1].isIntersecting) return;
+        // One-shot: once the card has been reached the clip stays mounted, and
+        // the observer below takes over deciding whether it runs.
+        view.disconnect();
+        setArmed(true);
+      },
+      { rootMargin: ARM_MARGIN },
+    );
+
+    view.observe(holder);
+    return () => view.disconnect();
+  }, [clip]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Reduced motion keeps the poster and nothing else. The clip is a site
-    // scrolling itself — there is no way to show it calmly, and the still
-    // frame already says what the card needs it to say.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
     const view = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           // Autoplay can still be refused (a data-saver setting, a policy this
-          // page cannot see). Nothing to recover — the poster is underneath.
+          // page cannot see). Nothing to recover — the still is underneath.
           void video.play().catch(() => {});
         } else {
           video.pause();
@@ -373,13 +435,13 @@ function Preview({ project }: { project: Project }) {
 
     view.observe(video);
     return () => view.disconnect();
-  }, [clip]);
+  }, [armed]);
 
   return (
-    <div className={cn("pj-art", shot && "pj-art--shot")}>
+    <div ref={holderRef} className={cn("pj-art", shot && "pj-art--shot")}>
       <div className="pj-art-in">
         {shot ? (
-          clip ? (
+          clip && armed ? (
             <video
               ref={videoRef}
               className="pj-shot"
@@ -466,111 +528,6 @@ function Arrow({ out = false }: { out?: boolean }) {
 }
 
 export function ProjectsSection() {
-  const deckRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const deck = deckRef.current;
-    if (!deck) return;
-
-    const slots = Array.from(
-      deck.querySelectorAll<HTMLElement>("[data-pj-slot]"),
-    );
-    if (slots.length < 2) return;
-
-    const cards = slots.map((slot) =>
-      slot.querySelector<HTMLElement>("[data-pj-card]"),
-    );
-
-    // The stack is CSS. This only adds the depth cues on top of it, so with
-    // motion turned down the cards still deal themselves — they just do it
-    // without shrinking or dimming as they go.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    /**
-     * Measured once and on resize, not per frame. `top` is each card's sticky
-     * offset, which is what the pair of them settles at; height is how far the
-     * next card has to travel to cover this one.
-     */
-    let tops: number[] = [];
-    let heights: number[] = [];
-
-    const measure = () => {
-      tops = slots.map((slot) => parseFloat(getComputedStyle(slot).top) || 0);
-      heights = slots.map((slot) => slot.offsetHeight || 1);
-    };
-
-    let frame = 0;
-    let onScreen = true;
-    const published = new Array(slots.length).fill(-1);
-
-    const read = () => {
-      frame = 0;
-
-      // Every rect first, then every write. Interleaving them makes the
-      // browser flush layout between each pair, which is the difference
-      // between one measurement and five.
-      const positions = slots.map(
-        (slot) => slot.getBoundingClientRect().top,
-      );
-
-      for (let i = 0; i < slots.length - 1; i++) {
-        const step = tops[i + 1] - tops[i];
-        const height = heights[i];
-
-        // Distance between this card's top edge and the next one's. It closes
-        // from a card-height-plus-gap down to `step` as the next card arrives
-        // and pins, and the last `height` of that closing is the ramp.
-        const gap = positions[i + 1] - positions[i];
-        const raw = (height - (gap - step)) / height;
-        const cover = raw < 0 ? 0 : raw > 1 ? 1 : raw;
-
-        // Three decimal places is finer than a pixel at these sizes, and
-        // skipping unchanged values keeps a slow drag from restyling the
-        // whole deck on every frame it does not move.
-        const value = Math.round(cover * 1000) / 1000;
-        if (value === published[i]) continue;
-        published[i] = value;
-        cards[i]?.style.setProperty("--pj-cover", String(value));
-      }
-    };
-
-    const onScroll = () => {
-      if (frame || !onScreen) return;
-      frame = requestAnimationFrame(read);
-    };
-
-    const onResize = () => {
-      measure();
-      published.fill(-1);
-      onScroll();
-    };
-
-    // Nothing is read while the deck is nowhere near the viewport. The handler
-    // is passive and cheap, but it is still five rects a frame for a section
-    // that is three screens away.
-    const view = new IntersectionObserver(
-      (entries) => {
-        onScreen = entries[entries.length - 1].isIntersecting;
-        if (onScreen) onScroll();
-      },
-      { rootMargin: "25%" },
-    );
-    view.observe(deck);
-
-    measure();
-    read();
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      view.disconnect();
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, []);
-
   return (
     <section id="projects" className="pj-scope relative isolate">
       {/* A raised ground, a step lighter than the sections either side of it.
@@ -611,8 +568,12 @@ export function ProjectsSection() {
           </p>
         </div>
 
-        {/* ---- the deck ---- */}
-        <div ref={deckRef} className="pj-deck mt-14 sm:mt-16">
+        {/* ---- the deck ----
+
+            `data-pj-deck` is how ProjectDeckScrub finds this without the deck
+            having to be handed through a client boundary — see the note there. */}
+        <ProjectDeckScrub />
+        <div data-pj-deck className="pj-deck mt-14 sm:mt-16">
           {PROJECTS.map((project, i) => (
             <div
               key={project.title}

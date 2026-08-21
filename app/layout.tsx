@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /**
  * The display face, and only that.
@@ -17,6 +17,21 @@ const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist",
   display: "swap",
+  /* Not preloaded, unlike the other two.
+   *
+   * `next/font` emits a `<link rel="preload">` for every family by default,
+   * which is right for a face that is on the first screen and wrong for this
+   * one: --font-display has exactly one consumer, `.giant-warp`, and that is
+   * the statement section three screens down — where it is not even laid out
+   * as text but rasterised into a canvas by WarpText. Preloading it puts a
+   * font file on the critical path competing with the hero's own.
+   *
+   * The face still loads, just on first use. WarpText re-rasterises once the
+   * font actually arrives rather than trusting `document.fonts.ready`, which
+   * resolves immediately when nothing has requested the file yet — see the
+   * note on `rasterize` in WarpText.jsx. Without that this line would draw
+   * the sentence in the fallback face. */
+  preload: false,
 });
 
 const inter = Inter({

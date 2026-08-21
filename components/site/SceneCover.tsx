@@ -63,6 +63,7 @@ export function SceneCover({
 
     let frame = 0;
     let last = -1;
+    let onScreen = true;
 
     const measure = () => {
       frame = 0;
@@ -104,8 +105,24 @@ export function SceneCover({
     };
 
     const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(measure);
+      if (frame || !onScreen) return;
+      frame = requestAnimationFrame(measure);
     };
+
+    // Nothing above is worth measuring once the whole transition has scrolled
+    // away. The cover spans the hero and the section that rides over it, so
+    // this stays true through both — but past the bottom of the wrapper every
+    // value it publishes is already at its end stop, and it was still taking a
+    // getBoundingClientRect (a forced layout) on every scroll frame for the
+    // rest of the visit. One read on each crossing keeps the end stop exact.
+    const travel = new IntersectionObserver(
+      (entries) => {
+        onScreen = entries[entries.length - 1].isIntersecting;
+        measure();
+      },
+      { rootMargin: "10%" },
+    );
+    travel.observe(wrap);
 
     // `data-cover-state` is sticky once it commits, so that the entrance it
     // gates does not re-run every time the visitor nudges the scroll. That
@@ -130,6 +147,7 @@ export function SceneCover({
     return () => {
       cancelAnimationFrame(frame);
       offscreen.disconnect();
+      travel.disconnect();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };

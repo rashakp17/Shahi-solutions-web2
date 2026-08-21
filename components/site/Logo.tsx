@@ -10,6 +10,26 @@ import { cn } from "@/lib/cn";
 const ART = { w: 2201, h: 773 };
 
 /**
+ * What the mark actually measures on screen, for the srcset.
+ *
+ * Without this, next/image has only the intrinsic size to go on and builds a
+ * fixed-density srcset from it — 2201px at 1x, 4402 at 2x, both of which round
+ * up to the largest configured device width. The browser was being handed a
+ * 3840px-wide wordmark for a box 114px across, twice over (the light and dark
+ * files are both in the markup), and both carry `priority` so both were
+ * preloaded. It was the largest thing this page fetched before first paint.
+ *
+ * With a size declared the srcset switches to width descriptors and the
+ * browser takes 128px, or 256 on a retina screen — the same wordmark, two
+ * orders of magnitude smaller.
+ *
+ * 120px is the sm:h-10 case (40px tall, at the artwork's 2.85:1) rounded up;
+ * the h-9 default asks for less. It tracks the height of the bar: too small
+ * and the mark goes soft, too large and it is only waste again.
+ */
+const RENDERED_WIDTH = "120px";
+
+/**
  * The wordmark.
  *
  * Two files rather than one, and CSS picks between them.
@@ -54,6 +74,7 @@ export function Logo({ className }: { className?: string }) {
         alt=""
         width={ART.w}
         height={ART.h}
+        sizes={RENDERED_WIDTH}
         // In the header on every route, so it is never worth lazy-loading —
         // that only buys a blank box where the wordmark should be.
         priority
@@ -64,6 +85,7 @@ export function Logo({ className }: { className?: string }) {
         alt=""
         width={ART.w}
         height={ART.h}
+        sizes={RENDERED_WIDTH}
         priority
         className="logo-dark h-9 w-auto sm:h-10"
       />
