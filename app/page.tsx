@@ -11,6 +11,13 @@ import { StatementSection } from "@/components/site/StatementSection";
 import { TechStrip } from "@/components/site/TechStrip";
 import { TestimonialsSection } from "@/components/site/TestimonialsSection";
 import { VenturesSection } from "@/components/site/VenturesSection";
+import { SERVICES } from "@/lib/services";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  absolute,
+  organizationNode,
+} from "@/lib/site";
 
 /**
  * The whole site, on one page.
@@ -37,8 +44,89 @@ import { VenturesSection } from "@/components/site/VenturesSection";
  * who says it worked, who we are, and how to start.
  */
 export default function Home() {
+  /**
+   * Who this is, for a search engine — and, increasingly, for an answer
+   * engine being asked what Shahi Solutions does.
+   *
+   * The home page carries the organisation's own identity because it is the
+   * page that *is* the company. The node itself comes from `organizationNode()`
+   * in lib/site.ts rather than being written here, so that every article's
+   * `publisher` and the service page's `provider` can point at the same
+   * `@id` and resolve to one entity. Two hand-written organisation blocks
+   * differing by a field are two companies with the same name.
+   *
+   * ── What was added, and why each one ──
+   * `legalName` and `alternateName` are the brand/entity work: the brand is
+   * "Shahi Solutions", the registered company is "Shahi Solutions Private
+   * Limited", and declaring both is what merges them into a single entity
+   * instead of leaving a crawler to guess whether they are related.
+   *
+   * `hasOfferCatalog` is the part that matters most for being *answered* with
+   * rather than merely ranked. A model asked "what does Shahi Solutions do"
+   * from a paragraph has to infer a list; from an offer catalogue it has one.
+   * It is built from lib/services.ts, which is the same array the grid on
+   * this page renders — so the catalogue cannot claim a service the page does
+   * not show, which is the failure mode all of this is being kept clear of.
+   *
+   * `sameAs` is absent, not empty. There are no confirmed social profiles yet
+   * (see SOCIAL_PROFILES in lib/site.ts), and an identity claim pointing at a
+   * guessed handle is the one mistake here that is hard to undo.
+   *
+   * `WebSite` alongside it exists for one reason — it is what carries the site
+   * name shown above a result in place of a bare domain. No `SearchAction`:
+   * that declares a site search endpoint, and there isn't one.
+   */
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        ...organizationNode(),
+        knowsAbout: [
+          "Custom software development",
+          "ERP and CRM systems",
+          "Web application development",
+          "Mobile app development",
+          "Business automation",
+        ],
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: `${SITE_NAME} services`,
+          itemListElement: SERVICES.map((service) => ({
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: service.title,
+              description: service.body,
+              /* Only the one service with a page of its own gets a URL. The
+                 rest are real services without a route to point at, and a
+                 fabricated one would 404 for anything that followed it. */
+              ...(service.href ? { url: absolute(service.href) } : {}),
+              provider: { "@id": `${absolute("/")}#organization` },
+            },
+          })),
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${absolute("/")}#website`,
+        url: absolute("/"),
+        name: SITE_NAME,
+        description: SITE_DESCRIPTION,
+        inLanguage: "en-IN",
+        publisher: { "@id": `${absolute("/")}#organization` },
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <Navbar />
       {/* Pauses the ambient loops in every section that is not on screen.
           Renders nothing; see the note in the component. */}

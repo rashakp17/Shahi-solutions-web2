@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/site/Logo";
@@ -9,28 +10,52 @@ import { START_HREF } from "@/lib/contact";
 import { cn } from "@/lib/cn";
 
 /**
- * The four destinations, all of them places on the one page there is.
+ * The destinations. Four of them are places on the home page; one is a route.
  *
- * Bare `#id` rather than `/#id`. The leading slash was load-bearing while the
- * work and the team had routes of their own — from /projects a bare `#shipping`
- * would have meant "on the page you are already on" and quietly done nothing.
- * With a single page there is nowhere else to be, and the slash would send the
- * router through a navigation to reach an element already on screen.
+ * `hash` rather than `href` for the four, because the correct link depends on
+ * where the bar is being rendered — and it is now rendered in more than one
+ * place. See `hrefFor` below.
  *
  * `Home` stays "/" rather than becoming "#top": it is the one link whose job
  * is to put the visitor back at the beginning, and an anchor to the top of the
  * document is what the browser already does for "/".
+ *
+ * `Resources` is a real route and is listed last before the action, which is
+ * where a reference section belongs — it is the link somebody follows when
+ * they are not ready to talk yet, and putting it ahead of Contact would be
+ * arguing with the order of the page.
  */
-const LINKS = [
+const LINKS: Array<{ label: string; href?: string; hash?: string }> = [
   { label: "Home", href: "/" },
-  { label: "Projects", href: "#projects" },
-  { label: "About Us", href: "#about" },
-  { label: "Contact Us", href: "#contact" },
+  { label: "Projects", hash: "projects" },
+  { label: "About Us", hash: "about" },
+  { label: "Resources", href: "/resources" },
+  { label: "Contact Us", hash: "contact" },
 ];
+
+/**
+ * Where a section link should point, given where we are standing.
+ *
+ * On the home page a bare `#projects` is right: the target is already in this
+ * document, and `/#projects` would send the router through a navigation to
+ * reach an element that is on screen. Anywhere else a bare fragment means
+ * "somewhere on the page you are already on", where no such element exists —
+ * so the link silently does nothing, which is exactly what happened to this
+ * bar the moment /resources gained a page.
+ *
+ * The prefix is therefore computed rather than written down, and it is
+ * computed from the pathname rather than from a prop, so a new route cannot
+ * forget to pass it.
+ */
+function hrefFor(link: (typeof LINKS)[number], onHome: boolean): string {
+  if (link.href) return link.href;
+  return onHome ? `#${link.hash}` : `/#${link.hash}`;
+}
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const onHome = usePathname() === "/";
 
   // Tighten the bar once the page leaves the top of the hero. Compared
   // against the last value rather than handed to React on every scroll event:
@@ -102,9 +127,9 @@ export function Navbar() {
             {/* Desktop links */}
             <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
               {LINKS.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link
-                    href={link.href}
+                    href={hrefFor(link, onHome)}
                     className="relative rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
                   >
                     {link.label}
@@ -192,9 +217,9 @@ export function Navbar() {
         <div className="nav-sheet relative mx-4 mt-[4.75rem] overflow-hidden rounded-3xl border border-[color:var(--hair-2)] p-2 backdrop-blur-2xl sm:mx-6">
           <ul className="flex flex-col">
             {LINKS.map((link, i) => (
-              <li key={link.href}>
+              <li key={link.label}>
                 <Link
-                  href={link.href}
+                  href={hrefFor(link, onHome)}
                   onClick={() => setOpen(false)}
                   className={cn(
                     "block rounded-2xl px-4 py-3.5 text-[15px] font-medium text-fg/70",

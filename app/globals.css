@@ -4327,3 +4327,1795 @@ video.pj-shot {
     border-radius: 22px;
   }
 }
+
+/* ==================================================================
+   THE RESOURCE LAYER — /resources and /services
+
+   A second register of the same design, not a second design.
+
+   Every colour below resolves through the tokens at the top of this
+   file, so these pages follow the theme toggle with no palette of their
+   own, and the type is the same Inter the rest of the site is set in.
+   What changes is the job: the home page is a composition to be watched
+   and these are documents to be read, so the whole register drops a
+   stop — no atmosphere layers, no WebGL, no scene-cover rig, no
+   entrance choreography on the body copy.
+
+   That last one is a deliberate departure and worth stating. Every
+   section on the home page arrives: masked words climbing out from
+   under a line, cards dealt by the scroll. None of it is here. Text
+   that assembles as you reach it is a pleasure to arrive at once and an
+   obstacle to read through, and an article is two thousand words of
+   reading. The entrances stay where they earn their keep.
+
+   Namespaced `rs-` throughout so nothing here can reach into the home
+   page, and so a glance at a class name says which half of the site a
+   rule belongs to.
+   ================================================================== */
+
+/* ---- the shell ---------------------------------------------------- */
+
+/* Clears the fixed navbar.
+
+   The bar is 56px inside a container padded 12px at the top, growing to
+   20px from `sm` — so 68px and 76px respectively. The home page never
+   needs this because its first section is a full-height hero the bar is
+   meant to float over; here the first thing on the page is a breadcrumb,
+   and without this it starts underneath the glass. */
+.rs-main {
+  padding-top: 6rem;
+}
+
+@media (min-width: 640px) {
+  .rs-main {
+    padding-top: 7rem;
+  }
+}
+
+.rs-shell {
+  /* ---- the layer's own tokens ----
+
+     Declared here rather than at :root so they cannot leak into the
+     home page, and derived from --fg rather than written as literals so
+     that one set of values is correct under both themes: --fg is white
+     on the dark ground and black on the light one, so every mix below
+     inverts with it. */
+  --rs-ink: color-mix(in oklab, var(--fg) 84%, transparent);
+  --rs-ink-soft: color-mix(in oklab, var(--fg) 62%, transparent);
+  /* 56%, and it is deliberately higher than the equivalent on the home
+     page, where the same micro-labels sit at 28–30% of the foreground.
+
+     That works there because those labels are atmosphere: a caps eyebrow
+     over a headline the size of the screen, which nobody has to read to
+     understand the section. Here the same token carries the updated
+     date, the reading time, every figure caption, every table header and
+     every diagram label — content a reader is expected to take in. At
+     30% a 10px caps label is roughly 3:1 against either ground, which
+     fails WCAG AA for text at any size. 56% lands near 5:1 on both.
+
+     It is the one place the resource layer knowingly parts company with
+     the home page's palette, and the reason is that these pages are read
+     rather than watched. */
+  --rs-ink-faint: color-mix(in oklab, var(--fg) 56%, transparent);
+  /* Purely graphic: rules, list marks, breadcrumb separators and the
+     ordinal numerals beside items whose text carries the meaning. Never
+     used for a sentence. */
+  --rs-ink-ghost: color-mix(in oklab, var(--fg) 38%, transparent);
+  --rs-rule: var(--hair-1);
+  --rs-rule-strong: var(--hair-2);
+  --rs-surface: var(--veil-1);
+  --rs-surface-2: var(--veil-2);
+  /* --accent-heading is the one accent that is tuned for text at both
+     themes: #6a9bff on the dark ground, #334daf on the light one. The
+     -400/-500 steps are tuned for fills and go under 4.5:1 as body-copy
+     ink on white. */
+  --rs-accent: var(--accent-heading);
+
+  /* The measure. 42rem at the 17px body size is roughly 72 characters —
+     the upper end of what is comfortable, chosen over the tighter 65
+     because this is technical prose with long compound nouns in it, and
+     a narrower column breaks phrases like "custom software development
+     process" across lines several times a paragraph. */
+  --rs-measure: 42rem;
+
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 640px) {
+  .rs-shell {
+    padding-inline: 1.5rem;
+    padding-bottom: 7rem;
+  }
+}
+
+/* Anchor targets clear the bar, the same way the home page's sections do
+   in the base layer above. Set on the class rather than on a list of ids
+   because every article generates its own. */
+.rs-section,
+.rs-cluster {
+  scroll-margin-top: 6rem;
+}
+
+/* ---- hero --------------------------------------------------------- */
+
+.rs-hero {
+  max-width: 46rem;
+  margin-inline: auto;
+  padding-block: 1rem 3rem;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .rs-hero {
+    padding-block: 2rem 4.5rem;
+  }
+}
+
+.rs-hero--index {
+  max-width: 50rem;
+}
+
+.rs-crumbs {
+  margin-bottom: 1.75rem;
+}
+
+.rs-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+}
+
+/* The separator is drawn rather than written into the markup: a slash
+   typed between two links is read aloud by a screen reader as part of
+   the trail, and it would need its own aria-hidden span to silence. */
+.rs-crumbs li + li::before {
+  content: "/";
+  margin-right: 0.5rem;
+  color: var(--rs-ink-ghost);
+}
+
+.rs-crumbs a {
+  color: inherit;
+  transition: color 300ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .rs-crumbs a:hover {
+    color: var(--rs-accent);
+  }
+}
+
+.rs-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  margin-bottom: 1.25rem;
+}
+
+.rs-h1 {
+  font-size: clamp(2.1rem, 6vw, 3.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+/* The index and service heroes carry a two-part headline: a statement,
+   then a quieter continuation. Dropping the second half to the soft ink
+   rather than setting it smaller keeps one type size and one baseline
+   grid, which is what stops it reading as a subtitle bolted on. */
+.rs-h1--index {
+  font-size: clamp(1.9rem, 5.2vw, 3rem);
+}
+
+.rs-h1-quiet {
+  color: var(--rs-ink-soft);
+}
+
+.rs-lead {
+  margin-top: 1.75rem;
+  font-size: clamp(1.02rem, 1.1vw + 0.85rem, 1.2rem);
+  line-height: 1.66;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+.rs-meta {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--rs-ink-faint);
+}
+
+.rs-meta-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* Compound, not a bare class: `.rs-cta-actions` is defined further down
+   the file and would otherwise win the margin on equal specificity —
+   the two are on the same element in a hero. */
+.rs-hero .rs-cta-actions.rs-hero-actions {
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+/* ---- the body grid ------------------------------------------------ */
+
+.rs-body-grid {
+  display: grid;
+  gap: 3rem 0;
+}
+
+.rs-prose {
+  max-width: var(--rs-measure);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.rs-prose--service {
+  margin-top: 1rem;
+}
+
+/* Above this width there is room for the contents to sit in the left
+   margin without pushing the column off centre.
+
+   Three tracks rather than two: the prose stays in the middle track and
+   is therefore centred on the page exactly as it is on a phone, while
+   the rail floats in the margin beside it. A two-track grid would put
+   the pair's combined centre on the page's centre, which shifts the
+   column of text right by half the rail every time the window crosses
+   this breakpoint — a jump the reader has no explanation for. */
+@media (min-width: 1180px) {
+  .rs-body-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--rs-measure)) minmax(0, 1fr);
+    column-gap: 3rem;
+    align-items: start;
+  }
+
+  .rs-rail {
+    grid-column: 1;
+    justify-self: end;
+    max-width: 15rem;
+    position: sticky;
+    /* Clears the bar, plus a little air. */
+    top: 7rem;
+  }
+
+  .rs-prose {
+    grid-column: 2;
+  }
+}
+
+/* ---- table of contents -------------------------------------------- */
+
+/* Below the rail breakpoint it is an inline index: bordered, sitting
+   between the hero and the first section, where a contents belongs in a
+   printed document. Above it, the border comes off and it becomes a
+   marginal rail — same markup, same order, no second copy hidden with a
+   media query. */
+.rs-toc {
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 18px;
+  padding: 1.5rem 1.35rem;
+  background: var(--rs-surface);
+  max-width: var(--rs-measure);
+  margin-inline: auto;
+}
+
+.rs-toc-head {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  margin-bottom: 1rem;
+}
+
+.rs-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.rs-toc-link {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding-block: 0.5rem;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--rs-ink-soft);
+  transition: color 320ms var(--ease-soft);
+}
+
+.rs-toc-index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--rs-ink-ghost);
+  transition: color 320ms var(--ease-soft);
+  flex: none;
+}
+
+/* A flex item's default `min-width: auto` refuses to shrink below its
+   longest word, so without this a heading like "Custom software
+   development cost by project type" pushes the rail wider than its own
+   column instead of wrapping inside it. */
+.rs-toc-text {
+  min-width: 0;
+}
+
+@media (hover: hover) {
+  .rs-toc-link:hover {
+    color: var(--fg);
+  }
+
+  .rs-toc-link:hover .rs-toc-index {
+    color: var(--rs-accent);
+  }
+}
+
+.rs-toc-link[data-active] {
+  color: var(--fg);
+}
+
+.rs-toc-link[data-active] .rs-toc-index {
+  color: var(--rs-accent);
+}
+
+@media (min-width: 1180px) {
+  .rs-toc {
+    border: 0;
+    background: none;
+    padding: 0;
+    /* The rail sits against a hairline instead of inside a box — a
+       bordered panel floating in the margin reads as a widget, and a
+       ruled column reads as a contents. */
+    border-left: 1px solid var(--rs-rule);
+    padding-left: 1.15rem;
+  }
+
+  .rs-toc-link {
+    font-size: 13px;
+    padding-block: 0.42rem;
+  }
+
+  /* The marker: a segment of the rule lit beside the current section.
+     Drawn on the link rather than by moving a single element, so there
+     is no measuring, no resize handler and nothing to get out of step
+     with the list. */
+  .rs-toc-link {
+    position: relative;
+  }
+
+  .rs-toc-link::before {
+    content: "";
+    position: absolute;
+    left: -1.15rem;
+    top: 0.28rem;
+    bottom: 0.28rem;
+    width: 1px;
+    background: var(--rs-accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 420ms var(--ease-cinematic);
+  }
+
+  .rs-toc-link[data-active]::before {
+    transform: scaleY(1);
+  }
+}
+
+/* ---- prose -------------------------------------------------------- */
+
+.rs-section + .rs-section {
+  margin-top: 4rem;
+}
+
+@media (min-width: 640px) {
+  .rs-section + .rs-section {
+    margin-top: 5rem;
+  }
+}
+
+.rs-h2 {
+  font-size: clamp(1.4rem, 2.4vw + 0.6rem, 1.85rem);
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: var(--fg);
+  text-wrap: balance;
+  /* The rule above a section heading is the one piece of furniture that
+     makes a long page scannable, and a hairline does it without the
+     heading needing to be bigger. */
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--rs-rule);
+}
+
+.rs-p {
+  margin-top: 1.35rem;
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--rs-ink);
+  text-wrap: pretty;
+}
+
+.rs-h2 + .rs-p {
+  margin-top: 1.6rem;
+}
+
+.rs-strong {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.rs-code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.12em 0.4em;
+  border-radius: 5px;
+  background: var(--rs-surface-2);
+  border: 1px solid var(--rs-rule);
+}
+
+/* Links in running prose.
+
+   Underlined, and that is not negotiable on a page like this: colour
+   alone as the only signal fails WCAG 1.4.1 for anybody who cannot
+   separate the accent from the body ink. The underline is offset and
+   thin so a paragraph with four links in it does not look struck
+   through. */
+.rs-link {
+  color: var(--rs-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in oklab, var(--rs-accent) 40%, transparent);
+  transition: text-decoration-color 300ms var(--ease-soft),
+    color 300ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .rs-link:hover {
+    text-decoration-color: var(--rs-accent);
+  }
+}
+
+/* ---- lists -------------------------------------------------------- */
+
+.rs-list {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  /* Drives the numbering on the ordered variant. Reset here rather than
+     relying on the browser's list-item counter, because the marker is
+     drawn as a ::before and the default markers are switched off. */
+  counter-reset: rs-item;
+}
+
+.rs-list-item {
+  position: relative;
+  padding-left: 1.8rem;
+  font-size: 17px;
+  line-height: 1.72;
+  color: var(--rs-ink);
+  counter-increment: rs-item;
+}
+
+.rs-list-item::before {
+  position: absolute;
+  left: 0;
+  color: var(--rs-ink-ghost);
+}
+
+/* The text sits in its own span so that a `**strong**` opening a list
+   item cannot be mistaken for the marker: the marker is a ::before on
+   the item, this is everything else. */
+.rs-list-text {
+  display: block;
+}
+
+/* Unordered: a short rule rather than a bullet. A dot at this type size
+   is a speck; a rule reads as a deliberate mark and lines up with the
+   hairlines used everywhere else on the page. */
+.rs-list:not([data-ordered]) .rs-list-item::before {
+  content: "";
+  top: 0.82em;
+  width: 0.7rem;
+  height: 1px;
+  background: var(--rs-ink-ghost);
+}
+
+.rs-list[data-ordered] .rs-list-item::before {
+  content: counter(rs-item, decimal-leading-zero);
+  top: 0.15em;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--rs-accent);
+  opacity: 0.75;
+}
+
+/* ---- worked examples ---------------------------------------------- */
+
+.rs-examples {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  counter-reset: rs-example;
+}
+
+.rs-example {
+  counter-increment: rs-example;
+  padding-block: 1.6rem;
+  border-top: 1px solid var(--rs-rule);
+}
+
+.rs-example:last-child {
+  border-bottom: 1px solid var(--rs-rule);
+}
+
+.rs-example-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rs-accent);
+  opacity: 0.8;
+  margin-bottom: 0.7rem;
+}
+
+.rs-example-title {
+  font-size: 1.06rem;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.rs-example-text {
+  margin-top: 0.7rem;
+  font-size: 16px;
+  line-height: 1.72;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+.rs-example-detail {
+  margin-top: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--rs-ink-faint);
+}
+
+/* ---- aside note --------------------------------------------------- */
+
+/* A rule down the left and nothing else — no fill, no icon, no tinted
+   panel. The point of the form is that it is quieter than the paragraph
+   it interrupts, and a filled callout is louder. */
+.rs-note {
+  margin-top: 2rem;
+  padding-left: 1.35rem;
+  border-left: 2px solid color-mix(in oklab, var(--rs-accent) 45%, transparent);
+}
+
+.rs-note-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rs-accent);
+  margin-bottom: 0.6rem;
+}
+
+.rs-note-text {
+  font-size: 16px;
+  line-height: 1.72;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+/* ---- figures ------------------------------------------------------ */
+
+.rs-figure,
+.rs-table-figure {
+  margin-top: 2.25rem;
+}
+
+.rs-figure-frame {
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 18px;
+  background: var(--rs-surface);
+  padding: 1.5rem 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .rs-figure-frame {
+    padding: 2rem 1.75rem;
+  }
+}
+
+.rs-figure-caption {
+  margin-top: 1rem;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--rs-ink-faint);
+  text-wrap: pretty;
+}
+
+/* ---- diagram: proportional bars ----------------------------------- */
+
+.rs-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.rs-bar-row {
+  display: grid;
+  grid-template-areas:
+    "idx label value"
+    "idx track track";
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  row-gap: 0.55rem;
+  column-gap: 0.5rem;
+  align-items: center;
+}
+
+.rs-bar-index {
+  grid-area: idx;
+  align-self: start;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--rs-ink-ghost);
+}
+
+.rs-bar-label {
+  grid-area: label;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--fg);
+}
+
+.rs-bar-note {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--rs-ink-faint);
+}
+
+.rs-bar-track {
+  grid-area: track;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--rs-surface-2);
+  overflow: hidden;
+}
+
+.rs-bar-fill {
+  display: block;
+  height: 100%;
+  width: var(--w);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--rs-accent),
+    color-mix(in oklab, var(--rs-accent) 55%, transparent)
+  );
+}
+
+.rs-bar-value {
+  grid-area: value;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--rs-ink-soft);
+  text-align: right;
+}
+
+@media (min-width: 640px) {
+  .rs-bar-row {
+    grid-template-areas: "idx label track value";
+    grid-template-columns: 2.25rem minmax(0, 12rem) minmax(0, 1fr) 2.75rem;
+    row-gap: 0;
+    column-gap: 1rem;
+  }
+
+  .rs-bar-index {
+    align-self: center;
+  }
+}
+
+/* ---- diagram: stacked composition --------------------------------- */
+
+.rs-stack {
+  display: flex;
+  height: 2.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--rs-rule-strong);
+}
+
+.rs-stack-seg {
+  flex: 0 0 var(--w);
+  background: color-mix(in oklab, var(--fg) 9%, transparent);
+  border-right: 1px solid var(--ground);
+}
+
+.rs-stack-seg:last-child {
+  border-right: 0;
+}
+
+/* One segment carries the accent — the one the caption is about. A
+   stack where every band is a different hue is a chart that has to be
+   decoded; a stack with one band lit is a sentence. */
+.rs-stack-seg[data-tone="key"] {
+  background: color-mix(in oklab, var(--rs-accent) 62%, transparent);
+}
+
+.rs-legend {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.55rem 1.75rem;
+}
+
+@media (min-width: 560px) {
+  .rs-legend {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.rs-legend-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 13.5px;
+  color: var(--rs-ink-soft);
+}
+
+.rs-legend-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--fg) 16%, transparent);
+  transform: translateY(-1px);
+}
+
+.rs-legend-dot[data-tone="key"] {
+  background: var(--rs-accent);
+}
+
+.rs-legend-name {
+  flex: 1 1 auto;
+}
+
+.rs-legend-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--rs-ink-faint);
+}
+
+/* ---- diagram: coverage comparison --------------------------------- */
+
+/* The two mark columns are as narrow as a centred 11px dot can sit in,
+   because at 360px inside a padded figure there are only about 280px to
+   share and the process name needs every one it can get. */
+.rs-coverage-head,
+.rs-coverage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.5rem 3.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (min-width: 560px) {
+  .rs-coverage-head,
+  .rs-coverage-row {
+    grid-template-columns: minmax(0, 1fr) 7rem 7rem;
+  }
+}
+
+.rs-coverage-head {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--rs-rule-strong);
+}
+
+.rs-coverage-col {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  text-align: center;
+}
+
+.rs-coverage-row {
+  padding-block: 0.85rem;
+  border-bottom: 1px solid var(--rs-rule);
+}
+
+/* The key underneath supplies the closing edge, so a second rule here
+   would double it. */
+.rs-coverage-body .rs-coverage-row:last-child {
+  border-bottom: 0;
+}
+
+.rs-coverage-name {
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--rs-ink);
+}
+
+.rs-coverage-cell {
+  display: grid;
+  place-items: center;
+}
+
+.rs-mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.rs-mark[data-state="full"] {
+  background: var(--rs-accent);
+}
+
+/* Half-filled, so the three states differ in shape as well as in fill —
+   a comparison read by someone who cannot separate the accent from the
+   ground still has three distinguishable marks. */
+.rs-mark[data-state="partial"] {
+  border: 1px solid color-mix(in oklab, var(--rs-accent) 70%, transparent);
+  background: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--rs-accent) 70%, transparent) 50%,
+    transparent 50%
+  );
+}
+
+.rs-mark[data-state="none"] {
+  border: 1px solid var(--rs-ink-ghost);
+}
+
+.rs-coverage-key {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--rs-ink-faint);
+}
+
+.rs-coverage-key .rs-mark {
+  margin-left: 0.7rem;
+}
+
+.rs-coverage-key .rs-mark:first-child {
+  margin-left: 0;
+}
+
+/* ---- diagram: system-of-record topology --------------------------- */
+
+.rs-map {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.rs-map-band-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  margin-bottom: 0.85rem;
+}
+
+.rs-map-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.rs-node {
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 12.5px;
+  color: var(--rs-ink-soft);
+  background: var(--rs-surface);
+}
+
+.rs-node--core {
+  border-radius: 14px;
+  border-color: color-mix(in oklab, var(--rs-accent) 40%, transparent);
+  background: color-mix(in oklab, var(--rs-accent) 7%, transparent);
+  color: var(--fg);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rs-node-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--rs-ink-faint);
+  font-weight: 400;
+}
+
+.rs-spine {
+  width: 1px;
+  height: 1.75rem;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--rs-ink-ghost),
+    transparent
+  );
+  margin-block: 0.5rem;
+}
+
+.rs-map-band-label + .rs-map-row {
+  margin-bottom: 0;
+}
+
+.rs-spine + .rs-map-band-label {
+  margin-top: 0.5rem;
+}
+
+/* ---- diagram: bought / seam / built -------------------------------- */
+
+.rs-spine-figure {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 620px) {
+  .rs-spine-figure {
+    grid-template-columns: 1fr 0.85fr 1fr;
+    align-items: stretch;
+  }
+}
+
+.rs-column {
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 14px;
+  padding: 1.1rem 1rem;
+  background: var(--rs-surface);
+}
+
+.rs-column[data-tone="seam"] {
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--rs-accent) 34%, transparent);
+  background: none;
+}
+
+.rs-column[data-tone="key"] {
+  border-color: color-mix(in oklab, var(--rs-accent) 40%, transparent);
+  background: color-mix(in oklab, var(--rs-accent) 6%, transparent);
+}
+
+.rs-column-head {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  margin-bottom: 0.9rem;
+}
+
+.rs-column[data-tone="key"] .rs-column-head,
+.rs-column[data-tone="seam"] .rs-column-head {
+  color: var(--rs-accent);
+}
+
+.rs-column-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rs-column-item {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--rs-ink-soft);
+}
+
+.rs-column[data-tone="key"] .rs-column-item {
+  color: var(--rs-ink);
+}
+
+/* ---- tables ------------------------------------------------------- */
+
+/* The scroll lives in this box, never on the page.
+
+   A six-column comparison cannot narrow past its longest cell, so on a
+   phone something has to move sideways — and a document whose *body*
+   scrolls horizontally is the single most reliable way to make a page
+   feel broken. Confining it here keeps the article column still. */
+.rs-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 14px;
+  /* The focus ring for keyboard users, who reach this region by tabbing
+     to it — a scrollable box that cannot be focused is a box whose
+     right-hand side a keyboard user cannot read. */
+  scrollbar-width: thin;
+}
+
+.rs-table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.rs-table th,
+.rs-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rs-rule);
+}
+
+.rs-table thead th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  font-weight: 400;
+  white-space: nowrap;
+  border-bottom-color: var(--rs-rule-strong);
+}
+
+.rs-table tbody th {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.rs-table tbody td {
+  color: var(--rs-ink-soft);
+}
+
+.rs-table tbody tr:last-child th,
+.rs-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ---- the service bridge ------------------------------------------- */
+
+/* A rule, a line of copy and a link. No panel, no fill, no button.
+
+   The brief this layer was built to asked for the route into the
+   service to read as the next sentence of the argument rather than as
+   an advertisement interrupting it, and the way that is achieved is by
+   refusing to give it more weight than the prose around it. A reader
+   who does not want it can pass over it without their eye being
+   caught, which is the whole test. */
+.rs-bridge {
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--rs-rule-strong);
+}
+
+.rs-bridge-prompt {
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--rs-ink);
+  text-wrap: pretty;
+}
+
+.rs-bridge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--rs-accent);
+  transition: gap 320ms var(--ease-cinematic);
+}
+
+.rs-bridge-arrow {
+  transition: transform 320ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .rs-bridge-link:hover .rs-bridge-arrow {
+    transform: translateX(3px);
+  }
+}
+
+/* ---- FAQ ---------------------------------------------------------- */
+
+.rs-faq-list {
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--rs-rule);
+}
+
+.rs-faq {
+  border-bottom: 1px solid var(--rs-rule);
+}
+
+.rs-faq-q {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-block: 1.15rem;
+  cursor: pointer;
+  /* The UA's disclosure triangle, replaced by the mark below. `list-style`
+     covers Firefox and the -webkit pseudo-element covers Safari, which
+     ignores it. */
+  list-style: none;
+}
+
+.rs-faq-q::-webkit-details-marker {
+  display: none;
+}
+
+.rs-faq-q-text {
+  font-size: 16.5px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  text-wrap: pretty;
+}
+
+/* A plus that becomes a minus. Two rules on one box, one of them
+   rotated away when the panel is open — cheaper than swapping glyphs
+   and it animates. */
+.rs-faq-mark {
+  position: relative;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 0.4rem;
+  color: var(--rs-ink-faint);
+  transition: color 300ms var(--ease-soft);
+}
+
+.rs-faq-mark::before,
+.rs-faq-mark::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1px;
+  background: currentColor;
+}
+
+.rs-faq-mark::after {
+  transform: rotate(90deg);
+  transition: transform 340ms var(--ease-cinematic);
+}
+
+.rs-faq[open] .rs-faq-mark::after {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) {
+  .rs-faq-q:hover .rs-faq-mark {
+    color: var(--rs-accent);
+  }
+}
+
+.rs-faq-a {
+  padding-bottom: 1.35rem;
+  padding-right: 2rem;
+  font-size: 16px;
+  line-height: 1.72;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+/* ---- selected work ------------------------------------------------ */
+
+.rs-work,
+.rs-related {
+  margin-top: 5rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--rs-rule-strong);
+  max-width: var(--rs-measure);
+  margin-inline: auto;
+}
+
+/* These two sections lead with an eyebrow, so the rule that .rs-h2
+   normally carries would land between the label and the heading it
+   labels — cutting the pair in half. The separation moves up to the
+   section itself, above. */
+.rs-work .rs-h2,
+.rs-related .rs-h2 {
+  border-top: 0;
+  padding-top: 0;
+}
+
+@media (min-width: 1180px) {
+  /* The two closing sections widen past the reading measure, because
+     they are lists of destinations rather than prose — and a three-up
+     rail of projects at 42rem is three very narrow columns. */
+  .rs-work {
+    max-width: 62rem;
+  }
+
+  .rs-related {
+    max-width: 52rem;
+  }
+}
+
+.rs-work-intro {
+  color: var(--rs-ink-soft);
+}
+
+.rs-work-list {
+  margin-top: 2.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .rs-work-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.rs-work-item {
+  display: flex;
+}
+
+.rs-work-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 18px;
+  padding: 1.4rem 1.25rem;
+  background: var(--rs-surface);
+  transition: border-color 420ms var(--ease-cinematic),
+    background-color 420ms var(--ease-cinematic),
+    transform 420ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .rs-work-card:hover {
+    border-color: color-mix(in oklab, var(--rs-accent) 32%, transparent);
+    background: var(--rs-surface-2);
+    transform: translateY(-2px);
+  }
+}
+
+.rs-work-cat {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+}
+
+.rs-work-title {
+  margin-top: 0.75rem;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+
+.rs-work-link {
+  color: inherit;
+}
+
+/* The whole card is the target. The anchor stays in the title so that
+   its accessible name is the project, not "read more". */
+.rs-work-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.rs-work-summary {
+  margin-top: 0.65rem;
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--rs-ink-soft);
+}
+
+.rs-work-relevance {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rs-rule);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--rs-ink-faint);
+}
+
+.rs-work-relevance-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rs-ink-faint);
+  margin-bottom: 0.4rem;
+}
+
+/* Above the stretched anchor, or the card's own link would swallow it. */
+.rs-work-live {
+  position: relative;
+  z-index: 1;
+  margin-top: 1rem;
+  align-self: flex-start;
+  font-size: 12.5px;
+  color: var(--rs-accent);
+  transition: opacity 300ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .rs-work-live:hover {
+    opacity: 0.75;
+  }
+}
+
+/* ---- continue reading / index lists ------------------------------- */
+
+.rs-related-list,
+.rs-index-list {
+  margin-top: 2rem;
+  border-top: 1px solid var(--rs-rule);
+}
+
+.rs-related-item,
+.rs-index-item {
+  border-bottom: 1px solid var(--rs-rule);
+}
+
+.rs-related-link,
+.rs-index-link {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) 1.5rem;
+  align-items: start;
+  gap: 0.75rem;
+  padding-block: 1.35rem;
+  transition: background-color 380ms var(--ease-cinematic);
+}
+
+.rs-related-index,
+.rs-index-num {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--rs-ink-ghost);
+  padding-top: 0.35rem;
+  transition: color 380ms var(--ease-soft);
+}
+
+.rs-related-body,
+.rs-index-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.rs-related-title,
+.rs-index-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.32;
+  color: var(--fg);
+  text-wrap: pretty;
+}
+
+.rs-related-desc,
+.rs-index-desc {
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+.rs-related-meta,
+.rs-index-meta {
+  margin-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--rs-ink-faint);
+}
+
+.rs-related-arrow,
+.rs-index-arrow {
+  justify-self: end;
+  padding-top: 0.2rem;
+  color: var(--rs-ink-ghost);
+  transition: transform 380ms var(--ease-cinematic),
+    color 380ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .rs-related-link:hover .rs-related-arrow,
+  .rs-index-link:hover .rs-index-arrow {
+    transform: translateX(4px);
+    color: var(--rs-accent);
+  }
+
+  .rs-related-link:hover .rs-related-index,
+  .rs-index-link:hover .rs-index-num {
+    color: var(--rs-accent);
+  }
+}
+
+/* ---- the index page ----------------------------------------------- */
+
+.rs-cluster {
+  max-width: 52rem;
+  margin-inline: auto;
+  margin-top: 3rem;
+}
+
+.rs-cluster-head {
+  max-width: var(--rs-measure);
+}
+
+.rs-cluster-title {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.rs-cluster-blurb {
+  margin-top: 1rem;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+.rs-cluster-service {
+  display: inline-block;
+  margin-top: 1rem;
+  font-size: 14px;
+  color: var(--rs-accent);
+  transition: opacity 300ms var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .rs-cluster-service:hover {
+    opacity: 0.75;
+  }
+}
+
+/* The pillar, given room. A cluster has one page a reader arriving cold
+   should open first, and listing it as one of six equal rows buries it. */
+.rs-pillar {
+  display: block;
+  margin-top: 2.5rem;
+  border: 1px solid var(--rs-rule-strong);
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem;
+  background: var(--rs-surface);
+  transition: border-color 420ms var(--ease-cinematic),
+    background-color 420ms var(--ease-cinematic);
+}
+
+@media (min-width: 640px) {
+  .rs-pillar {
+    padding: 2.25rem 2rem;
+  }
+}
+
+@media (hover: hover) {
+  .rs-pillar:hover {
+    border-color: color-mix(in oklab, var(--rs-accent) 34%, transparent);
+    background: var(--rs-surface-2);
+  }
+}
+
+.rs-pillar-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rs-accent);
+}
+
+.rs-pillar-title {
+  margin-top: 1rem;
+  font-size: clamp(1.3rem, 2.4vw, 1.65rem);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.2;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.rs-pillar-desc {
+  margin-top: 0.9rem;
+  max-width: 34rem;
+  font-size: 15px;
+  line-height: 1.68;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+.rs-pillar-meta {
+  margin-top: 1.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--rs-ink-faint);
+}
+
+.rs-index-list {
+  margin-top: 2.5rem;
+}
+
+/* ---- the service page's phase list -------------------------------- */
+
+.rs-phases {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.rs-phase {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding-block: 1.35rem;
+  border-top: 1px solid var(--rs-rule);
+}
+
+.rs-phase:last-child {
+  border-bottom: 1px solid var(--rs-rule);
+}
+
+.rs-phase-num {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--rs-accent);
+  opacity: 0.8;
+  padding-top: 0.3rem;
+}
+
+.rs-phase-name {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+
+.rs-phase-body {
+  margin-top: 0.5rem;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+/* ---- the closing call to action ----------------------------------- */
+
+/* Deliberately the quietest thing on the page it ends. A rule, two
+   lines and two links — the same typographic weight as the article
+   above it, so it reads as the last paragraph rather than as a banner
+   stapled to the bottom. */
+.rs-cta {
+  margin-top: 5rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--rs-rule-strong);
+  max-width: var(--rs-measure);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.rs-cta-head {
+  font-size: clamp(1.6rem, 3.4vw + 0.5rem, 2.3rem);
+  line-height: 1.14;
+  letter-spacing: -0.032em;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.rs-cta-head-line {
+  display: block;
+  color: var(--rs-ink-soft);
+}
+
+.rs-cta-body {
+  margin-top: 1.35rem;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--rs-ink-soft);
+  text-wrap: pretty;
+}
+
+.rs-cta-actions {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Matches the site's primary pill exactly — same shape, same height,
+   same plate shadow — so the one solid button in the resource layer is
+   recognisably the same object as the one in the navbar. */
+.rs-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding-inline: 1.5rem;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  background: var(--fg);
+  color: var(--ground);
+  box-shadow: 0 1px 0 0 var(--plate-sheen) inset,
+    0 10px 26px -16px var(--plate-shadow);
+  transition: transform 300ms var(--ease-cinematic),
+    background-color 300ms var(--ease-cinematic),
+    box-shadow 300ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .rs-cta-primary:hover {
+    transform: translateY(-1px);
+    background: var(--plate-hover);
+    box-shadow: 0 1px 0 0 var(--plate-sheen) inset,
+      0 14px 30px -16px var(--plate-shadow-hover);
+  }
+}
+
+.rs-cta-primary:active {
+  transform: none;
+}
+
+.rs-cta-arrow {
+  transition: transform 300ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .rs-cta-primary:hover .rs-cta-arrow {
+    transform: translateX(2px);
+  }
+}
+
+.rs-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  height: 2.75rem;
+  padding-inline: 1.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--hair-3);
+  background: var(--veil-3);
+  font-size: 14px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--fg) 90%, transparent);
+  transition: transform 300ms var(--ease-cinematic),
+    border-color 300ms var(--ease-cinematic),
+    background-color 300ms var(--ease-cinematic),
+    color 300ms var(--ease-cinematic);
+}
+
+@media (hover: hover) {
+  .rs-cta-secondary:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--fg) 25%, transparent);
+    background: var(--veil-4);
+    color: var(--fg);
+  }
+}
+
+/* ---- visually hidden ---------------------------------------------- */
+
+/* ── This is not the pattern it looks like ──
+   Text moved off the visual page is exactly the technique used to stuff
+   keywords where a reader cannot see them, and this layer was built to a
+   brief that forbids it. This rule is the opposite of that and it is
+   worth being explicit about why.
+
+   It is applied in exactly two places, both inside the diagrams: on the
+   label of a coverage mark ("Covered well") and on the name of a column
+   whose heading is drawn visually but announced per cell. In both cases
+   the information is already on the page for a sighted reader — as a
+   shape or as a heading — and this makes the same information reach
+   somebody using a screen reader. Nothing here is a keyword, nothing
+   here is content the visual page does not carry, and nothing here is
+   addressed to a crawler.
+
+   `clip-path: inset(50%)` rather than `display: none` or a negative
+   text-indent, because those two remove the text from the accessibility
+   tree as well, which would defeat the entire purpose. */
+.rs-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- reduced motion ------------------------------------------------ */
+
+/* There is very little to switch off — the resource layer runs no
+   entrance animations at all — but the hover translations and the
+   contents marker are still movement, and somebody who has asked for
+   less of it should not get a rail that slides. */
+@media (prefers-reduced-motion: reduce) {
+  .rs-work-card,
+  .rs-cta-primary,
+  .rs-cta-secondary,
+  .rs-related-arrow,
+  .rs-index-arrow,
+  .rs-bridge-arrow,
+  .rs-cta-arrow {
+    transition-property: border-color, background-color, color;
+  }
+
+  .rs-work-card:hover,
+  .rs-cta-primary:hover,
+  .rs-cta-secondary:hover {
+    transform: none;
+  }
+
+  .rs-toc-link::before {
+    transition: none;
+  }
+
+  .rs-faq-mark::after {
+    transition: none;
+  }
+}

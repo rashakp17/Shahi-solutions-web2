@@ -1,7 +1,9 @@
+import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { BlurReveal } from "@/components/ui/BlurReveal";
 import { ScrollStagger } from "@/components/ui/ScrollStagger";
 import { SectionAtmosphere } from "@/components/section/SectionAtmosphere";
+import { SERVICES, type ServiceId } from "@/lib/services";
 
 /**
  * Entrance choreography (ms), measured from the moment the cover is deep
@@ -94,98 +96,79 @@ const icon = {
   strokeLinejoin: "round",
 } as const;
 
-const SERVICES: Array<{ title: string; body: string; art: ReactNode }> = [
-  {
-    title: "Website Development",
-    body: "Ultra-fast, responsive websites built with Next.js, React, and modern SEO architectures to maximise organic reach.",
-    art: (
-      <>
-        <circle cx="12" cy="12" r="9" {...icon} />
-        <path d="M3 12h18" {...icon} />
-        <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "Custom Software Development",
-    body: "Tailored backend ecosystems, APIs, and cloud infrastructure engineered for complex business workloads.",
-    art: (
-      <>
-        <path d="m9 8-4 4 4 4" {...icon} />
-        <path d="m15 8 4 4-4 4" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "Mobile App Development",
-    body: "High-performance cross-platform iOS and Android applications utilising React Native and Flutter.",
-    art: (
-      <>
-        <rect x="7" y="3" width="10" height="18" rx="2.5" {...icon} />
-        <path d="M11 18.5h2" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "UI/UX Design",
-    body: "Visually stunning, accessible, and user-centric wireframes and layouts that boost engagement and brand trust.",
-    art: (
-      <>
-        <path
-          d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-1.5a2 2 0 0 0-1.4 3.4A2 2 0 0 1 12 21Z"
-          {...icon}
-        />
-        <circle cx="8.5" cy="10.5" r="1" {...icon} />
-        <circle cx="12" cy="7.5" r="1" {...icon} />
-        <circle cx="15.5" cy="10.5" r="1" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "ERP & CRM Solutions",
-    body: "Streamlined operational platforms that unify finance, inventory, and customer records into one system of record.",
-    art: (
-      <>
-        <ellipse cx="12" cy="6" rx="7" ry="3" {...icon} />
-        <path d="M5 6v6c0 1.66 3.13 3 7 3s7-1.34 7-3V6" {...icon} />
-        <path d="M5 12v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "Digital Marketing",
-    body: "Data-driven growth strategies, performance campaigns, and content built to compound rather than spike.",
-    art: (
-      <>
-        <path d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1Z" {...icon} />
-        <path d="M18 9a4 4 0 0 1 0 6" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "Sales Solutions",
-    body: "Innovative digital funnels and pipeline tooling that turn early interest into predictable revenue.",
-    art: (
-      <>
-        <path d="m4 16 5-5 3 3 7-7" {...icon} />
-        <path d="M15 7h4v4" {...icon} />
-      </>
-    ),
-  },
-  {
-    title: "Business Automation",
-    body: "Robust workflow scripting and integrations that take the repetitive work out of daily operations.",
-    art: (
-      <>
-        <rect x="7" y="7" width="10" height="10" rx="2" {...icon} />
-        <path
-          d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3"
-          {...icon}
-        />
-      </>
-    ),
-  },
-];
+/**
+ * The drawn mark for each service.
+ *
+ * The copy moved to lib/services.ts, because the offer catalogue in the home
+ * page's structured data needs the same eight titles and cannot import a React
+ * tree to get them. The artwork stayed, because nothing but this grid can use
+ * it.
+ *
+ * Keyed by `ServiceId` and typed as a total `Record`, which is the point of
+ * splitting it this way: adding a service to lib/services.ts without drawing
+ * its mark here fails the build, rather than shipping a card with an empty
+ * box in it.
+ */
+const ART: Record<ServiceId, ReactNode> = {
+  "website-development": (
+    <>
+      <circle cx="12" cy="12" r="9" {...icon} />
+      <path d="M3 12h18" {...icon} />
+      <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" {...icon} />
+    </>
+  ),
+  "custom-software-development": (
+    <>
+      <path d="m9 8-4 4 4 4" {...icon} />
+      <path d="m15 8 4 4-4 4" {...icon} />
+    </>
+  ),
+  "mobile-app-development": (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2.5" {...icon} />
+      <path d="M11 18.5h2" {...icon} />
+    </>
+  ),
+  "ui-ux-design": (
+    <>
+      <path
+        d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-1.5a2 2 0 0 0-1.4 3.4A2 2 0 0 1 12 21Z"
+        {...icon}
+      />
+      <circle cx="8.5" cy="10.5" r="1" {...icon} />
+      <circle cx="12" cy="7.5" r="1" {...icon} />
+      <circle cx="15.5" cy="10.5" r="1" {...icon} />
+    </>
+  ),
+  "erp-crm": (
+    <>
+      <ellipse cx="12" cy="6" rx="7" ry="3" {...icon} />
+      <path d="M5 6v6c0 1.66 3.13 3 7 3s7-1.34 7-3V6" {...icon} />
+      <path d="M5 12v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6" {...icon} />
+    </>
+  ),
+  "digital-marketing": (
+    <>
+      <path d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1Z" {...icon} />
+      <path d="M18 9a4 4 0 0 1 0 6" {...icon} />
+    </>
+  ),
+  "sales-solutions": (
+    <>
+      <path d="m4 16 5-5 3 3 7-7" {...icon} />
+      <path d="M15 7h4v4" {...icon} />
+    </>
+  ),
+  "business-automation": (
+    <>
+      <rect x="7" y="7" width="10" height="10" rx="2" {...icon} />
+      <path
+        d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3"
+        {...icon}
+      />
+    </>
+  ),
+};
 
 export function ServicesSection() {
   return (
@@ -271,7 +254,10 @@ export function ServicesSection() {
                     eight separate regions. What it bought was a 4px blur of a
                     near-black background read through a 1.5% white fill,
                     which is to say nothing you can see. */}
-                <div className="group flex h-full flex-col rounded-2xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] p-6 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-cinematic hover:border-accent-500/25 hover:bg-[color:var(--veil-2)] hover:-translate-y-1.5 hover:shadow-[0_12px_36px_-12px_color-mix(in_oklab,var(--color-accent-500)_12%,transparent)]">
+                {/* `relative`, added for the stretched anchor below. Nothing
+                    else about this card changed — same hairline, same fill,
+                    same hover lift. */}
+                <div className="group relative flex h-full flex-col rounded-2xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] p-6 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-cinematic hover:border-accent-500/25 hover:bg-[color:var(--veil-2)] hover:-translate-y-1.5 hover:shadow-[0_12px_36px_-12px_color-mix(in_oklab,var(--color-accent-500)_12%,transparent)]">
                   <span
                     className="anim-rise-inner flex h-11 w-11 items-center justify-center rounded-xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] text-accent-300 transition-colors duration-500 group-hover:border-accent-500/30 group-hover:text-accent-200"
                     style={
@@ -282,15 +268,48 @@ export function ServicesSection() {
                     }
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-                      {service.art}
+                      {ART[service.id]}
                     </svg>
                   </span>
 
+                  {/* The title is the link, where the service has a page.
+
+                      This card said "Learn more →" and was not a link — the
+                      whole grid was eight divs — so the one service page that
+                      exists was unreachable from the home page. That is the
+                      single worst internal-linking fault a site can have: the
+                      page a visitor is most likely to want next, and the page
+                      most worth ranking, with nothing pointing at it from the
+                      page that has all the authority.
+
+                      The anchor goes on the h3 rather than on "Learn more"
+                      because anchor text is a ranking signal and a description
+                      of the destination: eight links all reading "Learn more"
+                      describe nothing, where "Custom Software Development"
+                      says exactly what is at the other end. The `after:`
+                      utilities then stretch that anchor over the whole card,
+                      so the entire tile is clickable and the visual is
+                      unchanged — the pointer, the hover lift and the arrow all
+                      behave exactly as they did.
+
+                      Services without a page render the plain heading they
+                      always did. A link to nowhere would be worse than none,
+                      and inventing seven more routes to make the grid uniform
+                      is not a decision this change gets to make. */}
                   <h3
                     className="anim-rise-inner mt-5 text-[15px] font-medium leading-snug text-fg"
                     style={{ animationDelay: from(INNER.title) }}
                   >
-                    {service.title}
+                    {service.href ? (
+                      <Link
+                        href={service.href}
+                        className="after:absolute after:inset-0 after:rounded-2xl after:content-['']"
+                      >
+                        {service.title}
+                      </Link>
+                    ) : (
+                      service.title
+                    )}
                   </h3>
 
                   <p

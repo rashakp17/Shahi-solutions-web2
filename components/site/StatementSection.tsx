@@ -21,18 +21,6 @@ import { ScrollScrub } from "@/components/ui/ScrollScrub";
 const PHRASE = "Building Ideas That\nMove Businesses Forward";
 
 /**
- * Placeholder claims, in the manner of the rest of this template — the
- * uptime figures in the hero and the company names in the trust strip are
- * invented too. Worth replacing with real numbers before this goes anywhere
- * near a customer.
- */
-const STATS: Array<{ value: string; label: string }> = [
-  { value: "99.99%", label: "Release success" },
-  { value: "0", label: "Manual rollbacks" },
-  { value: "24/7", label: "Automated recovery" },
-];
-
-/**
  * Delays for the small content, in ms from the moment it is released, which
  * ScrollScrub does at 45% of the scrub — with the giant line part way up.
  *
@@ -40,6 +28,13 @@ const STATS: Array<{ value: string; label: string }> = [
  * completely leaves a hole in the middle of the section where nothing is
  * happening; coming in over its tail reads as one continuous arrival, which
  * is what the rest of the page does too.
+ *
+ * `stats` and `statStagger` are kept, unused, and that is deliberate: the
+ * three figures they timed were invented placeholders and have been removed
+ * (see the note in the markup below). These are the two numbers a real set
+ * would need in order to arrive on the same clock as everything else here, and
+ * re-deriving them later from the surrounding rhythm is harder than leaving
+ * them written down.
  */
 const CONTENT = { eyebrow: 0, note: 140, stats: 380, statStagger: 90 } as const;
 
@@ -296,26 +291,36 @@ export function StatementSection() {
                 className="max-w-xs text-[15px] font-medium leading-snug tracking-[-0.01em] text-fg/70 sm:text-base"
               />
 
-              <dl className="flex flex-wrap items-end gap-x-10 gap-y-6 sm:gap-x-14">
-                {STATS.map((stat, i) => (
-                  <div
-                    key={stat.label}
-                    className="anim-rise"
-                    style={{
-                      animationDelay: `${
-                        CONTENT.stats + i * CONTENT.statStagger
-                      }ms`,
-                    }}
-                  >
-                    <dt className="font-mono text-[clamp(1.5rem,3.5vw,2.1rem)] font-medium tabular-nums leading-none tracking-[-0.03em] text-fg">
-                      {stat.value}
-                    </dt>
-                    <dd className="mt-2.5 text-[11px] uppercase tracking-[0.16em] text-fg/35">
-                      {stat.label}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+              {/* ── The statistics that used to sit here are gone ──
+                  A <dl> of three figures stood on the right of this row:
+                  "99.99% Release success", "0 Manual rollbacks", "24/7
+                  Automated recovery". They were placeholders — this file's own
+                  comment said so, in the same breath as the invented company
+                  names in the trust strip — and they had been shipping as
+                  fact.
+
+                  Removed rather than replaced, at the owner's direction,
+                  because there is no honest way to replace them from here:
+                  every candidate figure is something only the business can
+                  measure. Inventing plausible ones would have been the same
+                  mistake with better numbers.
+
+                  It is a search decision as much as an editorial one. An
+                  unverifiable superlative is precisely what E-E-A-T assessment
+                  and every AI answer engine now discount a commercial page
+                  for, and "99.99% release success" on a page with nothing
+                  supporting it is worth less than silence.
+
+                  To put real ones back: restore a <dl> here with three
+                  verifiable facts — projects delivered, years operating,
+                  clients served, countries worked in — and re-add `stats` and
+                  `statStagger` to the CONTENT object above, which kept their
+                  slots for exactly this. The row is `justify-between`, so a
+                  second child lands back on the right with no other change.
+
+                  With one child left, `justify-between` simply left-aligns the
+                  note, which is what the composition wants anyway: the giant
+                  line above is the subject and this is its footnote. */}
             </div>
           </div>
         </div>

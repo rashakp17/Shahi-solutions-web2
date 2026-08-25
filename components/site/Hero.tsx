@@ -110,13 +110,41 @@ export function Hero() {
           className="text-[clamp(1.95rem,5.8vw,4.5rem)] font-semibold leading-[1] tracking-[-0.04em] text-fg"
         />
 
-        {/* Supporting copy */}
+        {/* Supporting copy.
+
+            Rewritten, and it is the only visible copy on this page that was.
+            The line here was "Infrastructure for teams who refuse the default.
+            Ship faster, scale quieter, and let the engineering disappear behind
+            the product." — good writing, and it left the most important
+            question on the page unanswered: a first-time visitor, and any
+            crawler or language model reading this document, could not tell from
+            the whole hero what kind of company this is. The headline says
+            "Smart Digital Solutions", which could be an agency, a consultancy
+            or a reseller.
+
+            So the second half now names the work. The brand voice survives
+            intact in the first clause — "teams who refuse the default" is the
+            phrase worth keeping — and the company name is in the sentence
+            because this is the paragraph that establishes the entity, on the
+            page that establishes it.
+
+            Kept to 150 characters against the previous 130, which is one line
+            at most inside max-w-lg and changes nothing about the composition.
+            It carries no keyword it does not earn: three services, named once,
+            in the words a person would use.
+
+            The headline above is deliberately untouched. Its six words are
+            individually choreographed on a timeline documented at the top of
+            this file — 0.30 through 1.17s, one word each — and rewording it to
+            insert "software" would mean re-tuning that, to fix a problem this
+            paragraph already fixes. */}
         <p
           className="anim-rise mt-8 max-w-lg text-balance text-[15px] leading-relaxed text-fg/42 sm:mt-9 sm:text-base"
           style={{ animationDelay: `${TIMING.subtext}ms` }}
         >
-          Infrastructure for teams who refuse the default. Ship faster, scale
-          quieter, and let the engineering disappear behind the product.
+          Shahi Solutions is a software company for teams who refuse the
+          default — custom software, web and mobile apps, and ERP platforms,
+          engineered end to end.
         </p>
 
         {/* Actions — one bar, not two loose buttons.
