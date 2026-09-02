@@ -69,8 +69,12 @@ const CARD_PACE = {
 
 /**
  * Offsets within a card, from that card's own arrival. The frame fades up
- * while its four lines slide into place behind it, so each point assembles
- * rather than appearing whole.
+ * while its lines slide into place behind it, so each point assembles rather
+ * than appearing whole.
+ *
+ * `link` is kept, unused: it timed the "Learn more →" row, which has been
+ * removed. It is the offset anything added back at the foot of a card would
+ * want in order to trail the body on the same rhythm.
  *
  * Pulled in with the pace above, and by the same proportion: these are
  * offsets *inside* a card's arrival, so leaving them where they were while
@@ -225,7 +229,9 @@ export function ServicesSection() {
             return (
               <li
                 key={service.title}
-                className="anim-rise"
+                /* Flat, not the full rise: a card is far too large an object
+                   to animate a blur across. See .anim-rise-flat. */
+                className="anim-rise anim-rise-flat"
                 style={
                   {
                     animationDelay: "var(--reveal-delay, 0ms)",
@@ -282,15 +288,21 @@ export function ServicesSection() {
                       most worth ranking, with nothing pointing at it from the
                       page that has all the authority.
 
-                      The anchor goes on the h3 rather than on "Learn more"
+                      The anchor went on the h3 rather than on "Learn more"
                       because anchor text is a ranking signal and a description
                       of the destination: eight links all reading "Learn more"
                       describe nothing, where "Custom Software Development"
                       says exactly what is at the other end. The `after:`
-                      utilities then stretch that anchor over the whole card,
-                      so the entire tile is clickable and the visual is
-                      unchanged — the pointer, the hover lift and the arrow all
-                      behave exactly as they did.
+                      utilities stretch that anchor over the whole card, so the
+                      entire tile is clickable — the pointer and the hover lift
+                      are unchanged.
+
+                      The label has since been removed outright (see the note
+                      at the foot of the card). That leaves this anchor as the
+                      only thing making the tile clickable, which is what it
+                      already was; what the card no longer has is a written
+                      prompt to click it. Deliberate: seven of the eight had
+                      nothing to prompt towards.
 
                       Services without a page render the plain heading they
                       always did. A link to nowhere would be worse than none,
@@ -319,18 +331,15 @@ export function ServicesSection() {
                     {service.body}
                   </p>
 
-                  <span
-                    className="anim-rise-inner mt-5 inline-flex items-center gap-1.5 text-[12.5px] text-fg/50 transition-colors duration-500 group-hover:text-accent-300"
-                    style={{ animationDelay: from(INNER.link) }}
-                  >
-                    Learn more
-                    <span
-                      aria-hidden="true"
-                      className="transition-transform duration-500 ease-cinematic group-hover:translate-x-0.5"
-                    >
-                      →
-                    </span>
-                  </span>
+                  {/* ── "Learn more →" is gone from every card ──
+                      It sat here as a span, on all eight cards, and only one
+                      of them has a page to go to. On the other seven it was
+                      an affordance with nothing behind it: a call to action
+                      that does not act, which a visitor discovers by clicking
+                      it and getting nothing. The link that matters is not
+                      lost with it — it is on the title, where the anchor text
+                      says what is at the other end, and it still stretches
+                      over the whole tile. */}
                 </div>
               </li>
             );

@@ -693,7 +693,25 @@
   display: inline-block;
   /* The clip barely moves — no layer promotion is worth keeping alive
      for it, so no will-change here. */
-  animation: word-unmask var(--rw-lift, 780ms) linear var(--rw-delay, 0ms) both;
+  /* `backwards`, not `both` — and the same at every entrance below.
+
+     `both` retains an animation's last frame forever. On the clip that means
+     every word on the page holds a clip-path for the rest of the session; on
+     .reveal-word-inner and .anim-rise it means every one of them holds a
+     `filter: blur(0)`, which is a filter, not the absence of one, so the
+     element stays on a render surface of its own long after its entrance has
+     finished. Ten headlines' worth of words plus thirty-odd rises is a page
+     built out of permanent composited layers — and that is the half of the
+     stutter that showed up *after* the content had arrived rather than while
+     it was arriving.
+
+     `backwards` still supplies the first frame through the delay, which is
+     the half that matters: nothing is ever seen unstyled. It only declines to
+     pin the last one, and at every entrance here the last frame and the
+     element's own resting style are the same thing. Nothing looks different.
+     The layer is released. */
+  animation: word-unmask var(--rw-lift, 780ms) linear var(--rw-delay, 0ms)
+    backwards;
 
   /* The resting bloom — a light the type sits in rather than one it emits.
      Two radii: a tight halo hugging the letterforms, and a wide, very faint
@@ -722,7 +740,8 @@
     /* focus: steady clearing, settles softly */ cubic-bezier(0.33, 1, 0.68, 1),
     /* light: no sudden appearance out of the black */
       cubic-bezier(0.4, 0, 0.35, 1);
-  animation-fill-mode: both;
+  /* See .reveal-word for why this is `backwards` and not `both`. */
+  animation-fill-mode: backwards;
   /* No will-change. This is a one-shot entrance, and `will-change` has no
      way to stand down when an animation finishes — the hint sticks, and so
      does the promoted layer, for the rest of the session. A running
@@ -766,7 +785,66 @@
      dumps the whole sweep into the first third and leaves the band idling
      off the end of the word. */
   animation-timing-function: linear;
-  animation-fill-mode: both;
+  /* The sweep ends at zero opacity, which is also where the base rule leaves
+     it, so there is nothing to pin. See .reveal-word. */
+  animation-fill-mode: backwards;
+}
+
+/* ------------------------------------------------------------------
+   The reveal, on a phone — and why this is a Largest Contentful Paint
+   rule rather than a taste one.
+   ------------------------------------------------------------------
+   Chrome does not count an element with `opacity: 0` as painted. Every
+   word here starts at zero opacity and holds there through its delay, so
+   the hero headline — which is the largest text on the page and therefore
+   the LCP element — is not merely *invisible* until its delay elapses, it
+   does not exist as far as the metric is concerned.
+
+   The hero's cadence is 300ms before the first word, then 165ms between
+   each of six, plus a beat at the line break. The last word begins at
+   1165ms. So LCP could never be better than first-render plus roughly a
+   second, however fast the server, the fonts and the bundle were — and on
+   the throttled mobile run PageSpeed grades you on, first render is
+   already 1.5–2s. That is the whole of the "high LCP" finding. No amount
+   of image or script work moves it, because there is no image and the
+   scripts are not what is waiting.
+
+   The delays are scaled rather than dropped, and only below sm. At the
+   hero's mobile size the type is ~2rem, where the word-at-a-time cadence
+   was never doing what it does at 4.5rem on a desktop — six words
+   resolving individually across a 390px column reads as a slow list, not
+   as a line being written. Compressed to 40% it is still a stagger, still
+   in the same order, and the first word is on screen at 120ms instead of
+   300.
+
+   Durations are deliberately untouched: LCP is decided by when a word
+   first becomes non-transparent, not by how long it takes to finish, so
+   shortening the curves would cost the look and buy nothing.
+
+   The desktop composition is not affected at any width at or above 640px.
+   ------------------------------------------------------------------ */
+@media (max-width: 639.98px) {
+  .reveal-word,
+  .reveal-word-inner,
+  .reveal-word-inner::after {
+    /* One number, so the cadence stays proportional and there is a single
+       place to tune it. */
+    --rw-haste: 0.4;
+  }
+
+  .reveal-word {
+    animation-delay: calc(var(--rw-delay, 0ms) * var(--rw-haste));
+  }
+
+  .reveal-word-inner {
+    animation-delay: calc(var(--rw-delay, 0ms) * var(--rw-haste)),
+      calc(var(--rw-delay, 0ms) * var(--rw-haste)),
+      calc(var(--rw-delay, 0ms) * var(--rw-haste));
+  }
+
+  .reveal-word-inner::after {
+    animation-delay: calc(var(--rw-shine-delay, 0ms) * var(--rw-haste));
+  }
 }
 
 .reveal-word-accent {
@@ -841,7 +919,7 @@
 
 .anim-rise-inner {
   animation: rise-inner var(--rise-inner, 720ms) cubic-bezier(0.22, 0.72, 0.16, 1)
-    both;
+    backwards;
 }
 
 .anim-rise {
@@ -863,11 +941,42 @@
     cubic-bezier(0.4, 0, 0.35, 1);
   /* Callers set `animation-delay` inline as a single value; CSS repeats a
      short list across all three names, so one delay still drives all of them. */
-  animation-fill-mode: both;
+  /* See .reveal-word for why this is `backwards` and not `both`. Thirty-odd
+     of these were each holding a `filter: blur(0)` — and so a layer — for the
+     rest of the visit. */
+  animation-fill-mode: backwards;
   /* No will-change — see .reveal-word-inner. There are around fifty of these
      on the page once the services grid is counted (eight cards plus four
      lines inside each), and every one of them was holding a promoted layer
      open long after its 900ms entrance had finished. */
+}
+
+/* ------------------------------------------------------------------
+   The same entrance without the focus pull, for things too big to blur.
+   ------------------------------------------------------------------
+   `filter: blur()` is the one property in this rig the compositor cannot
+   help with: the element is re-rasterised on the main thread on every frame
+   the radius changes. On a line of copy that is a small bill and the effect
+   is worth it. On an object the size of a service card or a contact form it
+   is the whole card — border, fill, icon, four lines of type — re-drawn sixty
+   times a second, eight of them at once as a grid staggers in, and always
+   while the visitor is mid-scroll, because that is what released them.
+
+   Those get the climb and the light and skip the focus. At card size the
+   blur was reading as a soft edge rather than as a lens finding focus
+   anyway, which is a poor trade for the only genuinely expensive property
+   on the page.
+
+   Used alongside .anim-rise, not instead of it — it overrides the animation
+   list and inherits everything else, and both held states still outrank it.
+   ------------------------------------------------------------------ */
+.anim-rise-flat {
+  animation-name: rise-lift, rise-fade;
+  animation-duration: var(--rise-lift, 900ms), var(--rise-fade, 560ms);
+  animation-timing-function:
+    cubic-bezier(0.22, 0.72, 0.16, 1),
+    cubic-bezier(0.4, 0, 0.35, 1);
+  animation-fill-mode: backwards;
 }
 
 /* ------------------------------------------------------------------
@@ -892,12 +1001,30 @@
    Scoped to the marked subtree, so the hero, which starts on load, is
    untouched by any of it.
    ------------------------------------------------------------------ */
+/* ── No blur in any of the held states below, and that is not an oversight ──
+
+   Every one of these rules used to carry the entrance's starting blur as part
+   of its held first frame, alongside `opacity: 0`. The two cannot both be
+   doing anything: a blur on something at zero opacity is invisible by
+   definition. What it was doing instead was giving every held element on the
+   page — which is to say every entrance below the fold, from first paint —
+   a filter, and so an offscreen rasterisation the compositor has to carry
+   around while the visitor scrolls past sections that have not been reached
+   yet. That is a cost with no picture attached to it.
+
+   The starting blur is still there. It comes from the keyframes' from-frame
+   via `animation-fill-mode: backwards`, which applies through the delay, so
+   a released entrance begins exactly as blurred as it always did.
+
+   `filter` is out of the transition lists for the same reason. Standing back
+   down, the element is fading to nothing over the same 400ms; blurring it on
+   the way out is a full re-raster per frame of something on its way to
+   invisible. */
 [data-cover-state="out"] .anim-rise {
   animation: none;
   opacity: 0;
-  filter: blur(var(--rise-blur, 0.34em));
   transform: translate3d(0, var(--rise-y, 14px), 0);
-  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+  transition: opacity 400ms var(--ease-soft), transform 400ms var(--ease-soft);
 }
 
 [data-cover-state="out"] .anim-rise-inner {
@@ -915,9 +1042,8 @@
 [data-cover-state="out"] .reveal-word-inner {
   animation: none;
   opacity: 0;
-  filter: blur(var(--rw-blur, 0.15em));
   transform: translate3d(0, var(--rw-y, 120%), 0);
-  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+  transition: opacity 400ms var(--ease-soft), transform 400ms var(--ease-soft);
 }
 
 [data-cover-state="out"] .reveal-word-inner::after {
@@ -948,9 +1074,8 @@
 [data-reveal="out"] .anim-rise {
   animation: none;
   opacity: 0;
-  filter: blur(var(--rise-blur, 0.34em));
   transform: translate3d(0, var(--rise-y, 14px), 0);
-  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+  transition: opacity 400ms var(--ease-soft), transform 400ms var(--ease-soft);
 }
 
 [data-reveal="out"] .anim-rise-inner {
@@ -970,9 +1095,8 @@
 [data-reveal="out"] .reveal-word-inner {
   animation: none;
   opacity: 0;
-  filter: blur(var(--rw-blur, 0.15em));
   transform: translate3d(0, var(--rw-y, 120%), 0);
-  transition: opacity 400ms var(--ease-soft), filter 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+  transition: opacity 400ms var(--ease-soft), transform 400ms var(--ease-soft);
 }
 
 [data-reveal="out"] .reveal-word-inner::after {

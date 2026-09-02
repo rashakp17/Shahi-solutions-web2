@@ -71,8 +71,16 @@ type Project = {
    * `clip` is a screen recording and `src` its poster. Both together is the
    * good case: the still is what the card shows until the clip is decoded and
    * visible, and it is the whole of what a reduced-motion visitor gets.
+   *
+   * A clip with no poster is allowed, because pulling a still out of a
+   * recording needs a tool that is not always to hand, and waiting for one is
+   * not a good enough reason to leave the real capture off the card. The card
+   * shows the drawing until the clip arms — which happens a full viewport
+   * early, so in practice nobody sees the handover — and a reduced-motion
+   * visitor keeps the drawing, which is the right answer for them anyway.
+   * Add the poster when there is one; nothing else has to change.
    */
-  shot?: { src: string; alt: string; clip?: string };
+  shot?: { src?: string; alt: string; clip?: string };
   art: ReactNode;
 };
 
@@ -209,14 +217,15 @@ const PROJECTS: Project[] = [
       "Real-Time Dashboards",
     ],
     stack: ["react", "node", "postgres"],
-    // Paths written before the files exist, on purpose: Preview swaps back to the
-    // drawing below on the first onError, so the card is correct today and
-    // correct again the moment the capture is dropped in (see the note on
-    // `shot` in the Project type). Nothing here changes when it lands.
+    // A still and no clip. The `clip` path that used to sit here pointed at a
+    // recording that does not exist — harmless while the poster was missing
+    // too and the card fell back to the drawing, but with a real capture in
+    // place it would have mounted a <video> over it and left the frame on a
+    // poster that never plays. A capture is whatever exists; see `shot` in
+    // the Project type.
     shot: {
-      src: "/projects/emarath-erp.png",
-      clip: "/projects/emarath-erp.mp4",
-      alt: "The Emarath ERP dashboard: revenue and expense totals across the top, a trend chart, and a task summary beside a list of recent entries.",
+      src: "/projects/emarath-erp.jpeg",
+      alt: "The Emarath ERP sales dashboard: a row of lead and follow-up counters above a team activity board, with revenue and conversion totals beside a leaderboard of the sales team.",
     },
     art: (
       <div className="flex h-full gap-2.5">
@@ -266,10 +275,10 @@ const PROJECTS: Project[] = [
       "Fuel & Expense Reports",
     ],
     stack: ["react", "node", "gps", "analytics"],
+    /* A still and no clip — same as Emarath above. */
     shot: {
-      src: "/projects/fleet-management.png",
-      clip: "/projects/fleet-management.mp4",
-      alt: "The Fleet Management console: a live map of vehicle positions across a coastline, with a per-vehicle status list down the left.",
+      src: "/projects/fleet-management.jpeg",
+      alt: "The Fleet Management console: a live tracking map of vehicle positions along the Kerala coast, with a searchable per-vehicle list of registrations, speeds and online status down the left.",
     },
     art: (
       <div className="flex h-full flex-col gap-2.5">
@@ -308,8 +317,10 @@ const PROJECTS: Project[] = [
       "SEO & Responsive Build",
     ],
     stack: ["react", "tailwind", "vercel"],
+    href: "https://vrsrealinvest.com.au/",
+    /* No `src` — the recording is here, a frame grab of it is not. See the
+       note on `shot` in the type above. */
     shot: {
-      src: "/projects/vrs-real-invest.png",
       clip: "/projects/vrs-real-invest.mp4",
       alt: "The VRS Real Invest home page: a featured luxury portfolio of properties beside an investment performance dashboard.",
     },
@@ -437,40 +448,48 @@ function Preview({ project }: { project: Project }) {
     return () => view.disconnect();
   }, [armed]);
 
+  // Three cases, not a shot/no-shot pair: a capture may arrive as a clip, as
+  // a still, or as both, and the frame is only styled as a capture when one
+  // of them is actually on screen. Nested inside `shot ? …`, a clip with no
+  // poster took the still branch, asked next/image for a file that was never
+  // there, and tripped the error fallback — so the one project with a real
+  // recording and no frame grab showed the drawing and never mounted its
+  // video. The padding went with it: .pj-art--shot strips the frame's inset
+  // for a full-bleed capture, and it was being applied to a drawing.
+  const showingShot = Boolean((clip && armed) || shot?.src);
+
   return (
-    <div ref={holderRef} className={cn("pj-art", shot && "pj-art--shot")}>
+    <div ref={holderRef} className={cn("pj-art", showingShot && "pj-art--shot")}>
       <div className="pj-art-in">
-        {shot ? (
-          clip && armed ? (
-            <video
-              ref={videoRef}
-              className="pj-shot"
-              poster={shot.src}
-              muted
-              loop
-              playsInline
-              preload="none"
-              /* Decoration inside a card that is itself one big link: controls
-                 here would be a second thing to click in the same box. The
-                 alt text the still carries is on the card's own link. */
-              aria-hidden="true"
-              tabIndex={-1}
-              onError={() => setFailed(true)}
-            >
-              <source src={clip} type="video/mp4" />
-            </video>
-          ) : (
-            <Image
-              src={shot.src}
-              alt={shot.alt}
-              fill
-              /* Roughly what the panel occupies at each break — the column is
-                 1.2fr of a 72rem grid on desktop and the full width below it. */
-              sizes="(min-width: 1024px) 46vw, 92vw"
-              className="pj-shot"
-              onError={() => setFailed(true)}
-            />
-          )
+        {clip && armed ? (
+          <video
+            ref={videoRef}
+            className="pj-shot"
+            poster={shot?.src}
+            muted
+            loop
+            playsInline
+            preload="none"
+            /* Decoration inside a card that is itself one big link: controls
+               here would be a second thing to click in the same box. The
+               alt text the still carries is on the card's own link. */
+            aria-hidden="true"
+            tabIndex={-1}
+            onError={() => setFailed(true)}
+          >
+            <source src={clip} type="video/mp4" />
+          </video>
+        ) : shot?.src ? (
+          <Image
+            src={shot.src}
+            alt={shot.alt}
+            fill
+            /* Roughly what the panel occupies at each break — the column is
+               1.2fr of a 72rem grid on desktop and the full width below it. */
+            sizes="(min-width: 1024px) 46vw, 92vw"
+            className="pj-shot"
+            onError={() => setFailed(true)}
+          />
         ) : (
           project.art
         )}
@@ -630,7 +649,17 @@ export function ProjectsSection() {
                         card by a pseudo-element (see .pj-cta::after). That is
                         what makes clicking anywhere on the card work without
                         nesting a second anchor inside the first — which is
-                        invalid, and which browsers resolve by guessing. */}
+                        invalid, and which browsers resolve by guessing.
+
+                        No `href`, no action. The two internal builds — the ERP
+                        and the fleet console — are behind a client's login and
+                        there is nothing to show a visitor, so the card talks
+                        about the work and stops there. It used to offer "View
+                        Project" pointing at the contact form, which is a link
+                        that does not do what its label says: a visitor
+                        clicking to see the project landed on an enquiry form
+                        having seen nothing. The card is not clickable at all
+                        now, which is the honest version of the same state. */}
                     {project.href ? (
                       <a
                         href={project.href}
@@ -645,16 +674,7 @@ export function ProjectsSection() {
                         <span aria-hidden="true" className="pj-cta-rule" />
                         <Arrow out />
                       </a>
-                    ) : (
-                      <a
-                        href="#contact"
-                        className="pj-cta mt-7 lg:mt-auto lg:pt-7"
-                      >
-                        <span className="pj-cta-label">View Project</span>
-                        <span aria-hidden="true" className="pj-cta-rule" />
-                        <Arrow />
-                      </a>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* ---- preview ---- */}

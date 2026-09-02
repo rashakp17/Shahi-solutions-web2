@@ -23,6 +23,40 @@ const nextConfig: NextConfig = {
      * minute is work with nothing to show for it. */
     minimumCacheTTL: 31536000,
   },
+
+  /* Cache headers for the static files in /public.
+   *
+   * Worth knowing, because it is not what most people assume: the long
+   * immutable caching Next is known for applies to /_next/static, whose
+   * filenames carry a content hash. Everything in /public is served by
+   * Vercel with `public, max-age=0, must-revalidate` — revalidated on every
+   * single visit. For this site that is the project captures and the team
+   * portraits, which is most of the page's weight, and it is the whole of
+   * Lighthouse's "serve static assets with an efficient cache policy".
+   *
+   * Not `immutable`, and that is deliberate. These filenames are stable —
+   * /projects/vrs-real-invest.mp4 stays that name when the recording behind
+   * it is replaced — so an immutable year would leave every returning
+   * visitor on the old file until their cache expired, with no way to push a
+   * correction. `stale-while-revalidate` gives the same instant response
+   * from cache and refreshes it in the background, so a replaced asset
+   * reaches everyone on their second visit after a deploy rather than never.
+   *
+   * If a file ever does need to change *now*, rename it — that is what the
+   * hash on /_next/static is doing, by hand. */
+  async headers() {
+    return [
+      {
+        source: "/:dir(projects|team|brand)/:file*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=2592000, stale-while-revalidate=31536000",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

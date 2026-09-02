@@ -14,6 +14,22 @@ import { useEffect, useRef, type ElementType, type ReactNode } from "react";
 const IN_RATIO = 0.2;
 
 /**
+ * Fraction of the observer's root an item must be filling to count as
+ * arrived regardless of its own ratio — the escape hatch for items too tall
+ * to ever satisfy `inRatio`. A third of the screen is well past the point
+ * where a visitor would say the thing is in front of them.
+ */
+const COVER_RATIO = 0.34;
+
+/** Every 5% up to the band, so a slow-climbing ratio still reports in. */
+function thresholds(inRatio: number) {
+  const out: number[] = [];
+  for (let t = 0; t < inRatio; t += 0.05) out.push(Math.round(t * 100) / 100);
+  out.push(inRatio);
+  return out;
+}
+
+/**
  * Releases each child's entrance when that child scrolls into view, instead
  * of running the whole list off one clock.
  *
@@ -119,7 +135,30 @@ export function ScrollStagger({
         for (const entry of entries) {
           const item = entry.target as HTMLElement;
 
-          if (entry.isIntersecting && entry.intersectionRatio >= inRatio) {
+          // The ratio is a fraction of the *item*, so an item taller than the
+          // observer's root can never reach a ratio of 1 — and past a certain
+          // height it can never reach `inRatio` either. At the 0.3 the
+          // ventures column asks for, anything over about four viewports is
+          // unreleasable: it scrolls into view, its ratio tops out below the
+          // band, no threshold is ever crossed again, and it sits there held
+          // at its first frame — blurred and at zero opacity — for the rest of
+          // the visit. That is the entrance that "gets stuck", and it is a
+          // property of the item's height rather than of anything the visitor
+          // did, so it reproduces every time on a viewport short enough.
+          //
+          // The second reading is the one that survives it: how much of the
+          // *screen* the item is filling. An item covering a third of the
+          // viewport has plainly arrived, whatever fraction of itself that
+          // happens to be.
+          const rootHeight = entry.rootBounds?.height ?? window.innerHeight;
+          const fillsScreen =
+            rootHeight > 0 &&
+            entry.intersectionRect.height / rootHeight >= COVER_RATIO;
+
+          if (
+            entry.isIntersecting &&
+            (entry.intersectionRatio >= inRatio || fillsScreen)
+          ) {
             if (item.dataset.reveal !== "in") arriving.push(item);
           } else if (!entry.isIntersecting && item.dataset.reveal !== "out") {
             item.dataset.reveal = "out";
@@ -139,7 +178,11 @@ export function ScrollStagger({
       },
       {
         rootMargin,
-        threshold: [0, inRatio],
+        // Stops on the way up to the band, not just at it. A tall item's ratio
+        // climbs slowly and may top out short of `inRatio`; without something
+        // to cross on the way, the screen-coverage test above would never get
+        // a callback to be evaluated in.
+        threshold: thresholds(inRatio),
       },
     );
 

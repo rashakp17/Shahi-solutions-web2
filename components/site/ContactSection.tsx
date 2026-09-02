@@ -310,7 +310,13 @@ export function ContactSection() {
 
         {/* ---------------- right: the form ---------------- */}
         <ScrollStagger as="div" inRatio={0.15} className="ct-formwrap">
-          <div className="anim-rise" style={{ "--rise-y": "34px" } as CSSProperties}>
+          {/* Flat, not the full rise — the whole form is inside it, and a
+              blur across it is a full-form repaint per frame. See
+              .anim-rise-flat. */}
+          <div
+            className="anim-rise anim-rise-flat"
+            style={{ "--rise-y": "34px" } as CSSProperties}
+          >
             <form className="ct-form" onSubmit={onSubmit} noValidate={false}>
               <Field name="name" label="Full Name" placeholder="John Doe" />
               <Field

@@ -56,8 +56,8 @@ export const CASE_STUDIES: CaseStudy[] = [
     relevance:
       "The clearest example of custom software replacing a stack of disconnected tools with one system of record.",
     shot: {
-      src: "/projects/emarath-erp.png",
-      alt: "The Emarath ERP dashboard: revenue and expense totals across the top, a trend chart, and a task summary beside a list of recent entries.",
+      src: "/projects/emarath-erp.jpeg",
+      alt: "The Emarath ERP sales dashboard: a row of lead and follow-up counters above a team activity board, with revenue and conversion totals beside a leaderboard of the sales team.",
     },
   },
   {
@@ -69,8 +69,8 @@ export const CASE_STUDIES: CaseStudy[] = [
     relevance:
       "Built because no off-the-shelf product tracked this operator's vehicles, drivers and maintenance on one screen.",
     shot: {
-      src: "/projects/fleet-management.png",
-      alt: "The Fleet Management console: a live map of vehicle positions across a coastline, with a per-vehicle status list down the left.",
+      src: "/projects/fleet-management.jpeg",
+      alt: "The Fleet Management console: a live tracking map of vehicle positions along the Kerala coast, with a searchable per-vehicle list of registrations, speeds and online status down the left.",
     },
   },
   {
@@ -109,6 +109,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       "Property investment opportunities, company services and consultation booking, built around turning an interested visitor into an enquiry.",
     relevance:
       "The case where a focused custom build beats a platform: one job, done without the weight of a general-purpose CMS.",
+    href: "https://vrsrealinvest.com.au/",
     shot: {
       src: "/projects/vrs-real-invest.png",
       alt: "The VRS Real Invest home page: a featured luxury portfolio of properties beside an investment performance dashboard.",

@@ -51,6 +51,16 @@ const mono = JetBrains_Mono({
   variable: "--font-mono-geist",
   display: "swap",
   weight: ["400", "500"],
+  /* Not preloaded, for the same reason as Geist above: nothing on the first
+     screen of a phone is set in it. The mono face carries the small caps
+     labels — section eyebrows, the tech chips, the scroll cue — and every one
+     of those is either below the fold or, in the scroll cue's case,
+     `hidden sm:flex` and so not rendered on a phone at all.
+     `next/font` preloads every family by default, which put a second font
+     file on the critical path competing with Inter's, for type the visitor
+     cannot see yet. It still loads on first use, and `display: swap` means
+     the labels paint in the fallback until it lands. */
+  preload: false,
 });
 
 export const metadata: Metadata = {

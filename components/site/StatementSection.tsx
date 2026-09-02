@@ -1,5 +1,4 @@
 import { ThemedWarpText } from "@/components/site/ThemedWarpText";
-import { BlurReveal } from "@/components/ui/BlurReveal";
 import { ScrollScrub } from "@/components/ui/ScrollScrub";
 
 /* ------------------------------------------------------------------
@@ -29,12 +28,12 @@ const PHRASE = "Building Ideas That\nMove Businesses Forward";
  * happening; coming in over its tail reads as one continuous arrival, which
  * is what the rest of the page does too.
  *
- * `stats` and `statStagger` are kept, unused, and that is deliberate: the
- * three figures they timed were invented placeholders and have been removed
- * (see the note in the markup below). These are the two numbers a real set
- * would need in order to arrive on the same clock as everything else here, and
- * re-deriving them later from the surrounding rhythm is harder than leaving
- * them written down.
+ * Only `eyebrow` is read. `note`, `stats` and `statStagger` are kept, unused,
+ * and that is deliberate: the supporting block they timed — a line of copy and
+ * three invented figures — has been removed (see the note in the markup
+ * below). These are the numbers anything that replaces it would need in order
+ * to arrive on the same clock as everything else here, and re-deriving them
+ * later from the surrounding rhythm is harder than leaving them written down.
  */
 const CONTENT = { eyebrow: 0, note: 140, stats: 380, statStagger: 90 } as const;
 
@@ -169,7 +168,21 @@ export function StatementSection() {
               blocks instead. It has to be: the giant line is a child of this
               column below sm, and a max-w-6xl parent would stop it running off
               the edges, which is the whole composition. */}
-          <div className="pointer-events-none relative z-10 flex h-full flex-col justify-between pb-[7svh] pt-24 sm:py-24">
+          {/* justify-center below sm, justify-between above it, where it used
+              to be justify-between throughout.
+
+              Below sm the giant line is a flex child, so this column held
+              three of them — eyebrow, line, supporting block — and spreading
+              them was what put the line in the middle of the pane. With the
+              block gone, spreading two children pins the line to the bottom
+              edge and opens a void under the eyebrow. Centring the pair keeps
+              the composition the section is built on.
+
+              Above sm the line is absolute and the eyebrow is the only child
+              in flow, where justify-between and justify-start are the same
+              thing — so the desktop pane is untouched, and centring there
+              would have moved the eyebrow off the top. */}
+          <div className="pointer-events-none relative z-10 flex h-full flex-col justify-center pb-[7svh] pt-24 sm:justify-between sm:py-24">
             <p
               className="anim-rise pointer-events-auto mx-auto w-full max-w-6xl px-5 font-mono text-[10px] uppercase tracking-[0.32em] text-fg/28 sm:px-8"
               style={{ animationDelay: `${CONTENT.eyebrow}ms` }}
@@ -273,55 +286,30 @@ export function StatementSection() {
             </div>
           </div>
 
-            <div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-10 px-5 sm:flex-row sm:items-end sm:justify-between sm:gap-16 sm:px-8">
-              {/* The one piece of small type that gets the masked reveal —
-                  the same rig as the hero headline, at a twentieth of the
-                  size. It answers the giant line, so it arrives the way the
-                  giant line does. */}
-              <BlurReveal
-                as="p"
-                lines={[
-                  { text: "Staged rollouts and" },
-                  { text: "automatic rollback.", accent: true },
-                ]}
-                delay={CONTENT.note}
-                lineDelay={40}
-                stagger={70}
-                duration={520}
-                className="max-w-xs text-[15px] font-medium leading-snug tracking-[-0.01em] text-fg/70 sm:text-base"
-              />
+            {/* ── The supporting block that used to close this pane is gone ──
 
-              {/* ── The statistics that used to sit here are gone ──
-                  A <dl> of three figures stood on the right of this row:
-                  "99.99% Release success", "0 Manual rollbacks", "24/7
-                  Automated recovery". They were placeholders — this file's own
-                  comment said so, in the same breath as the invented company
-                  names in the trust strip — and they had been shipping as
-                  fact.
+                A note in the masked-reveal rig read "Staged rollouts and
+                automatic rollback.", and a <dl> of three figures stood beside
+                it: "99.99% Release success", "0 Manual rollbacks", "24/7
+                Automated recovery".
 
-                  Removed rather than replaced, at the owner's direction,
-                  because there is no honest way to replace them from here:
-                  every candidate figure is something only the business can
-                  measure. Inventing plausible ones would have been the same
-                  mistake with better numbers.
+                The figures went first, and the reason is worth keeping: they
+                were placeholders that had been shipping as fact, and every
+                honest replacement is something only the business can measure.
+                An unverifiable superlative is precisely what E-E-A-T
+                assessment and every AI answer engine discount a commercial
+                page for, so "99.99% release success" with nothing behind it
+                was worth less than silence.
 
-                  It is a search decision as much as an editorial one. An
-                  unverifiable superlative is precisely what E-E-A-T assessment
-                  and every AI answer engine now discount a commercial page
-                  for, and "99.99% release success" on a page with nothing
-                  supporting it is worth less than silence.
+                The note followed, at the owner's direction. It named a
+                deployment practice rather than the section's subject, and once
+                the figures were gone it was a lone footnote under a line that
+                does not need one.
 
-                  To put real ones back: restore a <dl> here with three
-                  verifiable facts — projects delivered, years operating,
-                  clients served, countries worked in — and re-add `stats` and
-                  `statStagger` to the CONTENT object above, which kept their
-                  slots for exactly this. The row is `justify-between`, so a
-                  second child lands back on the right with no other change.
-
-                  With one child left, `justify-between` simply left-aligns the
-                  note, which is what the composition wants anyway: the giant
-                  line above is the subject and this is its footnote. */}
-            </div>
+                To put something back: a flex row at max-w-6xl, here, below the
+                typographic layer. `note`, `stats` and `statStagger` are all
+                still in the CONTENT object above, so a new block can arrive on
+                the same clock as the eyebrow without re-deriving the rhythm. */}
           </div>
         </div>
       </section>
