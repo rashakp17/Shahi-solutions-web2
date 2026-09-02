@@ -34,14 +34,14 @@ const TIMING = {
    * shares a top edge, so a row always arrives as one batch and this is what
    * spaces it out.
    *
-   * 120, down from 180. A row of four at 180 took 540ms just to deal itself
-   * out before the last card had begun, which is most of a second on top of
-   * the card's own arrival. That was survivable while this section was one
-   * of two things on the page; alongside every other section it reads as
-   * this one lagging. The rest of the site counts its batches out at
-   * 100–140.
+   * 150, between the 180 this started at and the 120 it was cut to. The cut
+   * was made to stop the section reading as slow, and the run-up below is a
+   * better answer to that than a tighter gap: a card that is already most of
+   * the way in when you reach it does not read as slow however long its curve
+   * is. With the arrival brought forward there is room for the row to deal
+   * itself out properly again.
    */
-  cardStagger: 120,
+  cardStagger: 150,
 } as const;
 
 /**
@@ -51,20 +51,31 @@ const TIMING = {
  * out rather than left implicit, because the whole point is that this section
  * is now on the same clock as every other one.
  *
- * It used to run at 1400/980/880/1080 — half again as long as the rest of the
- * site — on the argument that a card released by the scroll is the only thing
- * moving and is watched start to finish, so it can afford to take its time
- * where the hero cannot. That reasoning holds in isolation and stopped
- * holding when the separate pages became sections of one: scrolling out of a
- * section that arrives in 900ms into one that takes 1400 does not read as
- * considered, it reads as slow. Consistency across the page beats the
- * argument for any single section.
+ * Longer than the shared default again — 1200 against 900 — at the owner's
+ * direction, and the reasoning that took it down to 900 is worth keeping
+ * because it is half right. It said that scrolling out of a 900ms section
+ * into a 1400ms one reads as slow rather than as considered. True, and the
+ * part it missed is that a card's curve is only half of what the visitor
+ * experiences: the other half is how much of that curve has already run by
+ * the time they are looking at it. At 900ms with almost no run-up, a card
+ * started from nothing at the moment it appeared, so the whole 900ms was
+ * spent watching it assemble — which is what made it read as slow, and what
+ * made a quick scroll catch the grid half-built.
+ *
+ * The run-up on the ScrollStagger below now starts a card three tenths of a
+ * viewport before it arrives. That is what buys the longer curve: the card is
+ * a good way in by the time it is on screen, so 1200ms reads as a settle
+ * rather than as a wait, and there is no state a fast scroll can catch it in
+ * that looks broken.
+ *
+ * The two have to move together. Lengthening these without the run-up puts
+ * back exactly the problem that was being solved.
  */
 const CARD_PACE = {
-  "--rise-lift": "900ms",
-  "--rise-defog": "620ms",
-  "--rise-fade": "560ms",
-  "--rise-inner": "720ms",
+  "--rise-lift": "1200ms",
+  "--rise-defog": "820ms",
+  "--rise-fade": "750ms",
+  "--rise-inner": "940ms",
 } as const;
 
 /**
@@ -82,7 +93,7 @@ const CARD_PACE = {
  * way into a curve that is already ending. The lines want to trail the
  * frame, not queue behind it.
  */
-const INNER = { icon: 35, title: 100, body: 155, link: 215 } as const;
+const INNER = { icon: 45, title: 130, body: 205, link: 285 } as const;
 
 /**
  * A card's own animation-delay is written onto it by ScrollStagger as
@@ -221,9 +232,36 @@ export function ServicesSection() {
           companies scale from concept to global enterprise.
         </p>
 
+        {/* Three tenths of a viewport of run-up, against the shared tenth.
+            ── Why this section needs more than the default ──
+            ScrollStagger's own note says the risk it carries — flying past a
+            section before it has assembled and seeing a half-built band — is
+            handled a layer up, by the page settling onto a section instead of
+            stopping wherever a flick ran out. That was true when it was
+            written and is not any more: the scroll-snap that did the settling
+            was removed (see the block in globals.css explaining why — it was
+            dragging the page backwards between wheel ticks). Nothing replaced
+            it, so this grid was left releasing each card at the moment it
+            came into view with nothing underneath to slow the visitor down,
+            and a brisk scroll caught it mid-assembly. That is the "comes in
+            partly" — not a bug in the release, just an entrance with no
+            run-up in front of it.
+
+            A margin is the right place to fix it rather than a faster
+            animation, because it costs the choreography nothing: every card
+            still plays its full curve at its designed pace, in order. They
+            simply start it while they are still below the fold, so what the
+            visitor arrives to is a card most of the way in rather than a
+            blank one beginning.
+
+            Only the bottom edge is grown. The top stays at a tenth: that side
+            governs when a card resets on the way back up, and pushing it out
+            would have the grid standing back down while it is still on
+            screen. */}
         <ScrollStagger
           className="mt-14 grid w-full grid-cols-1 gap-4 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4"
           stagger={TIMING.cardStagger}
+          rootMargin="10% 0px 30% 0px"
         >
           {SERVICES.map((service) => {
             return (
