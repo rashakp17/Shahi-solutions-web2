@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import type WarpTextComponent from "@/components/WarpText";
+import { scrollSpeed, trackScrollSpeed } from "@/lib/scrollSpeed";
 import { useTheme } from "@/lib/useTheme";
 import { cn } from "@/lib/cn";
 import "@/components/WarpText.css";
@@ -39,30 +40,34 @@ const WarpText = dynamic(() => import("@/components/WarpText"), { ssr: false });
 type WarpTextProps = ComponentProps<typeof WarpTextComponent>;
 
 /**
- * How far ahead of the viewport the component is mounted.
+ * When the component is mounted: in the first still moment after load.
  *
- * A screen and a half. It was 400px, and measured at an ordinary reading
- * scroll that armed the WebGL context only 10–30ms before the line entered
- * the viewport — so the visitor arrived at an empty pane for the ~150ms it
- * takes to warm the shader and rasterise the sentence, and on a phone the
- * setup landed as a long task in the very frame the line appeared. Mounted
- * this far out, all of that happens while the services grid is still being
- * read, and the line is already drawn when it scrolls in.
+ * The WebGL setup — module, context, shader, the sentence's raster — is a
+ * few long tasks however it is sliced, and the only question is where they
+ * land. Each earlier answer put them somewhere the visitor was looking:
+ *
+ *   400px ahead of the line   the context came up 10–30ms before the line
+ *                             entered, so the pane arrived empty and the
+ *                             setup stalled the frame the line appeared in.
+ *   1.5 screens ahead         on a phone that is the services grid, so the
+ *                             setup stalled the cards mid-entrance — the
+ *                             section read as slow again.
+ *
+ * Nobody is watching anything arrive while the page is sitting still on the
+ * hero after load, so that is where it goes: an idle callback after `load`,
+ * deferred for as long as the page is being scrolled. The render loop does
+ * its own pausing off screen, so mounting early costs no frames — only the
+ * one context, which every visit that reaches the section would pay anyway.
+ *
+ * The one exception is the line already being on screen — a visitor who
+ * scrolls without pausing from the first frame, or lands there directly — and
+ * then it mounts at once rather than waiting for a pause that is not coming.
  */
-const ARM_MARGIN = "150% 0px";
+const STILL_RETRY_MS = 250;
 
 /**
- * The module itself is fetched earlier still: once the page has loaded and
- * the main thread is idle. It is the network round trip that a mount on
- * approach cannot hide on a slow connection, and fetching it here costs
- * nothing on the critical path — the hero has long since painted.
- */
-const prefetchWarp = () => {
-  void import("@/components/WarpText");
-};
-
-/**
- * WarpText, with its fill chosen by the current theme, loaded on approach.
+ * WarpText, with its fill chosen by the current theme, mounted once the page
+ * is still after load (see STILL_RETRY_MS above).
  *
  * Exists only so that StatementSection can stay a server component. The
  * palette has to be picked in the browser — the canvas takes hex, not custom
@@ -95,19 +100,15 @@ export function ThemedWarpText({
     const holder = holderRef.current;
     if (!holder) return;
 
-    /* Two conditions, not one: the section is within reach, *and* the page
-       has loaded and gone idle. On a tall laptop screen the statement pane
-       is close enough to the top that the margin alone would arm it during
-       the initial load, putting a WebGL context and a shader compile in
-       competition with the hero's first paint. The one exception is the
-       line actually being on screen — a visitor who lands there directly
-       is not kept waiting for idle. */
-    let near = false;
-    let ready = false;
+    trackScrollSpeed();
+
     let done = false;
+    let disposed = false;
+    let idle = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     const arm = () => {
-      if (done) return;
+      if (done || disposed) return;
       // One-shot. Once the module is in, it stays in — the component does
       // its own pausing when the section leaves the screen.
       done = true;
@@ -115,43 +116,42 @@ export function ThemedWarpText({
       setArmed(true);
     };
 
-    const view = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[entries.length - 1];
-        near = entry.isIntersecting;
-        const onScreen =
-          near &&
-          entry.boundingClientRect.top < window.innerHeight &&
-          entry.boundingClientRect.bottom > 0;
-        if (near && (ready || onScreen)) arm();
-      },
-      { rootMargin: ARM_MARGIN },
-    );
-
+    // The on-screen exception. No margin: this is the fallback, not the plan.
+    const view = new IntersectionObserver((entries) => {
+      if (entries[entries.length - 1].isIntersecting) arm();
+    });
     view.observe(holder);
 
-    // Idle, after load: fetch the module, and let the observer arm from now
-    // on. requestIdleCallback is missing in Safari, where a plain timeout
-    // stands in for it.
-    const onIdle = () => {
-      prefetchWarp();
-      ready = true;
-      if (near) arm();
+    // Waits out any scroll in progress, so the setup never lands on a frame
+    // the visitor is watching move.
+    const armWhenStill = () => {
+      if (done || disposed) return;
+      if (scrollSpeed() > 0) {
+        timer = setTimeout(armWhenStill, STILL_RETRY_MS);
+        return;
+      }
+      arm();
     };
 
-    let idle = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Fetched first, mounted once it is in — so the chunk's evaluation and
+    // the context's creation are two separate tasks rather than one long one.
+    const onIdle = () => {
+      import("@/components/WarpText").then(armWhenStill, armWhenStill);
+    };
+
+    // requestIdleCallback is missing in Safari, where a timeout stands in.
     const schedule = () => {
       if (window.requestIdleCallback) {
         idle = window.requestIdleCallback(onIdle, { timeout: 4000 });
       } else {
-        timer = setTimeout(onIdle, 2000);
+        timer = setTimeout(onIdle, 1500);
       }
     };
     if (document.readyState === "complete") schedule();
     else window.addEventListener("load", schedule, { once: true });
 
     return () => {
+      disposed = true;
       view.disconnect();
       window.removeEventListener("load", schedule);
       if (idle) window.cancelIdleCallback(idle);

@@ -72,14 +72,14 @@ const TIMING = {
  * The two have to move together. Lengthening these without the run-up puts
  * back exactly the problem that was being solved.
  */
-/* 650ms, from 1200, at the owner's later direction that the section was
-   slow to come in. The run-up below stays, so a card is still part-way in
-   before it is on screen; it now finishes about as it arrives. */
+/* 480ms, from 1200, at the owner's direction that the section was slow to
+   come in. Together with the longer run-up below, a card at a normal scroll
+   pace has finished arriving by the time it is on screen. */
 const CARD_PACE = {
-  "--rise-lift": "650ms",
-  "--rise-defog": "450ms",
-  "--rise-fade": "400ms",
-  "--rise-inner": "520ms",
+  "--rise-lift": "480ms",
+  "--rise-defog": "340ms",
+  "--rise-fade": "300ms",
+  "--rise-inner": "400ms",
 } as const;
 
 /**
@@ -236,7 +236,7 @@ export function ServicesSection() {
           companies scale from concept to global enterprise.
         </p>
 
-        {/* Three tenths of a viewport of run-up, against the shared tenth.
+        {/* Nearly half a viewport of run-up (45%), against the shared third.
             ── Why this section needs more than the default ──
             ScrollStagger's own note says the risk it carries — flying past a
             section before it has assembled and seeing a half-built band — is
@@ -265,7 +265,7 @@ export function ServicesSection() {
         <ScrollStagger
           className="mt-14 grid w-full grid-cols-1 gap-4 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4"
           stagger={TIMING.cardStagger}
-          rootMargin="10% 0px 30% 0px"
+          rootMargin="10% 0px 45% 0px"
           // Released as soon as a card is a sliver into the run-up, rather
           // than a fifth of the way in.
           inRatio={0.05}
