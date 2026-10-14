@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { FAST_SCROLL, scrollSpeed, trackScrollSpeed } from "@/lib/scrollSpeed";
+import {
+  FAST_SCROLL,
+  onScrollFast,
+  scrollSpeed,
+  trackScrollSpeed,
+} from "@/lib/scrollSpeed";
 
 /**
  * The scene change: one screen physically covered by the next.
@@ -69,6 +74,12 @@ export function SceneCover({
     }
 
     trackScrollSpeed();
+
+    // Committed at a reading pace and then flicked past: finish the intro
+    // on the spot rather than carry it off screen mid-choreography.
+    const offFast = onScrollFast(() => {
+      if (next.dataset.coverState === "in") next.dataset.coverFast = "";
+    });
 
     let frame = 0;
     let last = -1;
@@ -161,6 +172,7 @@ export function SceneCover({
 
     return () => {
       cancelAnimationFrame(frame);
+      offFast();
       offscreen.disconnect();
       travel.disconnect();
       window.removeEventListener("scroll", onScroll);

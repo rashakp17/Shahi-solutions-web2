@@ -22,6 +22,8 @@ let installed = false;
 let lastY = 0;
 let lastT = 0;
 let speed = 0;
+let wasFast = false;
+const onFastListeners = new Set<() => void>();
 
 function install() {
   if (installed || typeof window === "undefined") return;
@@ -42,6 +44,10 @@ function install() {
       }
       lastY = y;
       lastT = now;
+
+      const fast = speed > FAST_SCROLL;
+      if (fast && !wasFast) onFastListeners.forEach((fn) => fn());
+      wasFast = fast;
     },
     { passive: true },
   );
@@ -55,4 +61,15 @@ export function scrollSpeed(): number {
 /** Starts tracking without asking — call from an effect on mount. */
 export function trackScrollSpeed() {
   install();
+}
+
+/**
+ * Called each time the scroll crosses into fast. For entrances released at a
+ * reading pace that are still playing when the visitor suddenly flicks: they
+ * would otherwise be carried past mid-choreography. Returns an unsubscribe.
+ */
+export function onScrollFast(fn: () => void): () => void {
+  install();
+  onFastListeners.add(fn);
+  return () => onFastListeners.delete(fn);
 }

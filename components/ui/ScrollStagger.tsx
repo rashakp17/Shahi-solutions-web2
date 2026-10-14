@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, type ElementType, type ReactNode } from "react";
-import { FAST_SCROLL, scrollSpeed, trackScrollSpeed } from "@/lib/scrollSpeed";
+import {
+  FAST_SCROLL,
+  onScrollFast,
+  scrollSpeed,
+  trackScrollSpeed,
+} from "@/lib/scrollSpeed";
 
 /**
  * Ratio of an item that must be inside the viewport before it is released.
@@ -205,7 +210,7 @@ export function ScrollStagger({
        At several thousand px/s the run-up above is gone in a frame or two —
        a section crosses the whole screen in a third of a second — so even an
        instant release lands as the item arrives, not before it. This second
-       observer watches a screen and a bit further ahead, and while the page
+       observer watches a screen and a bit further out each way, and while the page
        is moving fast it releases whatever is coming, so the visitor flies
        into content that is already there. At a reading pace it does nothing
        and the band above decides as before. */
@@ -220,14 +225,27 @@ export function ScrollStagger({
           item.dataset.reveal = "in";
         }
       },
-      { rootMargin: "0px 0px 120% 0px" },
+      // Both directions: a flick back up the page arrives at sections from
+      // above, and they reset on the way past, so they need it as much.
+      { rootMargin: "120% 0px 120% 0px" },
     );
 
     for (const item of items) lookahead.observe(item);
 
+    // Slow, then a sudden flick: anything already released is finished on
+    // the spot. On an entrance still playing that is a jump to its last
+    // frame; on one already done it changes nothing. The flag then stays
+    // until the item resets, for the same reason as above.
+    const offFast = onScrollFast(() => {
+      for (const item of items) {
+        if (item.dataset.reveal === "in") item.dataset.revealFast = "";
+      }
+    });
+
     return () => {
       observer.disconnect();
       lookahead.disconnect();
+      offFast();
     };
   }, [stagger, inRatio, rootMargin]);
 
