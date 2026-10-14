@@ -106,12 +106,12 @@ const SLOTS: Array<{
 /** Intro choreography (ms), matching the other section headings on the page. */
 const INTRO = {
   eyebrow: 0,
-  eyebrowLift: 450,
-  heading: 200,
-  headingStagger: 130,
-  headingDuration: 720,
-  copy: 850,
-  copyLift: 680,
+  eyebrowLift: 320,
+  heading: 90,
+  headingStagger: 75,
+  headingDuration: 480,
+  copy: 440,
+  copyLift: 420,
 } as const;
 
 const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
@@ -362,8 +362,8 @@ export function TestimonialsSection() {
               className="anim-rise tm-line mt-8 block"
               style={
                 {
-                  animationDelay: from(INTRO.copy + 180),
-                  "--rise-lift": "620ms",
+                  animationDelay: from(INTRO.copy + 90),
+                  "--rise-lift": "420ms",
                   "--rise-y": "10px",
                   "--rise-blur": "0em",
                 } as CSSProperties

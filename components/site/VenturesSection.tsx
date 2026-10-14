@@ -51,23 +51,23 @@ const VENTURES: Array<{
  * starts while the one before it is still resolving, so the overlap is where
  * the flow comes from, not the delays.
  *
- *   eyebrow      0     → 450    the smallest thing, and the first
- *   heading      200   → 1090   starts under the eyebrow's tail
- *   copy         850   → 1530   starts ~240ms before the heading lands
+ *   eyebrow      0     → 320    the smallest thing, and the first
+ *   heading      90    → 640    starts under the eyebrow's tail
+ *   copy         440   → 860    starts ~200ms before the heading lands
  *
- * The whole panel is therefore settled a little over 1.5s after it is
- * released — long enough to be watched, short enough that nobody is waiting
- * on any one line of it.
+ * The whole panel is therefore settled well under a second after it is
+ * released. It was ~1.5s; tightened at the owner's direction that the
+ * section was slow to come in.
  */
 const INTRO = {
   eyebrow: 0,
-  eyebrowLift: 450,
-  heading: 200,
+  eyebrowLift: 320,
+  heading: 90,
   /** Word onsets: the next word is moving well before the last has landed. */
-  headingStagger: 130,
-  headingDuration: 720,
-  copy: 850,
-  copyLift: 680,
+  headingStagger: 75,
+  headingDuration: 480,
+  copy: 440,
+  copyLift: 420,
 } as const;
 
 /**
@@ -77,18 +77,18 @@ const INTRO = {
  *
  * Held tight on purpose. A venture reads as one object arriving, so the last
  * part of it has to land inside the block's own travel — the link finishing
- * at ~890ms, a shade after the block itself stops at 860ms.
+ * at ~560ms, a shade after the block itself stops at 520ms.
  */
 const PART = {
   index: 0,
-  category: 90,
-  name: 170,
-  nameStagger: 120,
-  nameDuration: 600,
-  body: 260,
-  link: 350,
+  category: 50,
+  name: 95,
+  nameStagger: 70,
+  nameDuration: 400,
+  body: 150,
+  link: 200,
   /** Length of a single part's slide, shared by all of them. */
-  lift: 540,
+  lift: 360,
 } as const;
 
 /**
@@ -96,11 +96,11 @@ const PART = {
  * them out on its own most of the time, but a fast scroll or a tall viewport
  * hands the whole column over at once, and then this is the cadence.
  *
- * Deliberately shorter than a venture takes to resolve (~890ms), so 02 is
+ * Deliberately shorter than a venture takes to resolve (~560ms), so 02 is
  * already moving while 01 is still settling and the column reads as one
  * continuous arrival rather than three separate ones.
  */
-const VENTURE_STAGGER = 350;
+const VENTURE_STAGGER = 180;
 
 const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
 
@@ -154,14 +154,17 @@ export function VenturesSection() {
           <ScrollStagger
             as="div"
             className="block md:sticky md:col-span-5 md:top-32"
-            inRatio={0.22}
+            // Released as soon as it peeks in, with a quarter-screen of
+            // run-up below the fold, so it is already moving on arrival.
+            inRatio={0.05}
+            rootMargin="10% 0px 25% 0px"
           >
             <div>
               {/* The lift lengths are set per element rather than left on the
                   shared default, because the three are not the same size and
                   should not travel for the same length of time: the eyebrow is
-                  a chip and is done in 450ms, the copy is a paragraph and takes
-                  680ms. The blur is in em throughout, so a radius that reads as
+                  a chip and is done in 320ms, the copy is a paragraph and takes
+                  420ms. The blur is in em throughout, so a radius that reads as
                   ~5px on the chip is ~9px on the copy without either of them
                   turning to mush. */}
               <p
@@ -219,10 +222,11 @@ export function VenturesSection() {
           <ScrollStagger
             className="block md:col-span-7"
             stagger={VENTURE_STAGGER}
-            // A venture is tall, so at the shared 20% band the top one commits
-            // while it is still most of a fold deep. A third of it has to be up
-            // before it is released.
-            inRatio={0.3}
+            // Released as soon as a venture peeks in, with a quarter-screen
+            // of run-up, rather than waiting for a third of it to be up — that
+            // wait is what made the column read as slow to arrive.
+            inRatio={0.05}
+            rootMargin="10% 0px 25% 0px"
           >
             {VENTURES.map((venture, i) => {
               const last = i === VENTURES.length - 1;

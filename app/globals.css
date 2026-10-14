@@ -1106,6 +1106,46 @@
 }
 
 /* ------------------------------------------------------------------
+   Released mid-flick.
+
+   ScrollStagger (and SceneCover) set `data-reveal-fast` when they let go
+   of something while the page is being scrolled fast — see
+   lib/scrollSpeed.ts. The visitor is not going to watch a 900ms
+   choreography on a section that is on screen for a third of a second;
+   they are going to see a blank band. So the entrance is skipped outright
+   and the content is simply there.
+
+   It was a shortened 240ms entrance first. Measured with real scroll
+   gestures at 6000px/s that still left a section blank for two thirds of
+   the time it was on screen — at that speed any entrance at all is an
+   absence. The base styles are the finished state (every entrance here
+   fills backwards only), so switching the animation off is the arrival.
+
+   !important because the delays and lengths are written inline per
+   element.
+   ------------------------------------------------------------------ */
+[data-reveal-fast]:is(.anim-rise, .anim-rise-inner),
+[data-reveal-fast] :is(.anim-rise, .anim-rise-inner, .reveal-word, .reveal-word-inner),
+[data-reveal-fast] .reveal-word-inner::after {
+  animation: none !important;
+}
+
+/* The same, for a scene intro committed mid-flick by SceneCover. Scoped
+   away from anything under its own ScrollStagger gate: those decide for
+   themselves, and this flag comes off on the way back up while they may
+   still be showing. */
+[data-cover-fast]
+  :is(.anim-rise, .anim-rise-inner, .reveal-word, .reveal-word-inner):not([data-reveal], [data-reveal] *),
+[data-cover-fast] .reveal-word-inner:not([data-reveal] *)::after {
+  animation: none !important;
+}
+
+[data-reveal-fast]:is(.venture-move, .venture-num, .venture-link, .venture-accent, .tm-in, .fd-in, .ft-in),
+[data-reveal-fast] :is(.venture-move, .venture-num, .venture-link, .venture-accent, .tm-in, .fd-in, .ft-in) {
+  transition: none !important;
+}
+
+/* ------------------------------------------------------------------
    Only one scene animates at a time.
 
    The hero and the services section each carry a full atmosphere — four
@@ -1552,27 +1592,22 @@
 
 .venture-move {
   transform: translate3d(0, 0, 0);
-  filter: blur(0);
   opacity: 1;
-  /* Three lengths, longest first. The travel outlasts the focus pull, which
-     outlasts the light — so a venture is sharp and lit for the last of its
-     movement rather than still resolving as it stops.
+  /* Two lengths, the travel outlasting the light, so a venture is lit for
+     the last of its movement rather than still fading as it stops.
 
-     860ms for the travel, which with the parts inside finishing at ~890ms puts
-     the whole venture on screen inside 900ms. Longer than the intro lines by
-     design — a whole block settling should not move at the speed of one line
-     of type — but not so long that the venture below it, released 350ms later,
-     is queueing behind it.
+     520ms, from 860, at the owner's direction that the section was slow to
+     come in. With the parts inside finishing at ~560ms the whole venture is
+     on screen in a little over half a second.
 
-     The focus pull runs on --ease-focus rather than the soft curve. An ease-out
-     dumps almost the entire defog into the first third, so the block is sharp
-     while it is still visibly travelling and the blur reads as a flicker at the
-     start. The focus curve holds the radius through the middle of the move —
-     roughly 10px → 4px → 0 — which is a lens finding the subject. */
+     No focus pull any more. It was a 10px blur transitioned across the whole
+     block, and a blur that moves pixels cannot run on the compositor — so
+     every frame of every venture's arrival was a main-thread repaint of a
+     block half a screen tall, mid-scroll. The slide and the fade carry the
+     arrival on their own. */
   transition:
-    transform 860ms var(--ease-cinematic),
-    filter 700ms var(--ease-focus),
-    opacity 620ms var(--ease-soft);
+    transform 520ms var(--ease-cinematic),
+    opacity 380ms var(--ease-soft);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -1580,7 +1615,6 @@
   /* --enter-x is set per block and alternates sign. Small on purpose: the
      brief is a venture arriving, not a card flying across the screen. */
   transform: translate3d(var(--enter-x, -2.8rem), 0.9rem, 0);
-  filter: blur(10px);
   opacity: 0;
 }
 
@@ -1589,10 +1623,10 @@
    catches up until the block has settled. */
 .venture-num {
   transform: translate3d(0, 0, 0);
-  /* Just past the block's own 860ms, so it is still closing the last of the
+  /* Just past the block's own 520ms, so it is still closing the last of the
      gap as the block stops — that lag is the whole effect. Any longer and it
      is a separate element finishing on its own, after the venture has landed. */
-  transition: transform 900ms var(--ease-cinematic);
+  transition: transform 560ms var(--ease-cinematic);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -1606,7 +1640,7 @@
 .venture-link {
   transform: scaleY(1);
   transform-origin: top;
-  transition: transform 880ms var(--ease-soft);
+  transition: transform 540ms var(--ease-soft);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -1617,7 +1651,7 @@
 /* Prominence: full once the venture has arrived, held back before. No glow —
    the accent simply comes up as the block lands. */
 .venture-accent {
-  transition: opacity 620ms var(--ease-soft);
+  transition: opacity 380ms var(--ease-soft);
   transition-delay: var(--reveal-delay, 0ms);
 }
 

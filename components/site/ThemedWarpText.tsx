@@ -39,14 +39,27 @@ const WarpText = dynamic(() => import("@/components/WarpText"), { ssr: false });
 type WarpTextProps = ComponentProps<typeof WarpTextComponent>;
 
 /**
- * How far ahead of the viewport the module is fetched.
+ * How far ahead of the viewport the component is mounted.
  *
- * Far enough that a fast scroll does not arrive at an empty frame — the chunk
- * has to be fetched, parsed, and then compile a shader and rasterise the
- * sentence before it draws — and near enough that a visitor who never reaches
- * the statement section never pays for it. Roughly half a screen on a laptop.
+ * A screen and a half. It was 400px, and measured at an ordinary reading
+ * scroll that armed the WebGL context only 10–30ms before the line entered
+ * the viewport — so the visitor arrived at an empty pane for the ~150ms it
+ * takes to warm the shader and rasterise the sentence, and on a phone the
+ * setup landed as a long task in the very frame the line appeared. Mounted
+ * this far out, all of that happens while the services grid is still being
+ * read, and the line is already drawn when it scrolls in.
  */
-const ARM_MARGIN = "400px 0px";
+const ARM_MARGIN = "150% 0px";
+
+/**
+ * The module itself is fetched earlier still: once the page has loaded and
+ * the main thread is idle. It is the network round trip that a mount on
+ * approach cannot hide on a slow connection, and fetching it here costs
+ * nothing on the critical path — the hero has long since painted.
+ */
+const prefetchWarp = () => {
+  void import("@/components/WarpText");
+};
 
 /**
  * WarpText, with its fill chosen by the current theme, loaded on approach.
@@ -82,19 +95,68 @@ export function ThemedWarpText({
     const holder = holderRef.current;
     if (!holder) return;
 
+    /* Two conditions, not one: the section is within reach, *and* the page
+       has loaded and gone idle. On a tall laptop screen the statement pane
+       is close enough to the top that the margin alone would arm it during
+       the initial load, putting a WebGL context and a shader compile in
+       competition with the hero's first paint. The one exception is the
+       line actually being on screen — a visitor who lands there directly
+       is not kept waiting for idle. */
+    let near = false;
+    let ready = false;
+    let done = false;
+
+    const arm = () => {
+      if (done) return;
+      // One-shot. Once the module is in, it stays in — the component does
+      // its own pausing when the section leaves the screen.
+      done = true;
+      view.disconnect();
+      setArmed(true);
+    };
+
     const view = new IntersectionObserver(
       (entries) => {
-        if (!entries[entries.length - 1].isIntersecting) return;
-        // One-shot. Once the module is in, it stays in — the component does
-        // its own pausing when the section leaves the screen.
-        view.disconnect();
-        setArmed(true);
+        const entry = entries[entries.length - 1];
+        near = entry.isIntersecting;
+        const onScreen =
+          near &&
+          entry.boundingClientRect.top < window.innerHeight &&
+          entry.boundingClientRect.bottom > 0;
+        if (near && (ready || onScreen)) arm();
       },
       { rootMargin: ARM_MARGIN },
     );
 
     view.observe(holder);
-    return () => view.disconnect();
+
+    // Idle, after load: fetch the module, and let the observer arm from now
+    // on. requestIdleCallback is missing in Safari, where a plain timeout
+    // stands in for it.
+    const onIdle = () => {
+      prefetchWarp();
+      ready = true;
+      if (near) arm();
+    };
+
+    let idle = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (window.requestIdleCallback) {
+        idle = window.requestIdleCallback(onIdle, { timeout: 4000 });
+      } else {
+        timer = setTimeout(onIdle, 2000);
+      }
+    };
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+
+    return () => {
+      view.disconnect();
+      window.removeEventListener("load", schedule);
+      if (idle) window.cancelIdleCallback(idle);
+      clearTimeout(timer);
+    };
   }, []);
 
   if (!armed) {

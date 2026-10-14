@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ElementType, type ReactNode } from "react";
+import { FAST_SCROLL, scrollSpeed, trackScrollSpeed } from "@/lib/scrollSpeed";
 
 /**
  * Ratio of an item that must be inside the viewport before it is released.
@@ -90,17 +91,18 @@ export function ScrollStagger({
    * Grown slightly, where this used to be shrunk. The entrance is several
    * hundred ms of curve, so releasing an item at the moment it becomes
    * visible leaves it blank for the first part of the time it is on screen —
-   * the visitor watches it assemble instead of arriving to it assembled. A
-   * tenth of a viewport of run-up means it is already moving as they reach
-   * it, and the same margin at the top stops a section resetting the instant
-   * its last pixel clears the fold.
+   * the visitor watches it assemble instead of arriving to it assembled.
+   * Over a third of a viewport of run-up below the fold (it was a tenth, and
+   * a brisk scroll still arrived at half-built sections) means it is most of
+   * the way in as they reach it. The tenth at the top stops a section
+   * resetting the instant its last pixel clears the fold.
    *
    * Worth clearing for anything already the size of the viewport: a
    * full-height layer combined with a padded root means the ratio the caller
    * asked for lands noticeably earlier than the same fraction of the section,
    * and for those the plain viewport is the honest measure.
    */
-  rootMargin = "10% 0px 10% 0px",
+  rootMargin = "10% 0px 35% 0px",
 }: {
   children: ReactNode;
   className?: string;
@@ -127,6 +129,7 @@ export function ScrollStagger({
     // attribute baked in, a visitor without JS would be left looking at an
     // empty grid forever.
     for (const item of items) item.dataset.reveal = "out";
+    trackScrollSpeed();
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -163,6 +166,7 @@ export function ScrollStagger({
           } else if (!entry.isIntersecting && item.dataset.reveal !== "out") {
             item.dataset.reveal = "out";
             item.style.removeProperty("--reveal-delay");
+            delete item.dataset.revealFast;
           }
         }
 
@@ -171,8 +175,16 @@ export function ScrollStagger({
         // arrive shuffled.
         arriving.sort((a, b) => items.indexOf(a) - items.indexOf(b));
 
+        // Released mid-flick: skip the stagger and the choreography and
+        // arrive almost at once, or the visitor is past the section before
+        // it has assembled. The flag stays until the item resets — taking
+        // it off while the entrance is held on its last frame would hand
+        // the animation its long duration back and rewind it mid-curve.
+        const fast = scrollSpeed() > FAST_SCROLL;
+
         arriving.forEach((item, i) => {
-          item.style.setProperty("--reveal-delay", `${i * stagger}ms`);
+          item.style.setProperty("--reveal-delay", `${fast ? 0 : i * stagger}ms`);
+          if (fast) item.dataset.revealFast = "";
           item.dataset.reveal = "in";
         });
       },
@@ -188,7 +200,35 @@ export function ScrollStagger({
 
     for (const item of items) observer.observe(item);
 
-    return () => observer.disconnect();
+    /* The look-ahead, for a flick.
+
+       At several thousand px/s the run-up above is gone in a frame or two —
+       a section crosses the whole screen in a third of a second — so even an
+       instant release lands as the item arrives, not before it. This second
+       observer watches a screen and a bit further ahead, and while the page
+       is moving fast it releases whatever is coming, so the visitor flies
+       into content that is already there. At a reading pace it does nothing
+       and the band above decides as before. */
+    const lookahead = new IntersectionObserver(
+      (entries) => {
+        if (scrollSpeed() <= FAST_SCROLL) return;
+        for (const entry of entries) {
+          const item = entry.target as HTMLElement;
+          if (!entry.isIntersecting || item.dataset.reveal === "in") continue;
+          item.style.setProperty("--reveal-delay", "0ms");
+          item.dataset.revealFast = "";
+          item.dataset.reveal = "in";
+        }
+      },
+      { rootMargin: "0px 0px 120% 0px" },
+    );
+
+    for (const item of items) lookahead.observe(item);
+
+    return () => {
+      observer.disconnect();
+      lookahead.disconnect();
+    };
   }, [stagger, inRatio, rootMargin]);
 
   return (

@@ -427,6 +427,7 @@ const WarpText = ({
     let reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     let rasterVersion = 0;
     let fontSettled = false;
+    let sizeKey = '';
 
     const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, active: 0, activeTarget: 0 };
     const startTime = performance.now();
@@ -547,7 +548,17 @@ const WarpText = ({
       const rect = container.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
 
-      renderer.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // The observer reports the frame once on observe, at the size start()
+      // has just drawn at. Re-rasterising then would redo the sentence and
+      // re-upload a full-frame texture for nothing — so an unchanged size is
+      // a no-op. (setSize itself is skipped too: resetting a canvas's width,
+      // even to the same value, clears what is on it.)
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const key = `${rect.width}x${rect.height}@${dpr}`;
+      if (key === sizeKey) return;
+      sizeKey = key;
+
+      renderer.dpr = dpr;
       renderer.setSize(rect.width, rect.height);
       program.uniforms.uResolution.value[0] = gl.drawingBufferWidth;
       program.uniforms.uResolution.value[1] = gl.drawingBufferHeight;

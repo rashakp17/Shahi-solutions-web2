@@ -135,7 +135,11 @@ export default function Home() {
         {/* The hero is pinned and the section beneath rides up over it, so the
             move from one to the next is a scene being covered rather than a
             page being scrolled past. */}
-        <SceneCover next={<ServicesSection />}>
+        {/* revealAt 0.08, from the default 0.42: the services intro starts
+            as the rising edge first shows, instead of waiting for it to pass
+            the middle of the screen — a fast scroll was reaching the heading
+            before it had begun. It resets only back at the very top. */}
+        <SceneCover next={<ServicesSection />} revealAt={0.08}>
           <Hero />
         </SceneCover>
         {/* The giant typographic layer, pushed up out from under the services

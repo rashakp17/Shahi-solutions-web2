@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { FAST_SCROLL, scrollSpeed, trackScrollSpeed } from "@/lib/scrollSpeed";
 
 /**
  * The scene change: one screen physically covered by the next.
@@ -67,6 +68,8 @@ export function SceneCover({
       return;
     }
 
+    trackScrollSpeed();
+
     let frame = 0;
     let last = -1;
     let onScreen = true;
@@ -92,11 +95,17 @@ export function SceneCover({
       // flip the whole section in and out repeatedly. Committing at 0.42 and
       // only releasing back at 0.26 means the reveal has to be genuinely
       // scrolled away from before it resets.
+      //
+      // Committed mid-flick, the intro skips its choreography (see
+      // `data-cover-fast` in globals.css) — otherwise a fast scroll is past
+      // the heading before it has climbed into view.
       const state = next.dataset.coverState;
       if (progress >= revealAt && state !== "in") {
+        if (scrollSpeed() > FAST_SCROLL) next.dataset.coverFast = "";
         next.dataset.coverState = "in";
-      } else if (progress <= revealAt - 0.16 && state !== "out") {
+      } else if (progress <= Math.max(0, revealAt - 0.16) && state !== "out") {
         next.dataset.coverState = "out";
+        delete next.dataset.coverFast;
       }
 
       // Same two-threshold treatment, at the far end of the travel: the hero

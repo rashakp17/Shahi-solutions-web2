@@ -24,24 +24,25 @@ import { SERVICES, type ServiceId } from "@/lib/services";
  * come in one at a time rather than as a block.
  */
 const TIMING = {
-  heading: 60,
-  headingStagger: 110,
-  headingLineDelay: 40,
-  headingDuration: 440,
-  copy: 860,
+  /* Tightened at the owner's direction — the section read as slow to
+     arrive. The heading starts at once, its words follow each other at
+     70ms rather than 110, and the copy lands while the heading is still
+     settling instead of after it (420 from 860). */
+  heading: 0,
+  headingStagger: 70,
+  headingLineDelay: 30,
+  headingDuration: 380,
+  copy: 420,
   /**
    * Gap between cards that cross into view together — a row of the grid
    * shares a top edge, so a row always arrives as one batch and this is what
    * spaces it out.
    *
-   * 150, between the 180 this started at and the 120 it was cut to. The cut
-   * was made to stop the section reading as slow, and the run-up below is a
-   * better answer to that than a tighter gap: a card that is already most of
-   * the way in when you reach it does not read as slow however long its curve
-   * is. With the arrival brought forward there is room for the row to deal
-   * itself out properly again.
+   * 60, down from 150, at the owner's direction that the section was slow
+   * to come in. A row of four now finishes dealing in under half a second
+   * and still reads as one card after another rather than as a block.
    */
-  cardStagger: 150,
+  cardStagger: 60,
 } as const;
 
 /**
@@ -71,11 +72,14 @@ const TIMING = {
  * The two have to move together. Lengthening these without the run-up puts
  * back exactly the problem that was being solved.
  */
+/* 650ms, from 1200, at the owner's later direction that the section was
+   slow to come in. The run-up below stays, so a card is still part-way in
+   before it is on screen; it now finishes about as it arrives. */
 const CARD_PACE = {
-  "--rise-lift": "1200ms",
-  "--rise-defog": "820ms",
-  "--rise-fade": "750ms",
-  "--rise-inner": "940ms",
+  "--rise-lift": "650ms",
+  "--rise-defog": "450ms",
+  "--rise-fade": "400ms",
+  "--rise-inner": "520ms",
 } as const;
 
 /**
@@ -93,7 +97,7 @@ const CARD_PACE = {
  * way into a curve that is already ending. The lines want to trail the
  * frame, not queue behind it.
  */
-const INNER = { icon: 45, title: 130, body: 205, link: 285 } as const;
+const INNER = { icon: 25, title: 70, body: 110, link: 155 } as const;
 
 /**
  * A card's own animation-delay is written onto it by ScrollStagger as
@@ -262,6 +266,9 @@ export function ServicesSection() {
           className="mt-14 grid w-full grid-cols-1 gap-4 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4"
           stagger={TIMING.cardStagger}
           rootMargin="10% 0px 30% 0px"
+          // Released as soon as a card is a sliver into the run-up, rather
+          // than a fifth of the way in.
+          inRatio={0.05}
         >
           {SERVICES.map((service) => {
             return (
