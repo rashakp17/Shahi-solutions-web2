@@ -236,6 +236,62 @@ const buildTextCanvas = ({ container, width, height, dpr, props }) => {
   return canvas;
 };
 
+/**
+ * Compiles and links the shader pair off the main thread, and resolves once
+ * the GPU process has finished.
+ *
+ * ogl's Program compiles and then immediately asks for the info log and the
+ * link status, and either query blocks the main thread until the driver is
+ * done. For this fragment shader that measured ~100–230ms in one task, and it
+ * lands mid-scroll, because the component is mounted on approach.
+ *
+ * With KHR_parallel_shader_compile the same compile runs while the page keeps
+ * scrolling, polled through COMPLETION_STATUS_KHR, which never blocks. The
+ * program is then thrown away: what is kept is the GPU process's program
+ * cache, keyed on the source, so the Program built afterwards from identical
+ * source links from cache instead of from scratch. Without the extension this
+ * resolves at once and the component behaves exactly as before.
+ */
+const warmShader = (gl, vertexSource, fragmentSource) =>
+  new Promise(resolve => {
+    const ext = gl.getExtension('KHR_parallel_shader_compile');
+    if (!ext) {
+      resolve();
+      return;
+    }
+
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    const prog = gl.createProgram();
+    gl.shaderSource(vs, vertexSource);
+    gl.shaderSource(fs, fragmentSource);
+    gl.compileShader(vs);
+    gl.compileShader(fs);
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+
+    const started = performance.now();
+    const poll = () => {
+      const done =
+        gl.isContextLost() ||
+        gl.getProgramParameter(prog, ext.COMPLETION_STATUS_KHR) ||
+        performance.now() - started > 3000;
+
+      if (!done) {
+        // setTimeout rather than rAF, so a backgrounded tab still finishes.
+        setTimeout(poll, 24);
+        return;
+      }
+
+      gl.deleteProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      resolve();
+    };
+    poll();
+  });
+
 const syncUniforms = (program, props) => {
   const uniforms = program.uniforms;
   uniforms.uWarpStrength.value = props.warpStrength;
@@ -399,38 +455,41 @@ const WarpText = ({
     canvas.setAttribute('aria-hidden', 'true');
     container.appendChild(canvas);
 
-    texture = new Texture(gl, {
-      generateMipmaps: false,
-      minFilter: gl.LINEAR,
-      magFilter: gl.LINEAR,
-      wrapS: gl.CLAMP_TO_EDGE,
-      wrapT: gl.CLAMP_TO_EDGE
-    });
-
-    geometry = new Triangle(gl);
-    program = new Program(gl, {
-      vertex,
-      fragment,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      uniforms: {
-        uTextTexture: { value: texture },
-        uResolution: { value: new Float32Array([1, 1]) },
-        uPointer: { value: new Float32Array([0.5, 0.5]) },
-        uPointerActive: { value: 0 },
-        uTime: { value: 0 },
-        uWarpStrength: { value: propsRef.current.warpStrength },
-        uWarpScale: { value: propsRef.current.warpScale },
-        uSpeed: { value: propsRef.current.speed },
-        uPointerInfluence: { value: propsRef.current.pointerInfluence },
-        uPointerStrength: { value: propsRef.current.pointerStrength },
-        uRefraction: { value: propsRef.current.refraction },
-        uRipple: { value: propsRef.current.ripple ? 1 : 0 },
-        uMotion: { value: reduceMotion ? 0 : 1 }
-      }
-    });
-    mesh = new Mesh(gl, { geometry, program });
+    // Everything that needs the compiled program, run once warmShader is done.
+    const build = () => {
+      texture = new Texture(gl, {
+        generateMipmaps: false,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR,
+        wrapS: gl.CLAMP_TO_EDGE,
+        wrapT: gl.CLAMP_TO_EDGE
+      });
+  
+      geometry = new Triangle(gl);
+      program = new Program(gl, {
+        vertex,
+        fragment,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        uniforms: {
+          uTextTexture: { value: texture },
+          uResolution: { value: new Float32Array([1, 1]) },
+          uPointer: { value: new Float32Array([0.5, 0.5]) },
+          uPointerActive: { value: 0 },
+          uTime: { value: 0 },
+          uWarpStrength: { value: propsRef.current.warpStrength },
+          uWarpScale: { value: propsRef.current.warpScale },
+          uSpeed: { value: propsRef.current.speed },
+          uPointerInfluence: { value: propsRef.current.pointerInfluence },
+          uPointerStrength: { value: propsRef.current.pointerStrength },
+          uRefraction: { value: propsRef.current.refraction },
+          uRipple: { value: propsRef.current.ripple ? 1 : 0 },
+          uMotion: { value: reduceMotion ? 0 : 1 }
+        }
+      });
+      mesh = new Mesh(gl, { geometry, program });
+    };
 
     const renderOnce = () => {
       if (disposed || contextLost) return;
@@ -554,32 +613,47 @@ const WarpText = ({
       raf = requestAnimationFrame(loop);
     };
 
-    resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(container);
+    const start = () => {
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(container);
 
-    intersectionObserver = new IntersectionObserver(
-      ([entry]) => {
-        visible = entry.isIntersecting;
-        if (visible && pageVisible && !raf) raf = requestAnimationFrame(loop);
-        if (!visible && raf) {
-          cancelAnimationFrame(raf);
-          raf = 0;
-        }
-      },
-      { threshold: 0 }
-    );
-    intersectionObserver.observe(container);
+      intersectionObserver = new IntersectionObserver(
+        ([entry]) => {
+          visible = entry.isIntersecting;
+          if (visible && pageVisible && !raf) raf = requestAnimationFrame(loop);
+          if (!visible && raf) {
+            cancelAnimationFrame(raf);
+            raf = 0;
+          }
+        },
+        { threshold: 0 }
+      );
+      intersectionObserver.observe(container);
 
-    canvas.addEventListener('pointermove', onPointerMove);
-    canvas.addEventListener('pointerleave', onPointerLeave);
-    canvas.addEventListener('webglcontextlost', onContextLost, false);
-    document.addEventListener('visibilitychange', onVisibility);
-    mediaQuery?.addEventListener('change', onReducedMotion);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerleave', onPointerLeave);
+      canvas.addEventListener('webglcontextlost', onContextLost, false);
+      document.addEventListener('visibilitychange', onVisibility);
+      mediaQuery?.addEventListener('change', onReducedMotion);
 
-    syncUniforms(program, propsRef.current);
-    contextRef.current = { program, rasterize };
-    resize();
-    raf = requestAnimationFrame(loop);
+      syncUniforms(program, propsRef.current);
+      contextRef.current = { program, rasterize };
+      resize();
+      raf = requestAnimationFrame(loop);
+    };
+
+    // build() and start() in separate frames: the program link and texture
+    // setup in one, the sentence's rasterisation and first draw in the next,
+    // so neither lands in a single long task in the middle of a scroll.
+    warmShader(gl, vertex, fragment).then(() => {
+      if (disposed || contextLost) return;
+      build();
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (disposed || contextLost) return;
+        start();
+      });
+    });
 
     return () => {
       disposed = true;

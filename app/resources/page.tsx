@@ -6,8 +6,6 @@ import {
   ARTICLES,
   CLUSTERS,
   articlesInCluster,
-  formatUpdated,
-  readingMinutes,
 } from "@/lib/resources";
 import { SITE_NAME, absolute, socialMetadata } from "@/lib/site";
 
@@ -120,13 +118,6 @@ export default function ResourcesIndexPage() {
                   <p className="rs-pillar-label">Start here</p>
                   <h3 className="rs-pillar-title">{pillar.title}</h3>
                   <p className="rs-pillar-desc">{pillar.description}</p>
-                  <p className="rs-pillar-meta">
-                    <time dateTime={pillar.updated}>
-                      Updated {formatUpdated(pillar.updated)}
-                    </time>
-                    <span className="rs-meta-sep" aria-hidden="true" />
-                    <span>{readingMinutes(pillar)} min read</span>
-                  </p>
                 </Link>
               )}
 
@@ -145,9 +136,6 @@ export default function ResourcesIndexPage() {
                         <span className="rs-index-title">{article.title}</span>
                         <span className="rs-index-desc">
                           {article.description}
-                        </span>
-                        <span className="rs-index-meta">
-                          {readingMinutes(article)} min read
                         </span>
                       </span>
 

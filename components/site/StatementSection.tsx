@@ -28,12 +28,12 @@ const PHRASE = "Building Ideas That\nMove Businesses Forward";
  * happening; coming in over its tail reads as one continuous arrival, which
  * is what the rest of the page does too.
  *
- * Only `eyebrow` is read. `note`, `stats` and `statStagger` are kept, unused,
- * and that is deliberate: the supporting block they timed — a line of copy and
- * three invented figures — has been removed (see the note in the markup
- * below). These are the numbers anything that replaces it would need in order
- * to arrive on the same clock as everything else here, and re-deriving them
- * later from the surrounding rhythm is harder than leaving them written down.
+ * Nothing reads these now, and that is deliberate: everything they timed — the
+ * eyebrow, and before it a supporting block of copy and three invented figures
+ * — has been removed (see the note in the markup below). These are the numbers
+ * anything that replaces them would need in order to arrive on the same clock
+ * as the typography, and re-deriving them later from the surrounding rhythm is
+ * harder than leaving them written down.
  */
 const CONTENT = { eyebrow: 0, note: 140, stats: 380, statStagger: 90 } as const;
 
@@ -168,28 +168,11 @@ export function StatementSection() {
               blocks instead. It has to be: the giant line is a child of this
               column below sm, and a max-w-6xl parent would stop it running off
               the edges, which is the whole composition. */}
-          {/* justify-center below sm, justify-between above it, where it used
-              to be justify-between throughout.
-
-              Below sm the giant line is a flex child, so this column held
-              three of them — eyebrow, line, supporting block — and spreading
-              them was what put the line in the middle of the pane. With the
-              block gone, spreading two children pins the line to the bottom
-              edge and opens a void under the eyebrow. Centring the pair keeps
-              the composition the section is built on.
-
-              Above sm the line is absolute and the eyebrow is the only child
-              in flow, where justify-between and justify-start are the same
-              thing — so the desktop pane is untouched, and centring there
-              would have moved the eyebrow off the top. */}
+          {/* justify-center below sm, where the giant line is a flex child and
+              centring is what keeps it in the middle of the pane. Above sm the
+              line is absolute, so this column has nothing left in flow and the
+              justification there is inert either way. */}
           <div className="pointer-events-none relative z-10 flex h-full flex-col justify-center pb-[7svh] pt-24 sm:justify-between sm:py-24">
-            <p
-              className="anim-rise pointer-events-auto mx-auto w-full max-w-6xl px-5 font-mono text-[10px] uppercase tracking-[0.32em] text-fg/28 sm:px-8"
-              style={{ animationDelay: `${CONTENT.eyebrow}ms` }}
-            >
-              How we ship
-            </p>
-
 
           {/* ---------------- the typographic layer ----------------
 
@@ -306,10 +289,13 @@ export function StatementSection() {
                 the figures were gone it was a lone footnote under a line that
                 does not need one.
 
+                The eyebrow went last, at the owner's direction, leaving the
+                giant line alone in the pane.
+
                 To put something back: a flex row at max-w-6xl, here, below the
-                typographic layer. `note`, `stats` and `statStagger` are all
-                still in the CONTENT object above, so a new block can arrive on
-                the same clock as the eyebrow without re-deriving the rhythm. */}
+                typographic layer. Every delay is still in the CONTENT object
+                above, so a new block can arrive on the clock this section was
+                built to without re-deriving the rhythm. */}
           </div>
         </div>
       </section>

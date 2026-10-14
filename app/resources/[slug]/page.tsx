@@ -13,8 +13,6 @@ import {
   ARTICLES,
   articleBySlug,
   clusterOf,
-  formatUpdated,
-  readingMinutes,
   relatedTo,
   tableOfContents,
 } from "@/lib/resources";
@@ -100,7 +98,6 @@ export default async function ResourceArticlePage({ params }: Props) {
   const toc = tableOfContents(article);
   const related = relatedTo(article);
   const studies = caseStudiesByIds(article.caseStudies);
-  const minutes = readingMinutes(article);
   const path = `/resources/${article.slug}`;
 
   /**
@@ -215,14 +212,6 @@ export default async function ResourceArticlePage({ params }: Props) {
           <h1 className="rs-h1">{article.title}</h1>
 
           <p className="rs-lead">{renderInline(article.lead)}</p>
-
-          <p className="rs-meta">
-            <time dateTime={article.updated}>
-              Updated {formatUpdated(article.updated)}
-            </time>
-            <span className="rs-meta-sep" aria-hidden="true" />
-            <span>{minutes} min read</span>
-          </p>
         </header>
 
         <div className="rs-body-grid">

@@ -1394,6 +1394,16 @@
   animation-delay: var(--drift-delay, 0s);
 }
 
+/* The far plane's depth-of-field, as content rather than as a filter. See
+   PLANES in BackgroundGlyphs.tsx: a `filter: blur()` on a drifting mark is
+   a GPU blur pass every frame; a text-shadow is painted into the mark once.
+   The glyph itself goes transparent so only its soft shadow is left. Boxed
+   marks keep their own inner colour and simply lose the blur. */
+.glyph-soft {
+  color: transparent;
+  text-shadow: 0 0 2.2px var(--color-accent-200);
+}
+
 /* --- Technical linework: an almost imperceptible breathing of the strokes,
    so the grid marks are never quite frozen --- */
 @keyframes line-shift {
@@ -2315,9 +2325,12 @@
   transform: translate3d(0, calc(var(--pj-cover) * -12px), 0)
     scale(calc(1 - var(--pj-cover) * 0.055));
 
-  /* The radius tightens very slightly as a card goes back, which is the cue
-     that sells the depth: things further away have smaller corners. */
-  border-radius: calc(26px - var(--pj-cover) * 4px);
+  /* Fixed, not scrubbed. It used to tighten by 4px as a card went back, and
+     a radius is paint, not composite: with overflow: hidden it re-rasterised
+     every card in the deck on every scroll frame — the single largest repaint
+     on the page in a trace. The scale below already shrinks the corners in
+     proportion as a card recedes, which is the same cue for free. */
+  border-radius: 26px;
 
   box-shadow:
     0 1px 0 0 color-mix(in oklab, var(--fg) 4%, transparent) inset,
@@ -2361,6 +2374,11 @@
   background: var(--pj-dim-ink);
   opacity: calc(var(--pj-cover) * var(--pj-dim));
   pointer-events: none;
+
+  /* Its own layer, so the scrubbed opacity is a compositor change rather
+     than a repaint of the card underneath it on every scroll frame. Five
+     card-sized layers, all on screen together while the deck is dealt. */
+  will-change: opacity;
 }
 
 @media (hover: hover) {
@@ -4657,27 +4675,6 @@ video.pj-shot {
   text-wrap: pretty;
 }
 
-.rs-meta {
-  margin-top: 2rem;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 0.85rem;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--rs-ink-faint);
-}
-
-.rs-meta-sep {
-  width: 3px;
-  height: 3px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.6;
-}
-
 /* Compound, not a bare class: `.rs-cta-actions` is defined further down
    the file and would otherwise win the margin on equal specificity —
    the two are on the same element in a hero. */
@@ -4691,6 +4688,32 @@ video.pj-shot {
 .rs-body-grid {
   display: grid;
   gap: 3rem 0;
+}
+
+/* min-width: 0 on both tracks' occupants, and it is load-bearing.
+
+   A grid item's automatic minimum size is its min-content width, not
+   zero — so anything inside .rs-prose that refuses to narrow sets a
+   floor under the whole column. .rs-table carries a deliberate
+   min-width: 34rem, which is wider than every phone, and that number
+   was reaching the single implicit track below 1180px and making the
+   *document* 566px wide at every viewport under it. The article, the
+   hero and the footer all scrolled sideways with it.
+
+   Which is the precise failure .rs-table-scroll was written to prevent
+   — "the scroll lives in this box, never on the page" — happening two
+   levels above the box, where its overflow-x could not reach. The
+   scroll container clips its own overflow at paint; it does not stop
+   its contents' intrinsic width propagating up through a grid item
+   whose minimum is auto. Only this does.
+
+   Kept on the items rather than written as grid-template-columns:
+   minmax(0, 1fr), because .rs-rail and .rs-prose are also grid items
+   in the three-track layout above 1180px, and one declaration that is
+   correct at every width beats two that have to agree. */
+.rs-rail,
+.rs-prose {
+  min-width: 0;
 }
 
 .rs-prose {
@@ -5881,15 +5904,6 @@ video.pj-shot {
   text-wrap: pretty;
 }
 
-.rs-related-meta,
-.rs-index-meta {
-  margin-top: 0.15rem;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  color: var(--rs-ink-faint);
-}
-
 .rs-related-arrow,
 .rs-index-arrow {
   justify-self: end;
@@ -6002,18 +6016,6 @@ video.pj-shot {
   line-height: 1.68;
   color: var(--rs-ink-soft);
   text-wrap: pretty;
-}
-
-.rs-pillar-meta {
-  margin-top: 1.35rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  color: var(--rs-ink-faint);
 }
 
 .rs-index-list {

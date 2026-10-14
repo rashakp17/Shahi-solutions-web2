@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CaseStudyRail } from "@/components/resources/CaseStudyRail";
 import { ClosingCta } from "@/components/resources/ClosingCta";
 import { FaqList } from "@/components/resources/FaqList";
-import { articlesInCluster, readingMinutes } from "@/lib/resources";
+import { articlesInCluster } from "@/lib/resources";
 import { caseStudiesByIds } from "@/lib/resources/case-studies";
 import { SITE_NAME, absolute, organizationNode, socialMetadata } from "@/lib/site";
 import type { Faq } from "@/lib/resources/types";
@@ -364,9 +364,6 @@ export default function CustomSoftwareDevelopmentPage() {
                     <span className="rs-related-title">{article.title}</span>
                     <span className="rs-related-desc">
                       {article.description}
-                    </span>
-                    <span className="rs-related-meta">
-                      {readingMinutes(article)} min read
                     </span>
                   </span>
                   <span className="rs-related-arrow" aria-hidden="true">

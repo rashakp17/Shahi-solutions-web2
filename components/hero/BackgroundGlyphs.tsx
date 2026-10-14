@@ -149,11 +149,19 @@ const PLANES: Array<{ depth: Depth; motion: string; blur: string }> = [
   // That meant re-blurring a full-screen surface on the main thread every
   // frame, twice over (the hero and the second scene each carry a field).
   //
-  // Per mark, the filtered area is a few hundred pixels instead of the
-  // viewport, it is rasterised once and then only composited, and the drift
-  // stays on the compositor where it belongs. Same depth-of-field cue.
-  { depth: "far", motion: "anim-plane-far", blur: "blur-[2.2px]" },
-  { depth: "mid", motion: "anim-plane-mid", blur: "blur-[0.5px]" },
+  // And not as `filter: blur()` on the mark either, which is what it was.
+  // A drifting mark is its own composited layer, and a filter on a
+  // composited layer is not rasterised once — it is a render surface plus a
+  // blur pass, redone on the GPU every frame. Fifty of those, for marks at
+  // 2–6% opacity, was most of what kept scrolling through the hero and the
+  // services grid under 60fps in a trace.
+  //
+  // `glyph-soft` softens the text with a text-shadow instead, which is part
+  // of the layer's content: painted once, then only moved. Same
+  // depth-of-field cue. The mid plane's 0.5px is dropped outright — it
+  // could not be seen at these opacities, only paid for.
+  { depth: "far", motion: "anim-plane-far", blur: "glyph-soft" },
+  { depth: "mid", motion: "anim-plane-mid", blur: "" },
   { depth: "near", motion: "anim-plane-near", blur: "" },
 ];
 

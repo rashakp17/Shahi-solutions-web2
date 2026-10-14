@@ -94,11 +94,19 @@ export function HeroBackground() {
         <div className="anim-glow-d absolute -right-[16%] top-[24%] h-[28rem] w-[30rem] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--color-accent-500)_10%,transparent)_0%,transparent_68%)] sm:h-[38rem] sm:w-[40rem]" />
       </div>
 
-      {/* 3 — far plane: rays, grid and deep linework, all blurred by distance */}
+      {/* 3 — far plane: rays, grid and deep linework.
+
+          No blur on any of it, for the reason given on the glows above. The
+          rays are a transparent-to-tint-to-transparent gradient across their
+          width and run off the screen at both ends, so there is no edge for
+          a 64px blur to soften — it was rasterising the largest filter on
+          the page to change nothing. The linework lost its 1.4px for the
+          same trade: at 5% opacity the softening was invisible, and a filter
+          inside a moving plane was measurable on every scroll. */}
       <div className="anim-ambient absolute inset-0" style={AMBIENT}>
         <div className="anim-plane-far absolute inset-0">
-          <div className="absolute -top-1/3 left-[12%] h-[130%] w-[26rem] -rotate-[18deg] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-accent-400)_5.5%,transparent),transparent)] blur-3xl" />
-          <div className="absolute -top-1/4 right-[8%] h-[120%] w-[18rem] rotate-[14deg] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-accent-500)_4.5%,transparent),transparent)] blur-3xl" />
+          <div className="absolute -top-1/3 left-[12%] h-[130%] w-[26rem] -rotate-[18deg] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-accent-400)_5.5%,transparent),transparent)]" />
+          <div className="absolute -top-1/4 right-[8%] h-[120%] w-[18rem] rotate-[14deg] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-accent-500)_4.5%,transparent),transparent)]" />
 
           <div
             className="absolute -inset-[3%] [background-image:linear-gradient(color-mix(in_oklab,var(--color-accent-300)_9%,transparent)_1px,transparent_1px),linear-gradient(90deg,color-mix(in_oklab,var(--color-accent-300)_9%,transparent)_1px,transparent_1px)] [background-size:88px_88px]"
@@ -112,7 +120,7 @@ export function HeroBackground() {
             }}
           />
 
-          <TechnicalLinesLayer variant="far" className="blur-[1.4px]" />
+          <TechnicalLinesLayer variant="far" />
         </div>
       </div>
 

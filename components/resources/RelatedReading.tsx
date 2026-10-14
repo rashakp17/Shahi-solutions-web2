@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { readingMinutes } from "@/lib/resources";
 import type { Article } from "@/lib/resources/types";
 
 /**
@@ -42,9 +41,6 @@ export function RelatedReading({
               <span className="rs-related-body">
                 <span className="rs-related-title">{article.title}</span>
                 <span className="rs-related-desc">{article.description}</span>
-                <span className="rs-related-meta">
-                  {readingMinutes(article)} min read
-                </span>
               </span>
 
               <span className="rs-related-arrow" aria-hidden="true">

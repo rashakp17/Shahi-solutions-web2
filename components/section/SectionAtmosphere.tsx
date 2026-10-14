@@ -44,7 +44,7 @@ export function SectionAtmosphere() {
       <div className="anim-glow-c absolute -left-[12%] top-[34%] h-[26rem] w-[30rem] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--color-accent-500)_7%,transparent)_0%,transparent_68%)] sm:h-[34rem] sm:w-[38rem]" />
       <div className="anim-glow-d absolute -right-[14%] top-[58%] h-[24rem] w-[28rem] rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--color-accent-400)_5.5%,transparent)_0%,transparent_70%)] sm:h-[32rem] sm:w-[36rem]" />
 
-      {/* Far plane — grid and deep linework, blurred by distance. */}
+      {/* Far plane — grid and deep linework. */}
       <div className="anim-plane-far absolute inset-0">
         <div
           className="absolute -inset-[3%] [background-image:linear-gradient(color-mix(in_oklab,var(--color-accent-300)_7%,transparent)_1px,transparent_1px),linear-gradient(90deg,color-mix(in_oklab,var(--color-accent-300)_7%,transparent)_1px,transparent_1px)] [background-size:104px_104px]"
@@ -55,7 +55,8 @@ export function SectionAtmosphere() {
               "radial-gradient(ellipse 74% 60% at 50% 55%, rgba(0,0,0,0.11) 0%, transparent 76%)",
           }}
         />
-        <TechnicalLinesLayer variant="far" className="opacity-55 blur-[1.6px]" />
+        {/* Unblurred, as in the hero — see the note on its far plane. */}
+        <TechnicalLinesLayer variant="far" className="opacity-55" />
       </div>
 
       <div className="anim-plane-mid absolute inset-0">

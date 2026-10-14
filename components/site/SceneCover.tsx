@@ -14,9 +14,13 @@ import { useEffect, useRef, type ReactNode } from "react";
  *
  * Two things do need JavaScript, and only two:
  *
- *   --cover   0 → 1 across the transition, used to dim the hero as it is
- *             covered so it reads as a scene receding rather than a static
- *             image being hidden.
+ *   the dim   0 → 0.62 opacity on the veil across the transition, so the
+ *             hero reads as a scene receding rather than a static image
+ *             being hidden. Written as `opacity` on the veil itself, never
+ *             as a custom property on the wrapper: custom properties
+ *             inherit, so a value set there restyles every element in both
+ *             scenes on every scroll frame — measured at ~100ms a frame on a
+ *             mid-range phone, for one number only the veil reads.
  *   data-cover-state  flips to "in" once the cover is deep enough that the
  *             incoming content should start resolving. The entrance then runs
  *             on its own clock instead of being scrubbed by the scrollbar —
@@ -48,15 +52,17 @@ export function SceneCover({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const paneRef = useRef<HTMLDivElement | null>(null);
   const nextRef = useRef<HTMLDivElement | null>(null);
+  const veilRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
     const pane = paneRef.current;
     const next = nextRef.current;
-    if (!wrap || !pane || !next) return;
+    const veil = veilRef.current;
+    if (!wrap || !pane || !next || !veil) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      wrap.style.setProperty("--cover", "0");
+      veil.style.opacity = "0";
       next.dataset.coverState = "in";
       return;
     }
@@ -78,7 +84,7 @@ export function SceneCover({
       const rounded = Math.round(progress * 100) / 100;
       if (rounded !== last) {
         last = rounded;
-        wrap.style.setProperty("--cover", String(rounded));
+        veil.style.opacity = String(rounded * 0.62);
       }
 
       // Two thresholds, not one. With a single boundary a visitor resting
@@ -169,9 +175,9 @@ export function SceneCover({
             a full-screen repaint on every frame of the scroll for an effect
             that is almost entirely hidden behind the black edge anyway. */}
         <div
+          ref={veilRef}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-20 bg-ink-950"
-          style={{ opacity: "calc(var(--cover, 0) * 0.62)" }}
+          className="pointer-events-none absolute inset-0 z-20 bg-ink-950 opacity-0"
         />
       </div>
 
