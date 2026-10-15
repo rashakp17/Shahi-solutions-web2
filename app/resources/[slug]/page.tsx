@@ -19,7 +19,6 @@ import {
 import { caseStudiesByIds } from "@/lib/resources/case-studies";
 import { renderInline, stripInline } from "@/lib/resources/inline";
 import { absolute, organizationNode, socialMetadata } from "@/lib/site";
-import { PageTransition } from "@/components/site/PageTransition";
 
 /**
  * One route for every article, rather than a folder per article.
@@ -179,7 +178,7 @@ export default async function ResourceArticlePage({ params }: Props) {
   };
 
   return (
-    <PageTransition>
+    <>
       {/* A native <script>, not next/script — this is data, not code to
           schedule. The `<` escape is the sanitiser the Next.js JSON-LD guide
           asks for: it makes a `</script>` inside any content string
@@ -251,6 +250,6 @@ export default async function ResourceArticlePage({ params }: Props) {
           serviceLabel={`See how we build ${(cluster?.service.label ?? "custom software").toLowerCase()}`}
         />
       </article>
-    </PageTransition>
+    </>
   );
 }

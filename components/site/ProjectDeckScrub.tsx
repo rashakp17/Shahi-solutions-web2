@@ -55,12 +55,16 @@ export function ProjectDeckScrub() {
     let heights: number[] = [];
 
     const measure = () => {
+      measured = true;
       tops = slots.map((slot) => parseFloat(getComputedStyle(slot).top) || 0);
       heights = slots.map((slot) => slot.offsetHeight || 1);
     };
 
     let frame = 0;
-    let onScreen = true;
+    // False until the observer says otherwise, which it does on its first
+    // callback. Reading before then would run on empty measurements.
+    let onScreen = false;
+    let measured = false;
     const published = new Array(slots.length).fill(-1);
 
     const read = () => {
@@ -109,14 +113,19 @@ export function ProjectDeckScrub() {
     const view = new IntersectionObserver(
       (entries) => {
         onScreen = entries[entries.length - 1].isIntersecting;
-        if (onScreen) onScroll();
+        if (!onScreen) return;
+        // Measured on first approach, not at mount. The section is
+        // `content-visibility: auto` (see globals.css), so at mount its
+        // cards have not been laid out, and asking for their sizes would
+        // force the whole deck through layout three screens early — the
+        // exact cost that skipping it is there to avoid.
+        if (!measured) measure();
+        onScroll();
       },
       { rootMargin: "25%" },
     );
     view.observe(deck);
 
-    measure();
-    read();
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });

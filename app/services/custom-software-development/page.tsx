@@ -8,7 +8,6 @@ import { articlesInCluster } from "@/lib/resources";
 import { caseStudiesByIds } from "@/lib/resources/case-studies";
 import { SITE_NAME, absolute, organizationNode, socialMetadata } from "@/lib/site";
 import type { Faq } from "@/lib/resources/types";
-import { PageTransition } from "@/components/site/PageTransition";
 
 export const metadata: Metadata = {
   title: "Custom Software Development Services",
@@ -179,7 +178,7 @@ export default function CustomSoftwareDevelopmentPage() {
   };
 
   return (
-    <PageTransition>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -381,6 +380,6 @@ export default function CustomSoftwareDevelopmentPage() {
           serviceLabel="Start with the guide instead"
         />
       </div>
-    </PageTransition>
+    </>
   );
 }

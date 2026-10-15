@@ -8,7 +8,6 @@ import {
   articlesInCluster,
 } from "@/lib/resources";
 import { SITE_NAME, absolute, socialMetadata } from "@/lib/site";
-import { PageTransition } from "@/components/site/PageTransition";
 
 export const metadata: Metadata = {
   title: "Resources — Guides to Building Custom Software",
@@ -59,7 +58,7 @@ export default function ResourcesIndexPage() {
   };
 
   return (
-    <PageTransition>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -153,6 +152,6 @@ export default function ResourcesIndexPage() {
 
         <ClosingCta />
       </div>
-    </PageTransition>
+    </>
   );
 }

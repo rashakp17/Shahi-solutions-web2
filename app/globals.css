@@ -6318,7 +6318,7 @@ video.pj-shot {
 /* ==================================================================
    Motion that stays off the main thread
    ------------------------------------------------------------------
-   Three additions, each built from the two properties the compositor
+   Two additions, each built from the two properties the compositor
    animates by itself — opacity and translate/transform — and each
    costing nothing while it is not visibly doing something.
    ================================================================== */
@@ -6411,56 +6411,72 @@ video.pj-shot {
   }
 }
 
-/* ── Page transitions ──
-   See PageTransition. Only the root snapshot — the viewport — animates:
-   the old screen drops back and fades fast so it is not competing, the new
-   one lifts in a beat later and a little slower. The marker that triggers
-   the transition is 1px, invisible, and takes no part. The overlay lets
-   clicks through, so a tap during the transition is not swallowed. */
-.page-mark {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
+/* ==================================================================
+   Below-the-fold sections render when they are about to be seen
+   ------------------------------------------------------------------
+   The home page is ~1500 elements, and roughly two-thirds of them sit
+   three or more screens down. Without this, every one of them was styled
+   and laid out up front — on a cold load, and again on every navigation
+   back to the home page, where Next's scroll reset forces that layout
+   synchronously: measured at 242ms of style plus 356ms of layout in one
+   frame on a 4x-throttled phone, the single biggest freeze on the site.
+
+   `content-visibility: auto` lets the browser skip a section's style,
+   layout and paint until it comes within a margin of the viewport, and
+   drop the work again once it is far away. The sizes below are each
+   section's measured height, so the scrollbar is right and a jump to
+   #contact lands where it should; `auto` then remembers the real height
+   once a section has rendered, and these numbers stop mattering.
+
+   Only sections that observe themselves with IntersectionObserver are
+   here — those keep working. The hero, the scene cover and the statement
+   pane measure their own geometry every frame and are deliberately left
+   out. The project deck measures its cards, so it now does that when it
+   first nears the viewport rather than at mount (ProjectDeckScrub).
+   ================================================================== */
+:is(#ventures, #stack, #projects, #testimonials, #about, #contact),
+footer.ft-scope {
+  content-visibility: auto;
 }
 
-::view-transition {
-  pointer-events: none;
+/* Content-box heights, measured — padding is added on top of these, so they
+   are each section's height less its own padding. Text wrapping moves them
+   with the width, so they are close rather than exact; a jump to an anchor
+   re-aligns once the scroll settles (SmoothScroll) for whatever is left. */
+#ventures { contain-intrinsic-block-size: auto 1369px; }
+#stack { contain-intrinsic-block-size: auto 333px; }
+#projects { contain-intrinsic-block-size: auto 4526px; }
+#testimonials { contain-intrinsic-block-size: auto 846px; }
+#about { contain-intrinsic-block-size: auto 681px; }
+#contact { contain-intrinsic-block-size: auto 1079px; }
+footer.ft-scope { contain-intrinsic-block-size: auto 1454px; }
+
+@media (min-width: 640px) {
+  #ventures { contain-intrinsic-block-size: auto 1393px; }
+  #stack { contain-intrinsic-block-size: auto 295px; }
+  #projects { contain-intrinsic-block-size: auto 5911px; }
+  #testimonials { contain-intrinsic-block-size: auto 843px; }
+  #about { contain-intrinsic-block-size: auto 680px; }
+  #contact { contain-intrinsic-block-size: auto 1031px; }
+  footer.ft-scope { contain-intrinsic-block-size: auto 944px; }
 }
 
-::view-transition-group(.page-mark) {
-  display: none;
+@media (min-width: 768px) {
+  #ventures { contain-intrinsic-block-size: auto 1124px; }
+  #stack { contain-intrinsic-block-size: auto 299px; }
+  #projects { contain-intrinsic-block-size: auto 6257px; }
+  #testimonials { contain-intrinsic-block-size: auto 579px; }
+  #about { contain-intrinsic-block-size: auto 553px; }
+  #contact { contain-intrinsic-block-size: auto 1042px; }
+  footer.ft-scope { contain-intrinsic-block-size: auto 727px; }
 }
 
-::view-transition-old(root) {
-  animation: vt-page-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
-}
-
-::view-transition-new(root) {
-  animation: vt-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
-}
-
-@keyframes vt-page-out {
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes vt-page-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-  }
+@media (min-width: 1024px) {
+  #ventures { contain-intrinsic-block-size: auto 1200px; }
+  #stack { contain-intrinsic-block-size: auto 313px; }
+  #projects { contain-intrinsic-block-size: auto 4700px; }
+  #testimonials { contain-intrinsic-block-size: auto 540px; }
+  #about { contain-intrinsic-block-size: auto 700px; }
+  #contact { contain-intrinsic-block-size: auto 554px; }
+  footer.ft-scope { contain-intrinsic-block-size: auto 440px; }
 }
