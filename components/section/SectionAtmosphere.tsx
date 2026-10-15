@@ -63,8 +63,16 @@ export function SectionAtmosphere() {
         <TechnicalLinesLayer variant="mid" className="opacity-40" />
       </div>
 
-      {/* The mark field, well under the hero's — texture, not content. */}
-      <BackgroundGlyphs className="opacity-[0.38]" />
+      {/* The mark field, well under the hero's — texture, not content.
+
+          Not on phones. At 38% of the hero's 0.02–0.06 it lands at one or
+          two percent — nothing anyone sees at that size — yet the moment the
+          section's cover-state flips to "in", its ~44 drift loops all resume
+          in the same frame as the card entrances: measured at 52–84ms on a
+          4x-throttled phone, the largest single hitch left on the page.
+          `display: none` takes the subtree out of style and animation
+          entirely, so the flip costs nothing. */}
+      <BackgroundGlyphs className="opacity-[0.38] max-sm:hidden" />
 
       {/* No ParticleField here any more, and it is the one thing this
           atmosphere lost.

@@ -2,112 +2,139 @@
 
 import { useEffect, useRef, type CSSProperties } from "react";
 import { useTheme } from "@/lib/useTheme";
-
-type Particle = {
-  x: number;
-  y: number;
-  /** 0 = far and faint, 1 = near, larger and quicker. */
-  depth: number;
-  r: number;
-  /** Drift velocity in px/second. */
-  vx: number;
-  vy: number;
-  alpha: number;
-  /** Lateral sway, so travel is never a straight vertical line. */
-  swayAmp: number;
-  swaySpeed: number;
-  /** Independent fade cycle — each point breathes on its own period. */
-  fadeSpeed: number;
-  phase: number;
-  blue: boolean;
-};
-
-const DENSITY = 1 / 8200; // particles per CSS pixel²
-const MAX_PARTICLES = 170;
-
-/* ------------------------------------------------------------------
-   Sprites.
-
-   Points are stamped from pre-rendered tiles rather than rebuilt as a
-   path each frame. Per point per frame the old loop did: beginPath, arc,
-   a template-literal `rgba(...)`, a CSS colour parse, fill — and again
-   for the halo. At ~200 points across two fields that is ~500 path
-   builds and ~500 colour parses every frame, all on the main thread.
-
-   A sprite reduces the inner loop to one alpha write and one drawImage,
-   which the compositor handles. The tiles are built once per size, and
-   rebuilt only when the device pixel ratio actually changes.
-   ------------------------------------------------------------------ */
-
-/** Tile radius, CSS px. Points scale down from this, never up. */
-const SPRITE_R = 12;
-/** Fraction of the tile the solid core fills before the edge feather. */
-const CORE_SOLID = 0.78;
+import { PALETTE, createParticleEngine, type Ink } from "./particleEngine";
 
 /**
- * The field, in both lights.
- *
- * Canvas takes numbers, not custom properties, so this is the one palette in
- * the project that has to be written out twice rather than flipping on its
- * own. See lib/useTheme.ts.
- *
- * The light set is not the dark set darkened. On black these are points of
- * light and the pale one is the brightest — it is what a particle near the
- * front looks like. On white there is nothing brighter than the ground, so
- * the field becomes ink instead: the "pale" role, still meaning "the ones in
- * front", becomes the *darkest* of the three rather than the lightest, and
- * the halo stays a mid blue because a soft blue bloom is one of the few
- * additive effects that survives being put on paper.
+ * What the component needs from whichever thread is drawing. The simulation
+ * itself lives in particleEngine.ts; this is only the remote control.
  */
-const PALETTE = {
-  dark: { core: "138,178,255", pale: "232,238,252", halo: "109,155,255" },
-  light: { core: "20,33,61", pale: "0,0,0", halo: "20,33,61" },
-} as const;
+type Driver = {
+  resize(width: number, height: number, dpr: number): void;
+  setInk(ink: Ink): void;
+  setIntensity(intensity: number): void;
+  run(on: boolean): void;
+  dispose(): void;
+};
 
-function makeSprite(
-  dpr: number,
-  paint: (g: CanvasRenderingContext2D, r: number) => void,
-) {
-  const tile = document.createElement("canvas");
-  tile.width = tile.height = Math.ceil(SPRITE_R * 2 * dpr);
+/**
+ * Drawn in a worker, the normal path.
+ *
+ * A main-thread rAF loop wakes the main thread sixty times a second, and each
+ * of those frames re-ticks the style of every running CSS animation on the
+ * page — measured on the hero at ~40x the idle style work of the page without
+ * the loop. Transferred to an OffscreenCanvas, the field draws in its worker
+ * and commits straight to the compositor; the main thread sleeps.
+ *
+ * `transferControlToOffscreen` can only ever be called once per canvas, and
+ * React's development double-mount runs the effect, its cleanup and the
+ * effect again on the same element. So the worker is keyed to the canvas and
+ * its shutdown deferred by a tick: an immediate remount claims it back.
+ */
+const workers = new WeakMap<
+  HTMLCanvasElement,
+  { worker: Worker; kill?: ReturnType<typeof setTimeout> }
+>();
 
-  const g = tile.getContext("2d");
-  if (g) {
-    // Origin at the tile centre, so the paint callbacks work in radii.
-    g.setTransform(dpr, 0, 0, dpr, SPRITE_R * dpr, SPRITE_R * dpr);
-    paint(g, SPRITE_R);
+function workerDriver(
+  canvas: HTMLCanvasElement,
+  init: { width: number; height: number; dpr: number; ink: Ink; intensity: number; reduceMotion: boolean },
+): Driver {
+  let entry = workers.get(canvas);
+
+  if (entry) {
+    clearTimeout(entry.kill);
+    entry.kill = undefined;
+    entry.worker.postMessage({ type: "intensity", intensity: init.intensity });
+    entry.worker.postMessage({ type: "ink", ink: init.ink });
+    entry.worker.postMessage({ type: "resize", width: init.width, height: init.height, dpr: init.dpr });
+  } else {
+    const offscreen = canvas.transferControlToOffscreen();
+    const worker = new Worker(new URL("./particles.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    worker.postMessage({ type: "init", canvas: offscreen, ...init }, [offscreen]);
+    entry = { worker };
+    workers.set(canvas, entry);
   }
 
-  return tile;
+  const { worker } = entry;
+  const current = entry;
+
+  return {
+    resize: (width, height, dpr) => worker.postMessage({ type: "resize", width, height, dpr }),
+    setInk: (ink) => worker.postMessage({ type: "ink", ink }),
+    setIntensity: (intensity) => worker.postMessage({ type: "intensity", intensity }),
+    run: (run) => worker.postMessage({ type: "run", run }),
+    dispose: () => {
+      worker.postMessage({ type: "run", run: false });
+      current.kill = setTimeout(() => {
+        worker.terminate();
+        workers.delete(canvas);
+      }, 0);
+    },
+  };
 }
 
-/** A point: solid to `CORE_SOLID`, then a short feather standing in for AA. */
-function makeDot(dpr: number, rgb: string) {
-  return makeSprite(dpr, (g, r) => {
-    const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
-    grad.addColorStop(0, `rgba(${rgb},1)`);
-    grad.addColorStop(CORE_SOLID, `rgba(${rgb},1)`);
-    grad.addColorStop(1, `rgba(${rgb},0)`);
-    g.fillStyle = grad;
-    g.beginPath();
-    g.arc(0, 0, r, 0, Math.PI * 2);
-    g.fill();
+/** Drawn on the main thread — only where OffscreenCanvas is unavailable. */
+function mainThreadDriver(
+  canvas: HTMLCanvasElement,
+  init: { width: number; height: number; dpr: number; ink: Ink; intensity: number; reduceMotion: boolean },
+): Driver | null {
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) return null;
+
+  const engine = createParticleEngine(canvas, ctx, (size) => {
+    const tile = document.createElement("canvas");
+    tile.width = tile.height = size;
+    return tile;
   });
+  engine.setIntensity(init.intensity);
+  engine.setInk(init.ink);
+  engine.resize(init.width, init.height, init.dpr);
+  engine.paint(0);
+
+  let frame = 0;
+  let lastTime = 0;
+  const step = (time: number) => {
+    const dt = Math.min((time - lastTime) / 1000, 0.05);
+    lastTime = time;
+    engine.step(dt, time / 1000);
+    frame = requestAnimationFrame(step);
+  };
+
+  return {
+    resize: (w, h, dpr) => {
+      engine.resize(w, h, dpr);
+      engine.paint(performance.now() / 1000);
+    },
+    setInk: (ink) => {
+      engine.setInk(ink);
+      if (!frame) engine.paint(performance.now() / 1000);
+    },
+    setIntensity: (v) => engine.setIntensity(v),
+    run: (on) => {
+      if (init.reduceMotion) return;
+      if (on && !frame) {
+        // Reset the clock, or the first frame back integrates the whole time
+        // spent paused and every point jumps.
+        lastTime = performance.now();
+        frame = requestAnimationFrame(step);
+      } else if (!on && frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+    },
+    dispose: () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    },
+  };
 }
 
-/** The halo on the nearest points — near-flat, so it reads as the old disc. */
-function makeHalo(dpr: number, rgb: string) {
-  return makeSprite(dpr, (g, r) => {
-    const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
-    grad.addColorStop(0, `rgba(${rgb},1)`);
-    grad.addColorStop(0.6, `rgba(${rgb},0.94)`);
-    grad.addColorStop(1, `rgba(${rgb},0)`);
-    g.fillStyle = grad;
-    g.beginPath();
-    g.arc(0, 0, r, 0, Math.PI * 2);
-    g.fill();
-  });
-}
+const canUseWorker = () =>
+  typeof Worker !== "undefined" &&
+  typeof OffscreenCanvas !== "undefined" &&
+  "transferControlToOffscreen" in HTMLCanvasElement.prototype;
 
 /**
  * Floating light points on a continuous, never-resolving drift.
@@ -138,181 +165,66 @@ export function ParticleField({
   intensity?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const driverRef = useRef<Driver | null>(null);
+  const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
+  const appliedIntensity = useRef(intensity);
   const theme = useTheme();
+  // Read by the mount effect without making it re-run: a theme or intensity
+  // change is a message to the running field, not a teardown of it.
+  const latest = useRef({ ink: PALETTE[theme] as Ink, intensity });
+  latest.current = { ink: PALETTE[theme], intensity };
 
   useEffect(() => {
-    const ink = PALETTE[theme];
-
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
 
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    let particles: Particle[] = [];
-    let width = 0;
-    let height = 0;
-    let frame = 0;
-    let lastTime = 0;
-    let spriteDpr = 0;
-    let blueDot: HTMLCanvasElement | null = null;
-    let paleDot: HTMLCanvasElement | null = null;
-    let haloDot: HTMLCanvasElement | null = null;
-
-    const build = () => {
+    const measure = () => {
       const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-      width = rect.width;
-      height = rect.height;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      // Only on a genuine DPR change — dragging to a second monitor, not
-      // every orientation flip. A theme change does not need testing for
-      // here: it re-runs the whole effect, so these are rebuilt from a
-      // spriteDpr of 0 on the way through.
-      if (dpr !== spriteDpr) {
-        spriteDpr = dpr;
-        blueDot = makeDot(dpr, ink.core);
-        paleDot = makeDot(dpr, ink.pale);
-        haloDot = makeHalo(dpr, ink.halo);
-      }
-
-      const count = Math.round(
-        Math.min(MAX_PARTICLES, Math.round(width * height * DENSITY)) *
-          intensity,
-      );
-
-      particles = Array.from({ length: Math.max(count, 0) }, () => {
-        // Cubed so most points sit far back and only a few come forward —
-        // with a dense field this is what keeps it from reading as a
-        // starfield: the great majority are barely there.
-        const depth = Math.pow(Math.random(), 3);
-
-        return {
-          x: Math.random() * width,
-          y: Math.random() * height,
-          depth,
-          r: 0.3 + depth * 1.5,
-          // A third drift sideways or downward instead of up, so the field
-          // has no single direction of travel.
-          vx: (Math.random() - 0.5) * (3 + depth * 7),
-          vy:
-            Math.random() < 0.32
-              ? (Math.random() - 0.35) * (2 + depth * 5)
-              : -(2 + depth * 11 + Math.random() * 3),
-          alpha: 0.05 + depth * 0.4,
-          swayAmp: 4 + Math.random() * 14,
-          swaySpeed: 0.06 + Math.random() * 0.16,
-          fadeSpeed: 0.1 + Math.random() * 0.35,
-          phase: Math.random() * Math.PI * 2,
-          blue: Math.random() > 0.45,
-        };
-      });
+      sizeRef.current = {
+        width: rect.width,
+        height: rect.height,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+      };
+      return sizeRef.current;
     };
 
-    const paint = (seconds: number) => {
-      ctx.clearRect(0, 0, width, height);
-      if (!blueDot || !paleDot || !haloDot) return;
+    const init = { ...measure(), ...latest.current, reduceMotion };
+    appliedIntensity.current = init.intensity;
+    const driver = canUseWorker()
+      ? workerDriver(canvas, init)
+      : mainThreadDriver(canvas, init);
+    if (!driver) return;
+    driverRef.current = driver;
 
-      for (const p of particles) {
-        // Two unrelated periods: a slow fade cycle, plus the sway offset.
-        const fade = 0.45 + 0.55 * Math.sin(p.phase + seconds * p.fadeSpeed);
-        const a = fade > 0 ? p.alpha * fade : 0;
-        if (a <= 0.002) continue;
-
-        const x = p.x + Math.sin(p.phase + seconds * p.swaySpeed) * p.swayAmp;
-
-        // A faint halo on the nearest points only — cheap sense of depth.
-        if (p.depth > 0.55) {
-          const hr = p.r * 3.6;
-          ctx.globalAlpha = a * 0.07;
-          ctx.drawImage(haloDot, x - hr, p.y - hr, hr * 2, hr * 2);
-        }
-
-        const dr = p.r / CORE_SOLID;
-        ctx.globalAlpha = p.blue ? a : a * 0.72;
-        ctx.drawImage(p.blue ? blueDot : paleDot, x - dr, p.y - dr, dr * 2, dr * 2);
-      }
-
-      ctx.globalAlpha = 1;
+    // Rebuild on resize, debounced — orientation changes on mobile fire a lot.
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const { width, height, dpr } = measure();
+        driver.resize(width, height, dpr);
+      }, 180);
     };
+    window.addEventListener("resize", onResize);
 
-    const step = (time: number) => {
-      const dt = Math.min((time - lastTime) / 1000, 0.05);
-      lastTime = time;
-      const seconds = time / 1000;
-
-      for (const p of particles) {
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-
-        // Wrap on every edge — the field drifts in mixed directions, so it
-        // would deplete from the bottom if only the top were handled.
-        if (p.y < -14) {
-          p.y = height + 14;
-          p.x = Math.random() * width;
-        } else if (p.y > height + 14) {
-          p.y = -14;
-          p.x = Math.random() * width;
-        }
-        if (p.x < -20) p.x = width + 20;
-        if (p.x > width + 20) p.x = -20;
-      }
-
-      paint(seconds);
-      frame = requestAnimationFrame(step);
-    };
+    if (reduceMotion) {
+      return () => {
+        clearTimeout(resizeTimer);
+        window.removeEventListener("resize", onResize);
+        driver.dispose();
+        driverRef.current = null;
+      };
+    }
 
     /* --- Run only when the field is actually being looked at --- */
 
     let onScreen = true;
     let sceneLit = true;
-
-    const stop = () => {
-      if (!frame) return;
-      cancelAnimationFrame(frame);
-      frame = 0;
-    };
-
-    const start = () => {
-      if (frame) return;
-      // Reset the clock, or the first frame back integrates the whole time
-      // spent paused and every point jumps.
-      lastTime = performance.now();
-      frame = requestAnimationFrame(step);
-    };
-
-    const sync = () => {
-      if (!document.hidden && onScreen && sceneLit) start();
-      else stop();
-    };
-
-    build();
-
-    if (reduceMotion) {
-      paint(0);
-
-      let staticResize: ReturnType<typeof setTimeout>;
-      const onStaticResize = () => {
-        clearTimeout(staticResize);
-        staticResize = setTimeout(() => {
-          build();
-          paint(0);
-        }, 180);
-      };
-      window.addEventListener("resize", onStaticResize);
-
-      return () => {
-        clearTimeout(staticResize);
-        window.removeEventListener("resize", onStaticResize);
-      };
-    }
+    const sync = () => driver.run(!document.hidden && onScreen && sceneLit);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -346,28 +258,34 @@ export function ParticleField({
       });
     }
 
-    const onVisibility = () => sync();
-    document.addEventListener("visibilitychange", onVisibility);
-
-    // Rebuild on resize, debounced — orientation changes on mobile fire a lot.
-    let resizeTimer: ReturnType<typeof setTimeout>;
-    const onResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(build, 180);
-    };
-    window.addEventListener("resize", onResize);
-
+    document.addEventListener("visibilitychange", sync);
     sync();
 
     return () => {
-      stop();
       clearTimeout(resizeTimer);
       observer.disconnect();
       sceneWatcher?.disconnect();
       window.removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("visibilitychange", sync);
+      driver.dispose();
+      driverRef.current = null;
     };
-  }, [intensity, theme]);
+  }, []);
+
+  // Theme: new tiles, same points.
+  useEffect(() => {
+    driverRef.current?.setInk(PALETTE[theme]);
+  }, [theme]);
+
+  // Intensity: a different point count, so the field is reseeded.
+  useEffect(() => {
+    const driver = driverRef.current;
+    if (!driver || appliedIntensity.current === intensity) return;
+    appliedIntensity.current = intensity;
+    driver.setIntensity(intensity);
+    const { width, height, dpr } = sizeRef.current;
+    if (width) driver.resize(width, height, dpr);
+  }, [intensity]);
 
   return (
     // The field is faded in by the caller; the drift itself never stops.

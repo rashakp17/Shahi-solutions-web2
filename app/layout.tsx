@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/cn";
+import { SmoothScroll } from "@/components/site/SmoothScroll";
+import { CardSpotlight } from "@/components/ui/CardSpotlight";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -238,7 +240,11 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <SmoothScroll />
+        <CardSpotlight />
+        {children}
+      </body>
     </html>
   );
 }

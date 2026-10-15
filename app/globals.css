@@ -442,6 +442,23 @@
     @apply font-sans;
   }
 
+  /* Lenis (components/site/SmoothScroll.tsx) moves the page itself, frame
+     by frame; native smooth scrolling on top of it would ease every one of
+     those steps a second time. The class is only present while Lenis runs,
+     so with reduced motion the native smooth scroll above still applies. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: clip;
+  }
+
   /* The page ground, and it has to be right here rather than section by
      section: any strip that does not paint its own background shows this one
      through, and on a site that is otherwise near-black a single unpainted
@@ -2324,11 +2341,16 @@
   }
 }
 
-.pj-deck {
-  /* Holds the finished stack on screen for a beat before the whole thing
-     scrolls away — sticky is constrained by this box, so the padding is the
-     dwell. */
-  padding-bottom: 10vh;
+/* Holds the finished stack on screen for a beat before the whole thing
+   scrolls away.
+
+   An in-flow spacer, not padding — and that difference is the bug this used
+   to have. Sticky is constrained by the deck's *content* box; padding sits
+   outside it and gave the stack no room at all, so it was never a dwell. */
+.pj-deck::after {
+  content: "";
+  display: block;
+  height: 10vh;
 }
 
 .pj-slot {
@@ -2336,8 +2358,21 @@
   top: calc(var(--pj-top) + var(--i, 0) * var(--pj-step));
 }
 
-.pj-slot:not(:last-child) {
-  margin-bottom: var(--pj-gap);
+/* The travel gap goes *above* each card after the first, not below each
+   card before the last. Same spacing on the page, but it decides when the
+   stack lets go.
+
+   A stuck element's whole margin box has to stay inside the deck. With the
+   gap as margin-bottom, every card but the last carried 34–42vh of margin
+   under it, so the deck ran out of room for them that much early — the
+   first four were released and scrolled away while the last card was still
+   rising, and it was carried off half-dealt, sitting part-way over 04. On
+   a short laptop screen it never reached its place at all. As margin-top
+   the gap is behind each card instead of in front of the deck's end, the
+   margin boxes end where the cards do, and the stack holds until the last
+   card has landed. */
+.pj-slot + .pj-slot {
+  margin-top: var(--pj-gap);
 }
 
 /* ---- the card ---- */
@@ -4494,8 +4529,8 @@ video.pj-shot {
     position: static;
   }
 
-  .pj-slot:not(:last-child) {
-    margin-bottom: 1.5rem;
+  .pj-slot + .pj-slot {
+    margin-top: 1.5rem;
   }
 
   .pj-card {
@@ -6277,5 +6312,155 @@ video.pj-shot {
 
   .rs-faq-mark::after {
     transition: none;
+  }
+}
+
+/* ==================================================================
+   Motion that stays off the main thread
+   ------------------------------------------------------------------
+   Three additions, each built from the two properties the compositor
+   animates by itself — opacity and translate/transform — and each
+   costing nothing while it is not visibly doing something.
+   ================================================================== */
+
+/* ── Card spotlight ──
+   A gradient painted once, moved by CardSpotlight with one transform a
+   frame while the pointer is over the card, faded with opacity. The clip
+   sits at z-index -1 inside the card's isolated stacking context: above
+   the card's own fill, under its text. will-change only while hovered,
+   so eight idle cards do not hold eight GPU layers. */
+.spotlight-clip {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.spotlight-glow {
+  position: absolute;
+  left: -10rem;
+  top: -10rem;
+  width: 20rem;
+  height: 20rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-accent-500) 16%, transparent) 0%,
+    color-mix(in oklab, var(--color-accent-500) 6%, transparent) 38%,
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 450ms var(--ease-cinematic, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-spotlight]:hover .spotlight-glow {
+    opacity: 1;
+    will-change: transform;
+  }
+}
+
+/* ── Scroll-linked reveals on the reading pages ──
+   The resource and service pages had no entrance motion at all. These
+   rise as they enter the viewport, driven by the scroll position itself
+   (`animation-timeline: view()`) — no observer, no listener, no class
+   toggled from script, and the compositor runs it.
+
+   `translate`, not `transform`: it is a separate property, so a card that
+   lifts on hover with `transform` keeps doing so — the reveal holds its
+   end state without overriding it.
+
+   Only where the browser supports it, and only with motion allowed.
+   Everywhere else the content is simply there, as it was. Paragraphs are
+   deliberately not in the list: text being read should not move. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .rs-main
+      :is(
+        .rs-h2,
+        .rs-index-item,
+        .rs-related-item,
+        .rs-work-item,
+        .rs-example,
+        .rs-phase,
+        .rs-pillar,
+        .rs-figure,
+        .rs-table-figure,
+        .rs-stack-figure,
+        .rs-spine-figure,
+        .rs-faq,
+        .rs-bridge
+      ) {
+      animation: sd-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 65%;
+    }
+  }
+}
+
+@keyframes sd-rise {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* ── Page transitions ──
+   See PageTransition. Only the root snapshot — the viewport — animates:
+   the old screen drops back and fades fast so it is not competing, the new
+   one lifts in a beat later and a little slower. The marker that triggers
+   the transition is 1px, invisible, and takes no part. The overlay lets
+   clicks through, so a tap during the transition is not swallowed. */
+.page-mark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(.page-mark) {
+  display: none;
+}
+
+::view-transition-old(root) {
+  animation: vt-page-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+}
+
+@keyframes vt-page-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

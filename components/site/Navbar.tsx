@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/site/Logo";
 import { ThemeToggle } from "@/components/site/ThemeToggle";
 import { START_HREF } from "@/lib/contact";
 import { cn } from "@/lib/cn";
+import { getLenis } from "@/lib/smoothScroll";
 
 /**
  * The destinations. Four of them are places on the home page; one is a route.
@@ -57,30 +58,34 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const onHome = usePathname() === "/";
 
-  // Tighten the bar once the page leaves the top of the hero. Compared
-  // against the last value rather than handed to React on every scroll event:
-  // this is one boolean that flips twice in a session, and the header renders
-  // the whole nav tree.
+  // Tighten the bar once the page leaves the top of the hero.
+  //
+  // An observer on a 12px marker at the top of the document, not a scroll
+  // listener. The listener read `window.scrollY` on every scroll event, and
+  // in Chrome that read brings style and layout up to date first — so with
+  // the page's entrances animating it forced a style recalc per event,
+  // measured as the most expensive script on the page on a throttled phone.
+  // The observer answers the same yes/no without touching layout at all.
+  const topRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    let last = false;
-
-    const onScroll = () => {
-      const next = window.scrollY > 12;
-      if (next === last) return;
-      last = next;
-      setScrolled(next);
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const marker = topRef.current;
+    if (!marker) return;
+    const view = new IntersectionObserver((entries) => {
+      setScrolled(!entries[entries.length - 1].isIntersecting);
+    });
+    view.observe(marker);
+    return () => view.disconnect();
   }, []);
 
   // Lock the body while the mobile sheet is open, and let Escape close it.
+  // Lenis is paused too: it scrolls by script, which overflow: hidden does
+  // not stop, so a wheel over the sheet would otherwise move the page behind.
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    getLenis()?.stop();
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -89,6 +94,7 @@ export function Navbar() {
 
     return () => {
       document.body.style.overflow = previous;
+      getLenis()?.start();
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -103,6 +109,14 @@ export function Navbar() {
     // 300ms is `START` in components/site/Hero.tsx; that is the one number
     // that has to match.
     <>
+      {/* The marker the bar watches: the top 12px of the document. Absolute
+          against the initial containing block, so it scrolls away with the
+          page however the page itself is laid out. */}
+      <div
+        ref={topRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 h-3 w-px"
+      />
       <header
         className="anim-rise fixed inset-x-0 top-0 z-50"
         style={{ animationDelay: "300ms" }}

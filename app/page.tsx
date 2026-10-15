@@ -4,6 +4,7 @@ import { Footer } from "@/components/site/Footer";
 import { FounderSection } from "@/components/site/FounderSection";
 import { Hero } from "@/components/site/Hero";
 import { Navbar } from "@/components/site/Navbar";
+import { PageTransition } from "@/components/site/PageTransition";
 import { ProjectsSection } from "@/components/site/ProjectsSection";
 import { SceneCover } from "@/components/site/SceneCover";
 import { ServicesSection } from "@/components/site/ServicesSection";
@@ -131,33 +132,35 @@ export default function Home() {
       {/* Pauses the ambient loops in every section that is not on screen.
           Renders nothing; see the note in the component. */}
       <MotionGate />
-      <main>
-        {/* The hero is pinned and the section beneath rides up over it, so the
-            move from one to the next is a scene being covered rather than a
-            page being scrolled past. */}
-        {/* revealAt 0.08, from the default 0.42: the services intro starts
-            as the rising edge first shows, instead of waiting for it to pass
-            the middle of the screen — a fast scroll was reaching the heading
-            before it had begun. It resets only back at the very top. */}
-        <SceneCover next={<ServicesSection />} revealAt={0.08}>
-          <Hero />
-        </SceneCover>
-        {/* The giant typographic layer, pushed up out from under the services
-            grid as the visitor scrolls into it. */}
-        <StatementSection />
-        {/* The ecosystem, one venture at a time. */}
-        <VenturesSection />
-        {/* What the ventures are built out of, on a loop. */}
-        <TechStrip />
-        {/* The work itself — a deck of cards dealt by the scroll. */}
-        <ProjectsSection />
-        {/* The proof, immediately after the work it is about. */}
-        <TestimonialsSection />
-        {/* The people behind it. */}
-        <FounderSection />
-        {/* The ask, last before the directory. */}
-        <ContactSection />
-      </main>
+      <PageTransition>
+        <main>
+          {/* The hero is pinned and the section beneath rides up over it, so the
+              move from one to the next is a scene being covered rather than a
+              page being scrolled past. */}
+          {/* revealAt 0.08, from the default 0.42: the services intro starts
+              as the rising edge first shows, instead of waiting for it to pass
+              the middle of the screen — a fast scroll was reaching the heading
+              before it had begun. It resets only back at the very top. */}
+          <SceneCover next={<ServicesSection />} revealAt={0.08}>
+            <Hero />
+          </SceneCover>
+          {/* The giant typographic layer, pushed up out from under the services
+              grid as the visitor scrolls into it. */}
+          <StatementSection />
+          {/* The ecosystem, one venture at a time. */}
+          <VenturesSection />
+          {/* What the ventures are built out of, on a loop. */}
+          <TechStrip />
+          {/* The work itself — a deck of cards dealt by the scroll. */}
+          <ProjectsSection />
+          {/* The proof, immediately after the work it is about. */}
+          <TestimonialsSection />
+          {/* The people behind it. */}
+          <FounderSection />
+          {/* The ask, last before the directory. */}
+          <ContactSection />
+        </main>
+      </PageTransition>
       <Footer />
     </>
   );

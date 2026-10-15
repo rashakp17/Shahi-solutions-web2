@@ -308,7 +308,14 @@ export function ServicesSection() {
                 {/* `relative`, added for the stretched anchor below. Nothing
                     else about this card changed — same hairline, same fill,
                     same hover lift. */}
-                <div className="group relative flex h-full flex-col rounded-2xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] p-6 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-cinematic hover:border-accent-500/25 hover:bg-[color:var(--veil-2)] hover:-translate-y-1.5 hover:shadow-[0_12px_36px_-12px_color-mix(in_oklab,var(--color-accent-500)_12%,transparent)]">
+                <div
+                  data-spotlight
+                  className="group relative isolate flex h-full flex-col rounded-2xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] p-6 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-cinematic hover:border-accent-500/25 hover:bg-[color:var(--veil-2)] hover:-translate-y-1.5 hover:shadow-[0_12px_36px_-12px_color-mix(in_oklab,var(--color-accent-500)_12%,transparent)]"
+                >
+                  {/* The cursor light. See CardSpotlight and .spotlight-glow. */}
+                  <span aria-hidden="true" className="spotlight-clip">
+                    <span data-spotlight-glow className="spotlight-glow" />
+                  </span>
                   <span
                     className="anim-rise-inner flex h-11 w-11 items-center justify-center rounded-xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] text-accent-300 transition-colors duration-500 group-hover:border-accent-500/30 group-hover:text-accent-200"
                     style={
