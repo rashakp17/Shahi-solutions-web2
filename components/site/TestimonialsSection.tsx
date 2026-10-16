@@ -224,7 +224,7 @@ export function TestimonialsSection() {
     <section
       id="testimonials"
       data-motion-scope
-      className="tm-scope relative isolate overflow-hidden bg-ink-950 py-16 sm:py-20"
+      className="tm-scope relative isolate overflow-hidden bg-ink-950 pt-16 pb-10 sm:pt-20 sm:pb-12 xl:pb-0"
     >
       {/* Ground and glow. One radial behind the centre, one wide wash under
           the pair — no particle field and no linework, because this section

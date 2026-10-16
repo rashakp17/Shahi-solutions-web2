@@ -252,7 +252,7 @@ export function FounderSection() {
     <section
       id="about"
       data-motion-scope
-      className="fd-scope relative isolate overflow-hidden bg-ink-950 py-20 sm:py-24"
+      className="fd-scope relative isolate overflow-hidden bg-ink-950 pt-12 pb-20 sm:pt-14 sm:pb-24"
     >
       {/* Ground and key light. One wash for the section floor, one soft
           core behind the front seat — the cheapest way to say where to
