@@ -10,22 +10,8 @@ import { START_HREF } from "@/lib/contact";
 import { cn } from "@/lib/cn";
 import { getLenis } from "@/lib/smoothScroll";
 
-/**
- * The destinations. Four of them are places on the home page; one is a route.
- *
- * `hash` rather than `href` for the four, because the correct link depends on
- * where the bar is being rendered — and it is now rendered in more than one
- * place. See `hrefFor` below.
- *
- * `Home` stays "/" rather than becoming "#top": it is the one link whose job
- * is to put the visitor back at the beginning, and an anchor to the top of the
- * document is what the browser already does for "/".
- *
- * `Resources` is a real route and is listed last before the action, which is
- * where a reference section belongs — it is the link somebody follows when
- * they are not ready to talk yet, and putting it ahead of Contact would be
- * arguing with the order of the page.
- */
+// Home-page sections use `hash` so hrefFor can build the right link for the
+// current route; real routes use `href`.
 const LINKS: Array<{ label: string; href?: string; hash?: string }> = [
   { label: "Home", href: "/" },
   { label: "Projects", hash: "projects" },
@@ -34,23 +20,21 @@ const LINKS: Array<{ label: string; href?: string; hash?: string }> = [
   { label: "Contact Us", hash: "contact" },
 ];
 
-/**
- * Where a section link should point, given where we are standing.
- *
- * On the home page a bare `#projects` is right: the target is already in this
- * document, and `/#projects` would send the router through a navigation to
- * reach an element that is on screen. Anywhere else a bare fragment means
- * "somewhere on the page you are already on", where no such element exists —
- * so the link silently does nothing, which is exactly what happened to this
- * bar the moment /resources gained a page.
- *
- * The prefix is therefore computed rather than written down, and it is
- * computed from the pathname rather than from a prop, so a new route cannot
- * forget to pass it.
- */
+// Bare `#hash` on the home page (no router navigation), `/#hash` elsewhere,
+// where a bare fragment would point at nothing.
 function hrefFor(link: (typeof LINKS)[number], onHome: boolean): string {
   if (link.href) return link.href;
   return onHome ? `#${link.hash}` : `/#${link.hash}`;
+}
+
+// Disable prefetch for links to the current (home) page. Otherwise each one
+// in the viewport fetches the home page's own RSC payload (~24KB) during
+// initial load, for a navigation that never happens.
+function prefetchFor(
+  link: (typeof LINKS)[number],
+  onHome: boolean,
+): false | undefined {
+  return onHome && (link.href === "/" || link.hash) ? false : undefined;
 }
 
 export function Navbar() {
@@ -58,14 +42,9 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const onHome = usePathname() === "/";
 
-  // Tighten the bar once the page leaves the top of the hero.
-  //
-  // An observer on a 12px marker at the top of the document, not a scroll
-  // listener. The listener read `window.scrollY` on every scroll event, and
-  // in Chrome that read brings style and layout up to date first — so with
-  // the page's entrances animating it forced a style recalc per event,
-  // measured as the most expensive script on the page on a throttled phone.
-  // The observer answers the same yes/no without touching layout at all.
+  // Switch to the scrolled style once the top marker leaves the viewport.
+  // IntersectionObserver instead of a scroll listener: reading scrollY on
+  // every scroll forced a style recalc while animations were running.
   const topRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -78,9 +57,8 @@ export function Navbar() {
     return () => view.disconnect();
   }, []);
 
-  // Lock the body while the mobile sheet is open, and let Escape close it.
-  // Lenis is paused too: it scrolls by script, which overflow: hidden does
-  // not stop, so a wheel over the sheet would otherwise move the page behind.
+  // Lock body scroll while the mobile sheet is open; Escape closes it.
+  // Lenis must be paused too, since overflow: hidden doesn't stop scripted scrolling.
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
@@ -100,18 +78,9 @@ export function Navbar() {
   }, [open]);
 
   return (
-    // Arrives with everything else in the hero, on the shared default rise.
-    //
-    // Only the delay is set. The header is a sibling of the hero rather than a
-    // child of it, so any `--rise-*` override the hero carries has to be
-    // duplicated here — which is exactly how this drifted out of step before.
-    // Leaving both on the default means there is nothing to keep in sync.
-    // 300ms is `START` in components/site/Hero.tsx; that is the one number
-    // that has to match.
+    // 300ms delay must match START in Hero.tsx so the navbar enters with the hero.
     <>
-      {/* The marker the bar watches: the top 12px of the document. Absolute
-          against the initial containing block, so it scrolls away with the
-          page however the page itself is laid out. */}
+      {/* Scroll marker: the top 12px of the document, watched by the observer above. */}
       <div
         ref={topRef}
         aria-hidden="true"
@@ -126,17 +95,14 @@ export function Navbar() {
             className={cn(
               "flex h-14 items-center justify-between rounded-full border pl-5 pr-2.5 sm:pl-6 sm:pr-3",
               "transition-[background-color,border-color,box-shadow,backdrop-filter] duration-500 ease-cinematic",
-              // The glass only exists once there is content to see through it.
-              // At the top of the page the bar is over the hero's atmosphere,
-              // which never stops moving — a fixed backdrop filter there means
-              // re-sampling and re-blurring that strip every single frame, for
-              // a blur of empty darkness. Below the fold it earns its keep.
+              // Blur only after scrolling. Over the animated hero background a
+              // backdrop filter would re-blur every frame for no visible gain.
               scrolled
                 ? "nav-glass border-fg/10 bg-ink-900/70 backdrop-blur-xl shadow-[var(--shadow-card)]"
                 : "border-[color:var(--hair-2)] bg-[color:var(--veil-1)]",
             )}
           >
-            <Logo />
+            <Logo prefetch={onHome ? false : undefined} />
 
             {/* Desktop links */}
             <ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
@@ -144,6 +110,7 @@ export function Navbar() {
                 <li key={link.label}>
                   <Link
                     href={hrefFor(link, onHome)}
+                    prefetch={prefetchFor(link, onHome)}
                     className="relative rounded-full px-3.5 py-2 text-[13px] font-medium text-fg/55 transition-colors duration-300 hover:bg-[color:var(--veil-2)] hover:text-fg"
                   >
                     {link.label}
@@ -188,30 +155,10 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* ---------------- Mobile sheet ----------------
-
-          A sibling of the header, emphatically not a child of it, and this is
-          load-bearing rather than tidiness.
-
-          The header carries `.anim-rise`, whose entrance animates transform
-          and filter — and which settles on `translate3d(0,0,0)` and
-          `blur(0)` rather than on `none`, because `animation-fill-mode: both`
-          holds the last keyframe forever. Any transform or filter other than
-          `none` makes an element the containing block for `position: fixed`
-          descendants. So inside the header this panel was not fixed to the
-          viewport at all: it was fixed to the 68px-tall bar, and measured
-          375x68 on a 375x812 screen.
-
-          The sheet itself still appeared, because nothing was clipping it —
-          which is exactly what made this hard to see. What did not work was
-          everything depending on the panel's *size*: the scrim covered only
-          the strip behind the navbar instead of dimming the page, and
-          tap-outside-to-close only registered in the top 68px of the screen.
-
-          Out here there is no transformed ancestor and `fixed inset-0` means
-          the viewport again. z-40 against the header's z-50 keeps the bar and
-          its close button painting on top, which is the arrangement the
-          design already had. */}
+      {/* Mobile sheet. Must stay outside <header>: the header's .anim-rise
+          leaves a transform/filter applied, which would make it the
+          containing block for this fixed panel and shrink it to the bar's
+          size. z-40 keeps it under the header (z-50). */}
       <div
         id="mobile-menu"
         className={cn(
@@ -234,6 +181,7 @@ export function Navbar() {
               <li key={link.label}>
                 <Link
                   href={hrefFor(link, onHome)}
+                  prefetch={prefetchFor(link, onHome)}
                   onClick={() => setOpen(false)}
                   className={cn(
                     "block rounded-2xl px-4 py-3.5 text-[15px] font-medium text-fg/70",
@@ -251,10 +199,7 @@ export function Navbar() {
             ))}
           </ul>
 
-          {/* The toggle is in the desktop actions too, but that row is
-              `hidden lg:flex` — without this the switch simply does not exist
-              on a phone, which is the half of the audience whose device is
-              most likely to have picked the theme for them. */}
+          {/* Theme toggle for mobile; the desktop one is hidden below lg. */}
           <div className="mt-2 flex items-center justify-between gap-2 border-t border-[color:var(--hair-1)] px-4 pb-1 pt-4">
             <span className="text-[13px] font-medium text-fg/55">
               Appearance

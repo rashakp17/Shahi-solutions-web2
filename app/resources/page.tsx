@@ -22,22 +22,7 @@ export const metadata: Metadata = {
   }),
 };
 
-/**
- * The index of the resource layer.
- *
- * Organised by cluster rather than by date, and that is the substantive
- * decision on this page. A reverse-chronological list is a blog: it says the
- * newest thing is the most important thing, which is true of news and false of
- * reference material. Grouping by topic says what this section actually is —
- * a small number of subjects, covered properly — and it puts the pillar
- * article at the top of its own group where a reader arriving cold should
- * start.
- *
- * There is no pagination, no tag cloud, no author sidebar and no search box.
- * Five articles do not need any of them, and adding the furniture of a large
- * publication to a small one is exactly the thing that makes a company's
- * content section read as an SEO annex.
- */
+/** Resources index, grouped by cluster with the pillar article first. */
 export default function ResourcesIndexPage() {
   const jsonLd = {
     "@context": "https://schema.org",
@@ -72,14 +57,14 @@ export default function ResourcesIndexPage() {
 
           <h1 className="rs-h1 rs-h1--index">
             What we have learned building software,
-            <span className="rs-h1-quiet"> written down properly.</span>
+            <span className="rs-h1-quiet"> written down.</span>
           </h1>
 
           <p className="rs-lead">
-            Long-form guides on commissioning and building custom software —
-            what gets built, what it costs, how a project actually runs, and
-            when the honest answer is to buy something instead. Written by the
-            team that does the work, and revised as it changes.
+            In-depth guides to commissioning and building custom software: what
+            gets built, what it costs, how a project runs, and when buying is
+            the better option. Written by the team that does the work, and kept
+            up to date.
           </p>
         </header>
 
@@ -106,10 +91,7 @@ export default function ResourcesIndexPage() {
                 </Link>
               </div>
 
-              {/* The pillar, given the room a starting point deserves. Every
-                  other article in the cluster is a chapter of it, so listing
-                  it as one of six equal rows would bury the page a reader
-                  arriving cold should open first. */}
+              {/* Pillar article, featured above the rest. */}
               {pillar && (
                 <Link
                   href={`/resources/${pillar.slug}`}

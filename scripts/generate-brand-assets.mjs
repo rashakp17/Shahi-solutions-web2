@@ -1,82 +1,45 @@
 /**
- * Generates the brand assets the site was missing: the favicon, the Apple
- * touch icon, and the Open Graph card.
+ * Generates the favicon, Apple touch icon and Open Graph card from the logo.
  *
  *   node scripts/generate-brand-assets.mjs
  *
- * Run it, commit what it writes, and forget about it until the logo or the
- * positioning line changes.
+ * Commit the output; re-run when the logo or card line changes. Not done at
+ * build time with ImageResponse because satori can't use the next/font Inter
+ * (WOFF2 only), so we'd have to commit a TTF.
  *
- * ── Why a script that commits PNGs, rather than generating them at build ──
- * Next.js can build both of these at request or build time from an
- * `app/icon.tsx` / `app/opengraph-image.tsx` using `ImageResponse`. That is the
- * more fashionable answer and it is the wrong one here, for one reason: text.
- * `ImageResponse` renders through satori, which needs a font file handed to it
- * — it cannot reach the Inter that `next/font` fetches, and it will not read
- * WOFF2, which is the only format that arrives in the build. The choice would
- * be to commit a TTF of Inter purely to render one line on a social card, or to
- * let the card fall back to a default face that is not the brand's.
- *
- * Generating them once here sidesteps all of it. The output is deterministic,
- * it costs the build nothing, and the assets are ordinary static files that
- * Next serves and tags automatically by filename convention:
+ * Next picks these up by filename:
  *
  *   app/icon.png             → <link rel="icon">
  *   app/apple-icon.png       → <link rel="apple-touch-icon">
  *   app/opengraph-image.png  → og:image and twitter:image, on every route
  *
- * ── Everything here comes from artwork that already exists ──
- * Nothing is invented. The icon is the two-tone "A" cropped out of the real
- * wordmark — the brand's own mark, and the one glyph in the lockup distinctive
- * enough to read at 16 pixels, which "S" or a full wordmark squeezed into a
- * square are not. The card uses the dark-ground variant of the same wordmark
- * on the site's own ground colour, lit by the same low blue wash the sections
- * use, so a link preview looks like the page it opens.
+ * The icon is the "A" cropped from the wordmark; the card uses the dark logo
+ * on the site's dark background.
  */
 
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 
-/** Tokens, copied from the `[data-theme="dark"]` block in app/globals.css. */
+/** Copied from the `[data-theme="dark"]` block in app/globals.css. */
 const GROUND = "#04050a";
 const GROUND_4 = "#12141f";
 const ACCENT_600 = "#2f63d6";
 
 /**
- * The "A" inside public/brand/shahi-logo.png, measured rather than eyeballed.
- *
- * Found by scanning the alpha channel for columns of ink: the top band of the
- * lockup breaks into five runs — S, H, A, H, I — and the third is this. Recorded
- * as numbers so the crop is reproducible, but if the logo file is ever replaced
- * these must be re-measured; the scan that produced them is in this file's
- * history and takes about fifteen lines.
+ * Crop box for the "A" in public/brand/shahi-logo.png, measured from the
+ * alpha channel. Re-measure if the logo file changes.
  */
 const A_MARK = { left: 1057, top: 29, width: 413, height: 452 };
 
 const LOGO_LIGHT = "public/brand/shahi-logo.png";
 const LOGO_DARK = "public/brand/shahi-logo-dark.png";
 
-/**
- * One line of positioning, under the wordmark on the card.
- *
- * The three services a search for this company is most likely to be about,
- * separated by middots. Not a keyword list — a social card is read by people,
- * and `og:image` is not indexed as text by anything. It is here because a card
- * carrying only a logo tells somebody scrolling past nothing at all.
- */
+/** Tagline under the wordmark on the OG card. */
 const CARD_LINE = "CUSTOM SOFTWARE · WEB & MOBILE APPS · ERP PLATFORMS";
 
 /**
- * The mark on a white tile.
- *
- * White rather than transparent, and rather than the brand navy. A favicon is
- * composited onto browser chrome this file cannot see: the mark is dark navy,
- * so on a dark tab strip a transparent ground would leave it nearly invisible,
- * and a navy ground would leave the tile invisible instead. A white tile has
- * contrast against both, which is why almost every dark-mark brand ships one.
- *
- * The mark is inset to 68% of the tile. Its own bounding box is tight to the
- * ink, and artwork run to the edge of a favicon reads as clipped.
+ * The mark on a white tile, so the dark navy mark stays visible on dark tab
+ * bars. Inset to 68% so it doesn't look clipped.
  */
 async function icon(size, out) {
   const inner = Math.round(size * 0.68);
@@ -105,16 +68,8 @@ async function icon(size, out) {
 }
 
 /**
- * The Open Graph card, 1200x630 — the size every platform crops from.
- *
- * Built as an SVG ground with the wordmark composited over it, rather than as
- * one SVG with the logo inlined: embedding an 86KB PNG as a base64 data URI
- * inside an SVG string works, and makes the source of this file unreadable for
- * no gain.
- *
- * The composition is the site's, at a glance: near-black ground lifting to
- * --ground-4 in the middle, one wide blue wash low and off-centre, a vignette
- * at the edges. Anyone who clicks through should recognise where they landed.
+ * The 1200x630 Open Graph card: an SVG background with the wordmark
+ * composited on top (rather than inlining the PNG as base64).
  */
 async function ogCard(out) {
   const W = 1200;
@@ -123,15 +78,10 @@ async function ogCard(out) {
   const markW = 620;
   const markH = Math.round((markW * 773) / 2201);
 
-  /* The wordmark and the line beneath it, centred as one group rather than
-     each centred on its own — otherwise the pair sits low, because the line
-     has descenders and the mark does not. */
+  /* Wordmark and tagline are centred as one group. */
   const gap = 58;
   const lineHeight = 24;
-  /* Nudged down from true centre. Optical centring, not arithmetic: the
-     wordmark's own artwork carries more clear space below the baseline of
-     "Solutions" than above the cap height of "SHAHI", so a mathematically
-     centred group reads as sitting high. */
+  /* +18 for optical centring; the logo has extra space below. */
   const groupTop = Math.round((H - (markH + gap + lineHeight)) / 2) + 18;
   const lineBaseline = groupTop + markH + gap + lineHeight;
 
@@ -184,10 +134,8 @@ async function ogCard(out) {
 
 await mkdir("app", { recursive: true });
 
-/* 512 for the favicon: one file, downscaled by the browser to whatever the tab
-   strip, the bookmark bar and the history entry each want. Shipping a 32px
-   original instead would be sharper in a tab and unusable everywhere else. */
+/* 512px so browsers can downscale it for every context. */
 await icon(512, "app/icon.png");
-/* 180 is the size iOS asks for, and it is not resized on the device. */
+/* 180px is the iOS touch icon size. */
 await icon(180, "app/apple-icon.png");
 await ogCard("app/opengraph-image.png");

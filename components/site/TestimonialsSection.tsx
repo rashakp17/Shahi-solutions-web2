@@ -3,29 +3,14 @@ import { BlurReveal } from "@/components/ui/BlurReveal";
 import { ScrollStagger } from "@/components/ui/ScrollStagger";
 import { cn } from "@/lib/cn";
 
-/* ------------------------------------------------------------------
-   Testimonials — two clients, one either side of the heading
-
-   There are two of these and they are both real, which settles the
-   composition: a pair flanking the heading rather than a row with a
-   gap in it. Two cards can be given the room six could not, so they
-   are larger, they carry the full quote without truncation, and they
-   sit far enough from the centre column to read as a frame around it.
-
-   The pair is CSS. There is no carousel state, no interval and no
-   drag handler, because nothing moves between positions — it is a
-   still arrangement with a slow float on each card, and a hover that
-   lifts a card in place without shifting its centre by a pixel.
-
-   Below xl the two cards drop into a plain two-column grid under the
-   heading, and below md into one column. Two items do not need a
-   carousel at any width.
-   ------------------------------------------------------------------ */
+/* Testimonials: two cards flanking the heading at xl, pure CSS (no carousel).
+   Below xl they drop into a two-column grid under the heading, one column
+   below md. */
 
 type Testimonial = {
   name: string;
   role: string;
-  /** Out of five. Both are fives; the field exists so a four cannot be a lie. */
+  /** Out of five. */
   rating: number;
   quote: string;
 };
@@ -48,40 +33,13 @@ const TESTIMONIALS: Testimonial[] = [
 ];
 
 /**
- * A place on the composition.
+ * Card side and rotation. Horizontal distance is set on .tm-stage in
+ * globals.css, not here.
  *
- * How far out each card sits is *not* here. That distance lives on .tm-stage in
- * globals.css, because it is solved against the window and against the width of
- * the heading column, and only the stylesheet knows either. This file says
- * which side a card is on and how it is turned; the stylesheet turns that into
- * a position.
- *
- * `ry` turns each card to face the heading, and its sign is the opposite of the
- * side it is on, which is worth stating because it looks like a typo. CSS
- * rotateY sends the element's right edge away from the viewer at positive
- * angles, so the card standing on the right of the centre needs a negative one
- * to swing its outer edge forward and address the middle. Both cards end up
- * with their far edges nearest the viewer and their inner edges laid back — two
- * leaves of a triptych folding in around the heading, rather than two flat
- * panes turned the same way.
- *
- * 24deg, which is well past the 12 this section used to hold itself to and is a
- * deliberate call rather than a drift. What it buys is the fold: at this angle
- * the pair reads as two panels standing around the heading rather than as two
- * flat cards with a slight lean. What it costs is a visible keystone across
- * each card — the far edge sits about 9% larger than the near one — and type
- * that is measurably slower to read while it is turned.
- *
- * That cost is survivable only because of two things, and both have to keep
- * being true. Hover unwinds the turn to zero, so a card being read is square
- * on. And the quotes are short enough to take in whole; a card this turned is
- * not a place to put a paragraph.
- *
- * The geometry itself is indifferent. Turning further brings the outer edge
- * nearer the viewer, and perspective magnifies it by almost exactly as much as
- * the rotation foreshortens it — the resting card measures ~574px from the
- * centre line at 14deg, 24deg and 30deg alike. Legibility is the only thing
- * setting this number.
+ * `ry` sign is opposite to the side (not a typo): positive rotateY pushes the
+ * right edge back, so the right card needs a negative angle to face the
+ * centre. 24deg hurts legibility, which is acceptable only because hover
+ * resets the rotation and the quotes are short.
  */
 const SLOTS: Array<{
   person: number;
@@ -103,7 +61,7 @@ const SLOTS: Array<{
   },
 ];
 
-/** Intro choreography (ms), matching the other section headings on the page. */
+/** Intro timings (ms), shared with other section headings. */
 const INTRO = {
   eyebrow: 0,
   eyebrowLift: 320,
@@ -117,15 +75,8 @@ const INTRO = {
 const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
 
 /**
- * Initials, not a photograph.
- *
- * There are no client photographs in this project, and a stock face attached to
- * a named person at a named company is a fabricated endorsement — worse than no
- * face at all. Swap in real images if the clients supply them; the shape and
- * size are already right.
- *
- * First and last word rather than the first two, so "Sudhesh K. Valappil" reads
- * SV and not SK.
+ * Initials avatar. Don't use stock photos for real clients; swap in real
+ * images if supplied. Uses first and last word ("Sudhesh K. Valappil" -> SV).
  */
 function Avatar({ name }: { name: string }) {
   const words = name.split(" ").filter(Boolean);
@@ -162,7 +113,7 @@ function QuoteMark() {
   );
 }
 
-/** Five stars, the ones above the rating left as empty outlines. */
+/** Five stars; those above the rating render as outlines. */
 function Stars({ rating }: { rating: number }) {
   return (
     <span
@@ -196,10 +147,7 @@ function Card({ person }: { person: Testimonial }) {
         {person.quote}
       </blockquote>
 
-      {/* Pushed to the bottom of the card rather than sitting under the quote.
-          The two quotes are very different lengths, and in a symmetrical
-          composition two attributions at two different heights is the first
-          thing the eye finds. */}
+      {/* Pinned to the bottom so attributions align despite quote lengths. */}
       <div className="tm-foot">
         <hr className="tm-rule" />
 
@@ -226,10 +174,7 @@ export function TestimonialsSection() {
       data-motion-scope
       className="tm-scope relative isolate overflow-hidden bg-ink-950 pt-16 pb-10 sm:pt-20 sm:pb-12 xl:pb-0"
     >
-      {/* Ground and glow. One radial behind the centre, one wide wash under
-          the pair — no particle field and no linework, because this section
-          already has two bordered objects in it and anything more behind them
-          turns the middle of the page into noise. */}
+      {/* Background gradient and centre glow. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_42%,var(--ground-4)_0%,var(--ground)_48%,var(--ground-deep)_100%)]" />
         <div className="tm-core absolute left-1/2 top-1/2 h-[26rem] w-[46rem] -translate-x-1/2 -translate-y-1/2 rounded-full" />
@@ -237,11 +182,7 @@ export function TestimonialsSection() {
       </div>
 
       {/* ============ the pair, xl and up ============
-
-          xl and not md: a card this size cannot sit beside a 23rem heading
-          column and still fit on a 1024px window — the arithmetic runs out
-          somewhere around 1200px, and shrinking the type until it does is a
-          worse answer than putting the cards under the heading instead. */}
+          The flanking layout doesn't fit below ~1200px. */}
       <ScrollStagger
         as="ul"
         stagger={140}
@@ -271,14 +212,9 @@ export function TestimonialsSection() {
                 <div className="tm-in relative">
                   <Card person={person} />
 
-                  {/* The floor. A real mirrored copy rather than a painted
-                      smudge, so it carries the actual silhouette of the card
-                      above it — and because it lives inside .tm-float, it
-                      drifts with the card for free.
-
-                      Absolutely positioned at top: 100%, so it adds no height:
-                      the slot is centred on the stage and a reflection in flow
-                      would push both cards upward by half its own length. */}
+                  {/* Mirrored reflection; inside .tm-float so it floats with
+                      the card. Absolute (top: 100%) so it adds no height and
+                      doesn't shift the centred slot. */}
                   <div className="tm-reflect" aria-hidden="true">
                     <Card person={person} />
                   </div>
@@ -290,10 +226,7 @@ export function TestimonialsSection() {
       </ScrollStagger>
 
       {/* ============ the centre ============
-
-          Painted over the pair from xl up, where it is the middle of the
-          composition; in flow below it, where it is simply the heading above
-          two cards. */}
+          Overlaid on the pair at xl, in normal flow below. */}
       <div
         className={cn(
           "relative z-20 flex justify-center px-5",
@@ -303,10 +236,8 @@ export function TestimonialsSection() {
         <ScrollStagger
           as="div"
           inRatio={0.2}
-          // 19rem / 23rem, and the second number is load-bearing: --tm-head in
-          // globals.css is half of it, and the cards are floored at that plus
-          // half a card. Change one without the other and the pair starts
-          // crowding the heading.
+          // Keep lg:max-w-[23rem] in sync with --tm-head in globals.css (half
+          // of it), which positions the cards.
           className="pointer-events-auto block w-full max-w-[19rem] text-center lg:max-w-[23rem]"
         >
           <div>
@@ -351,12 +282,10 @@ export function TestimonialsSection() {
                 } as CSSProperties
               }
             >
-              Real stories from real people who trust us to build, scale and
-              grow their ideas.
+              What our clients said once their projects went live.
             </p>
 
-            {/* The rule under the centre — a hairline that is brightest in the
-                middle and gone at both ends, with its own bloom beneath it. */}
+            {/* Hairline that fades out at both ends. */}
             <span
               aria-hidden="true"
               className="anim-rise tm-line mt-8 block"
@@ -374,10 +303,7 @@ export function TestimonialsSection() {
       </div>
 
       {/* ============ below xl ============
-
-          Side by side under the heading, and one column under md. No
-          reflections down here — they are a flourish for the composition and
-          only cost paint once the cards are square on. */}
+          Two columns, one below md. No reflections here. */}
       <ScrollStagger
         as="ul"
         stagger={140}

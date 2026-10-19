@@ -21,34 +21,15 @@ import { renderInline, stripInline } from "@/lib/resources/inline";
 import { absolute, organizationNode, socialMetadata } from "@/lib/site";
 
 /**
- * One route for every article, rather than a folder per article.
- *
- * The pages are identical in structure and differ only in content, so a
- * per-article route would be five copies of this file kept in sync by hand —
- * and the first time one of them grew a section the others did not, the FAQ
- * markup and the FAQ structured data would start disagreeing on one page and
- * not the others. Here the content is data and the page is one renderer, so a
- * new article is a file in `lib/resources/articles` and an entry in the
- * registry. Nothing under `app/` changes.
- *
- * Fully static: `generateStaticParams` enumerates the registry at build time,
- * so every article is prerendered HTML on a CDN. That is most of what makes
- * these pages fast, and it is the reason the only client component on the page
- * is the contents.
+ * Shared route for all resource articles. To add one, create a file in
+ * `lib/resources/articles` and register it. All articles are prerendered.
  */
 
 export function generateStaticParams() {
   return ARTICLES.map((article) => ({ slug: article.slug }));
 }
 
-/**
- * Nothing outside the registry is a valid article.
- *
- * Without this, an unknown slug would be rendered on demand and 404 from
- * `notFound()` — correct, but served dynamically. With it, the route is closed:
- * anything not prerendered is a 404 straight from the edge, and a crawler that
- * has found an old URL gets a clean answer instead of a rendered miss.
- */
+/** Unknown slugs 404 without rendering on demand. */
 export const dynamicParams = false;
 
 type Props = { params: Promise<{ slug: string }> };
@@ -64,10 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: article.metaTitle,
     description: article.description,
-    /* Relative, resolved against `metadataBase` in the root layout. Relative
-       is what keeps it correct when the origin changes — a canonical hardcoded
-       to a production hostname points staging at production, which is how a
-       preview deployment ends up de-indexing the real page. */
+    /* Relative; resolved against `metadataBase`. */
     alternates: { canonical: path },
     ...(() => {
       const social = socialMetadata({
@@ -77,9 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         type: "article",
       });
 
-      /* `modifiedTime` is the one Open Graph field only an article has, so it
-         is added here rather than being a parameter the other three callers
-         would have to pass as undefined. */
+      /* Article-only OG field, added here instead of in socialMetadata. */
       return {
         ...social,
         openGraph: { ...social.openGraph, modifiedTime: article.updated },
@@ -101,35 +77,15 @@ export default async function ResourceArticlePage({ params }: Props) {
   const path = `/resources/${article.slug}`;
 
   /**
-   * Three graphs, one script.
-   *
-   * `Article` describes the page, `FAQPage` describes the questions at the
-   * bottom of it, and `BreadcrumbList` gives a search result the trail
-   * Resources → Cluster → Article rather than a bare URL.
-   *
-   * The FAQ entries are built from the same array the page renders, run
-   * through `stripInline` so the answers are plain sentences rather than
-   * markup. That is the rule this whole layer is built around: structured
-   * data may only ever describe content the visitor can actually see, and the
-   * way to guarantee that is to derive one from the other rather than to write
-   * it twice.
+   * Article, FAQPage and BreadcrumbList JSON-LD. FAQ answers come from the
+   * same data the page renders, with markup stripped, so they always match
+   * what's visible.
    */
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      /* The organisation itself, in full, on every article — and referenced by
-         `@id` from the Article below rather than described a second time.
-
-         This used to be two inline `{"@type": "Organization", name, url}`
-         objects, one for `author` and one for `publisher`, neither of which
-         carried the legal name, the address or the logo dimensions that the
-         home page's copy does. Three descriptions of one company that differ
-         by field is how an entity graph ends up with three companies.
-
-         Emitting the whole node and pointing at it is what Yoast and every
-         other mature implementation does, and it is worth the ~600 bytes: a
-         bare `@id` referring to a node defined on a *different* page is
-         resolvable in principle and routinely not resolved in practice. */
+      /* Full org node on every page; crawlers often don't resolve an `@id`
+         defined on another page. */
       organizationNode(),
       {
         "@type": "Article",
@@ -179,11 +135,7 @@ export default async function ResourceArticlePage({ params }: Props) {
 
   return (
     <>
-      {/* A native <script>, not next/script — this is data, not code to
-          schedule. The `<` escape is the sanitiser the Next.js JSON-LD guide
-          asks for: it makes a `</script>` inside any content string
-          impossible to form, which is the one way a string in this payload
-          could break out of the tag. */}
+      {/* Escaping `<` prevents a `</script>` in content from breaking out. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -193,9 +145,6 @@ export default async function ResourceArticlePage({ params }: Props) {
 
       <article className="rs-shell">
         <header className="rs-hero">
-          {/* The visible trail, matching the BreadcrumbList above. Both exist
-              because they serve different readers, and neither is a copy of
-              the other's markup — this one is navigation a person can click. */}
           <nav aria-label="Breadcrumb" className="rs-crumbs">
             <ol>
               <li>
@@ -215,9 +164,7 @@ export default async function ResourceArticlePage({ params }: Props) {
         </header>
 
         <div className="rs-body-grid">
-          {/* A rail on a wide screen and an inline index below that — one
-              element, positioned by CSS, rather than two copies of the same
-              list with one of them hidden. */}
+          {/* Sidebar on wide screens, inline on narrow ones (CSS only). */}
           <div className="rs-rail">
             <TableOfContents entries={toc} />
           </div>

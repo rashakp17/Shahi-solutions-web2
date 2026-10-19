@@ -1,94 +1,45 @@
 /**
- * The things that need to know who this is and where it lives.
- *
- * Canonical URLs, the sitemap, `robots.txt`, Open Graph and every piece of
- * JSON-LD read from here, so the brand is asserted once and identically
- * everywhere. That consistency is the whole point rather than tidiness: a
- * search engine deciding whether "Shahi Solutions" is one entity or several is
- * doing it by comparing the name, the URL, the logo and the address across
- * every page it has, and any one of those disagreeing with itself is what
- * makes an entity ambiguous.
+ * Site identity: used by canonicals, sitemap, robots.txt, Open Graph and
+ * JSON-LD. Keep these consistent so search engines see one entity.
  */
 
 /**
- * The origin, confirmed rather than guessed.
- *
- * `NEXT_PUBLIC_SITE_URL` still overrides it, and should be set in the
- * deployment environment — not because the fallback is wrong, but because a
- * preview deployment inherits it otherwise, and a preview publishing
- * `<link rel="canonical" href="https://www.shahisolutions.com/...">` is
- * telling Google that the preview *is* production. That is the one way a
- * canonical tag actively causes harm.
- *
- * The scheme is required and a trailing slash is stripped, so `absolute()`
- * below can join paths without producing a double slash.
- *
- * NEXT_PUBLIC_ because the value is inlined at build time and read from
- * components on both sides of the server/client boundary. It is a public
- * hostname; there is nothing here to keep out of the bundle.
+ * Site origin. Set NEXT_PUBLIC_SITE_URL per environment so preview
+ * deployments don't publish production canonicals. Must include the scheme;
+ * trailing slashes are stripped so `absolute()` can join paths safely.
  */
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.shahisolutions.com"
 ).replace(/\/+$/, "");
 
-/**
- * The brand, and the only name that should appear in a title tag, a heading,
- * a footer or a sentence. Short, spoken, and the string people search for.
- */
+/** Brand name used in titles, headings and copy. */
 export const SITE_NAME = "Shahi Solutions";
 
 /**
- * The registered company, which is a different fact and belongs in different
- * places.
- *
- * It appears in exactly two: `legalName` in the organisation's structured
- * data, and the copyright line in the footer. That split is the convention
- * search engines expect — `name` is what the entity is called and `legalName`
- * is what it is registered as, and supplying both is what lets Google resolve
- * "Shahi Solutions", "Shahi Solutions Pvt Ltd" and the registered entity to
- * one company instead of three.
- *
- * It deliberately does not go in the title tag, the H1 or the hero. A legal
- * suffix in a heading costs characters in a search result and reads as filing
- * paperwork rather than as a brand.
+ * Registered name. Only used for `legalName` in structured data and the
+ * footer copyright, not in titles or headings.
  */
 export const LEGAL_NAME = "Shahi Solutions Private Limited";
 
-/**
- * Other ways the company is genuinely written, for `alternateName`.
- *
- * Only real variants — the abbreviation people actually type and the full
- * legal form. This field is not a keyword list, and putting
- * "software company calicut" in it would be exactly the stuffing this site
- * is being kept clear of.
- */
+/** Real name variants for `alternateName`. Not a keyword list. */
 export const ALTERNATE_NAMES = ["Shahi Solutions Pvt Ltd", LEGAL_NAME];
 
 /**
- * The one-line description of what the company is, reused as the default meta
- * description and as `description` in the structured data.
- *
- * Rewritten from "Infrastructure for teams who refuse the default", which was
- * the brand line doing a job it could not do. A description has one reader who
- * matters — somebody scanning a page of search results deciding whether this
- * is a software company — and an abstract sentence answers no question they
- * are asking. This one names the category and the work, in the order they
- * would be looked for, and stays under the ~160 characters Google will show.
- *
- * The brand line survives, in `slogan` below, which is where a slogan goes.
+ * Default meta description and structured-data `description`.
+ * Keep under ~160 characters.
  */
 export const SITE_DESCRIPTION =
   "Shahi Solutions builds custom software, web and mobile applications, and ERP platforms for businesses that have outgrown their tools. Based in Calicut, Kerala.";
 
-/** The brand line. Real brand equity, published as `slogan` rather than lost. */
+/** Brand tagline, published as `slogan` in structured data. */
 export const SITE_SLOGAN = "Build Beyond The Ordinary";
 
-/** Where the company actually is, and how to reach it. */
+/** Contact details and address. */
 export const ORG = {
   email: "request.sdec@gmail.com",
-  /** E.164, which is the form structured data and `tel:` both want. */
+  /** E.164 format, for structured data and `tel:` links. */
   phone: "+918590371761",
-  /** The same number as a person reads it, for anything user-facing. */
+  /** Human-readable format for display. */
   phoneDisplay: "+91 85903 71761",
   street: "2105, F1, T2, Hilite Business Park, Palazhi",
   locality: "Calicut",
@@ -96,35 +47,18 @@ export const ORG = {
   postalCode: "673016",
   country: "IN",
   logo: "/brand/shahi-logo.png",
-  /** Intrinsic size of the logo file. `ImageObject` wants both, and Google's
-      logo guidance is explicit that it reads them. */
+  /** Intrinsic size of the logo file, used in the `ImageObject`. */
   logoSize: { width: 2201, height: 773 },
 } as const;
 
 /**
- * Social profiles, and the single place they are declared.
+ * Social profiles, used by the footer and `sameAs` in structured data.
  *
- * ── Why this is empty ──
- * The footer carried four icons pointing at `href="#"` — LinkedIn, X, Facebook
- * and GitHub — placeholders left deliberately rather than guessed at. Four
- * links to nothing is a real cost twice over: a visitor who clicks one gets a
- * jump to the top of the page, and a crawler follows four internal links that
- * resolve to the page they started on.
+ * Empty until the real URLs are confirmed. Don't guess handles: `sameAs` is
+ * an identity claim. With an empty list the footer hides the row and `sameAs`
+ * is omitted.
  *
- * The tempting fix is to guess the handles. That is worse than leaving them
- * out, because `sameAs` is an identity claim: pointing it at a profile that
- * turns out to belong to somebody else merges this company with that one in
- * an entity graph, and it is not a mistake that is easy to undo.
- *
- * So the list is empty, both consumers read it, and both do the right thing
- * with nothing: the footer omits the row, and `sameAs` is left off the
- * organisation entirely rather than published as an empty array.
- *
- * ── To turn them on ──
- * Add the live URLs here. Nothing else has to change — the footer picks up the
- * row and the structured data picks up `sameAs` from the same entries. The
- * `label` has to match one of the icons drawn in Footer.tsx, and TypeScript
- * will say so if it does not.
+ * To enable, add entries here. `label` must match an icon in Footer.tsx.
  *
  *   export const SOCIAL_PROFILES: SocialProfile[] = [
  *     { label: "LinkedIn", href: "https://www.linkedin.com/company/…" },
@@ -144,31 +78,14 @@ export type SocialProfile = { label: SocialLabel; href: string };
 export const SOCIAL_PROFILES: SocialProfile[] = [];
 
 /**
- * The Open Graph and Twitter card blocks for one page.
+ * Open Graph and Twitter metadata for a page.
  *
- * ── The bug this exists to make impossible ──
- * Next.js merges metadata shallowly: a page exporting `openGraph` *replaces*
- * the parent layout's whole `openGraph` object rather than merging into it.
- * The `app/opengraph-image.png` file convention works by attaching itself to
- * the `openGraph.images` of the segment it sits in — the root — so every page
- * that declared its own `openGraph` silently dropped the card image. Measured
- * on the built output: the home page carried `og:image`, and `/resources`,
- * `/services/custom-software-development` and all five articles carried none.
+ * Next.js merges metadata shallowly: a page's `openGraph` replaces the
+ * parent's entirely, which drops the root og:image, and a page without
+ * `twitter` inherits the home page's card. Always use this helper instead of
+ * writing those blocks by hand.
  *
- * `twitter` failed the same way and worse. Pages that set `openGraph` but not
- * `twitter` inherited the root's `twitter` verbatim, so every article's Twitter
- * card advertised the *home page's* title and description.
- *
- * Both are the kind of fault that never surfaces in review, because nothing on
- * the page looks wrong — you find it when a link is pasted into Slack six
- * months later and comes back as a bare grey rectangle.
- *
- * So no page writes these by hand. This builds both blocks together, always
- * with the image, from one title and one description — which means the two
- * cards cannot disagree with each other and neither can lose the image.
- *
- * `path` stays relative; `metadataBase` in the root layout resolves it, which
- * is what keeps a preview deployment from advertising production URLs.
+ * `path` stays relative; `metadataBase` resolves it.
  */
 export function socialMetadata({
   title,
@@ -181,11 +98,7 @@ export function socialMetadata({
   path: string;
   type?: "website" | "article";
 }) {
-  /* The generated card, served by the file convention at this exact path.
-     One image for the whole site, deliberately: a per-article card would mean
-     either a build-time font dependency or eight hand-made PNGs, and what a
-     link preview has to do here is say "Shahi Solutions" convincingly — which
-     the brand card does on every route. */
+  /* Served by the opengraph-image file convention. One card for the whole site. */
   const images = ["/opengraph-image.png"];
 
   return {
@@ -208,30 +121,16 @@ export function socialMetadata({
 }
 
 /**
- * An absolute URL for a path on this site.
- *
- * Everything that goes into structured data has to be absolute — a crawler
- * reading an `@id` or an `image` has no page context to resolve `/resources`
- * against. Metadata is the exception: `metadataBase` in the root layout lets
- * `alternates.canonical` and the Open Graph fields stay relative, and they do,
- * because relative is what keeps them correct when the origin changes.
+ * Absolute URL for a site path. Use for structured data; metadata fields
+ * should stay relative and rely on `metadataBase`.
  */
 export function absolute(path: string): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 /**
- * The organisation, as one reusable node.
- *
- * Built here rather than written into the home page so that every other page's
- * `publisher` can point at the same `@id` and mean it. A crawler resolving
- * `{"@id": ".../#organization"}` on an article to the full node on the home
- * page treats them as one entity; two hand-written organisation blocks that
- * differ by a field are two companies with the same name.
- *
- * `sameAs` is spread conditionally rather than set to `[]` — an empty array is
- * a published claim that there are no profiles, which is not the same as
- * making no claim.
+ * Organization JSON-LD node. Other pages reference it by `@id` (e.g. as
+ * `publisher`). `sameAs` is omitted, not set to `[]`, when there are no profiles.
  */
 export function organizationNode() {
   return {
@@ -267,11 +166,7 @@ export function organizationNode() {
       contactType: "sales",
       telephone: ORG.phone,
       email: ORG.email,
-      /* English only, and left that way on purpose. A Calicut company almost
-         certainly takes enquiries in Malayalam too, and `"ml"` belongs here
-         the moment somebody can confirm it — but everything in this node is
-         a claim the company is making about itself, and a plausible guess is
-         still a guess. */
+      /* Add "ml" once Malayalam support is confirmed. */
       availableLanguage: ["en"],
     },
     ...(SOCIAL_PROFILES.length

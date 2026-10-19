@@ -6,75 +6,25 @@ import { SectionAtmosphere } from "@/components/section/SectionAtmosphere";
 import { SERVICES, type ServiceId } from "@/lib/services";
 
 /**
- * Entrance choreography (ms), measured from the moment the cover is deep
- * enough to commit — see SceneCover. The heading block is paused until then,
- * so these are delays from the reveal, not from page load.
- *
- *   0.00  eyebrow
- *   0.06  the heading starts climbing out from under its mask
- *   0.94  heading completely sharp
- *   0.86  supporting copy, overlapping the heading's tail
- *
- * The cards are deliberately *not* on this clock. The section stands a full
- * viewport tall and the grid sits in the lower half of it, so at a reading
- * pace the cards are still most of a screen away when the cover commits — on
- * a shared timer they finished arriving long before the visitor got to them
- * and the whole grid read as static. Each card now waits for its own arrival
- * in the viewport instead (see ScrollStagger), which is also what makes them
- * come in one at a time rather than as a block.
+ * Heading entrance timings (ms), relative to the section reveal (see
+ * SceneCover), not page load. Cards are not on this clock: each one is
+ * revealed by ScrollStagger as it enters the viewport.
  */
 const TIMING = {
-  /* Tightened at the owner's direction — the section read as slow to
-     arrive. The heading starts at once, its words follow each other at
-     70ms rather than 110, and the copy lands while the heading is still
-     settling instead of after it (420 from 860). */
   heading: 0,
   headingStagger: 70,
   headingLineDelay: 30,
   headingDuration: 380,
   copy: 420,
-  /**
-   * Gap between cards that cross into view together — a row of the grid
-   * shares a top edge, so a row always arrives as one batch and this is what
-   * spaces it out.
-   *
-   * 60, down from 150, at the owner's direction that the section was slow
-   * to come in. A row of four now finishes dealing in under half a second
-   * and still reads as one card after another rather than as a block.
-   */
+  /** Delay between cards revealed together (e.g. one grid row). */
   cardStagger: 60,
 } as const;
 
 /**
- * How long a card takes to arrive.
- *
- * These are the defaults from `.anim-rise` and `.anim-rise-inner`, written
- * out rather than left implicit, because the whole point is that this section
- * is now on the same clock as every other one.
- *
- * Longer than the shared default again — 1200 against 900 — at the owner's
- * direction, and the reasoning that took it down to 900 is worth keeping
- * because it is half right. It said that scrolling out of a 900ms section
- * into a 1400ms one reads as slow rather than as considered. True, and the
- * part it missed is that a card's curve is only half of what the visitor
- * experiences: the other half is how much of that curve has already run by
- * the time they are looking at it. At 900ms with almost no run-up, a card
- * started from nothing at the moment it appeared, so the whole 900ms was
- * spent watching it assemble — which is what made it read as slow, and what
- * made a quick scroll catch the grid half-built.
- *
- * The run-up on the ScrollStagger below now starts a card three tenths of a
- * viewport before it arrives. That is what buys the longer curve: the card is
- * a good way in by the time it is on screen, so 1200ms reads as a settle
- * rather than as a wait, and there is no state a fast scroll can catch it in
- * that looks broken.
- *
- * The two have to move together. Lengthening these without the run-up puts
- * back exactly the problem that was being solved.
+ * Card animation durations, overriding the `.anim-rise` defaults. Tuned
+ * together with the ScrollStagger rootMargin below: cards start before they
+ * are on screen, so change both together.
  */
-/* 480ms, from 1200, at the owner's direction that the section was slow to
-   come in. Together with the longer run-up below, a card at a normal scroll
-   pace has finished arriving by the time it is on screen. */
 const CARD_PACE = {
   "--rise-lift": "480ms",
   "--rise-defog": "340ms",
@@ -83,28 +33,12 @@ const CARD_PACE = {
 } as const;
 
 /**
- * Offsets within a card, from that card's own arrival. The frame fades up
- * while its lines slide into place behind it, so each point assembles rather
- * than appearing whole.
- *
- * `link` is kept, unused: it timed the "Learn more →" row, which has been
- * removed. It is the offset anything added back at the foot of a card would
- * want in order to trail the body on the same rhythm.
- *
- * Pulled in with the pace above, and by the same proportion: these are
- * offsets *inside* a card's arrival, so leaving them where they were while
- * the arrival shortened would have the last line starting a quarter of the
- * way into a curve that is already ending. The lines want to trail the
- * frame, not queue behind it.
+ * Offsets (ms) for elements inside a card, relative to the card's reveal.
+ * Scale these with CARD_PACE. `link` is currently unused.
  */
 const INNER = { icon: 25, title: 70, body: 110, link: 155 } as const;
 
-/**
- * A card's own animation-delay is written onto it by ScrollStagger as
- * `--reveal-delay` when it crosses into view. Everything inside the card
- * inherits that and adds its own offset, so one custom property drives the
- * whole assembly and the card does not need to know when it will arrive.
- */
+/** Adds an offset to the `--reveal-delay` that ScrollStagger sets on the card. */
 const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
 
 const icon = {
@@ -116,17 +50,8 @@ const icon = {
 } as const;
 
 /**
- * The drawn mark for each service.
- *
- * The copy moved to lib/services.ts, because the offer catalogue in the home
- * page's structured data needs the same eight titles and cannot import a React
- * tree to get them. The artwork stayed, because nothing but this grid can use
- * it.
- *
- * Keyed by `ServiceId` and typed as a total `Record`, which is the point of
- * splitting it this way: adding a service to lib/services.ts without drawing
- * its mark here fails the build, rather than shipping a card with an empty
- * box in it.
+ * Icon per service. Copy lives in lib/services.ts (also used by structured
+ * data). Typed as a full Record so a new service without an icon fails the build.
  */
 const ART: Record<ServiceId, ReactNode> = {
   "website-development": (
@@ -193,12 +118,8 @@ export function ServicesSection() {
   return (
     <section
       id="platform"
-      // py-12/16, down from py-20/24, itself down from py-28/32: min-h-[100svh]
-      // and justify-center already hold the content off the edges, so the extra
-      // padding was only adding dead space under the last row of cards — and
-      // that space runs straight into the statement pane's own empty upper half
-      // below it, so the two were compounding into a screen of nothing between
-      // the cards and the giant line.
+      // Keep padding small: min-h + justify-center already space the content,
+      // and extra bottom padding stacks with the next section's empty top.
       className="relative isolate flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-5 py-12 sm:px-6 sm:py-16"
     >
       <SectionAtmosphere />
@@ -211,10 +132,7 @@ export function ServicesSection() {
           Our services
         </p>
 
-        {/* Same rig as the hero headline — each word masked, climbing out from
-            underneath with its blur clearing on the way up. Smaller type and a
-            tighter stagger, so it reads as a reply to the hero rather than a
-            second announcement. */}
+        {/* Same masked word reveal as the hero headline, smaller and faster. */}
         <BlurReveal
           as="h2"
           lines={[
@@ -232,87 +150,46 @@ export function ServicesSection() {
           className="anim-rise mt-7 max-w-xl text-balance text-center text-[15px] leading-relaxed text-fg/42 sm:text-base"
           style={{ animationDelay: `${TIMING.copy}ms` }}
         >
-          We provide full-spectrum digital transformation solutions, helping
-          companies scale from concept to global enterprise.
+          We design, build and look after the software a business runs on, from
+          a first website to company-wide systems.
         </p>
 
-        {/* Nearly half a viewport of run-up (45%), against the shared third.
-            ── Why this section needs more than the default ──
-            ScrollStagger's own note says the risk it carries — flying past a
-            section before it has assembled and seeing a half-built band — is
-            handled a layer up, by the page settling onto a section instead of
-            stopping wherever a flick ran out. That was true when it was
-            written and is not any more: the scroll-snap that did the settling
-            was removed (see the block in globals.css explaining why — it was
-            dragging the page backwards between wheel ticks). Nothing replaced
-            it, so this grid was left releasing each card at the moment it
-            came into view with nothing underneath to slow the visitor down,
-            and a brisk scroll caught it mid-assembly. That is the "comes in
-            partly" — not a bug in the release, just an entrance with no
-            run-up in front of it.
-
-            A margin is the right place to fix it rather than a faster
-            animation, because it costs the choreography nothing: every card
-            still plays its full curve at its designed pace, in order. They
-            simply start it while they are still below the fold, so what the
-            visitor arrives to is a card most of the way in rather than a
-            blank one beginning.
-
-            Only the bottom edge is grown. The top stays at a tenth: that side
-            governs when a card resets on the way back up, and pushing it out
-            would have the grid standing back down while it is still on
-            screen. */}
+        {/* 45% bottom rootMargin so cards start animating before they scroll
+            into view, and a fast scroll doesn't catch them half-built.
+            Keep the top at 10%: it controls when cards reset on scroll-up. */}
         <ScrollStagger
           className="mt-14 grid w-full grid-cols-1 gap-4 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4"
           stagger={TIMING.cardStagger}
           rootMargin="10% 0px 45% 0px"
-          // Released as soon as a card is a sliver into the run-up, rather
-          // than a fifth of the way in.
+          // Reveal as soon as a card enters the margin.
           inRatio={0.05}
         >
           {SERVICES.map((service) => {
             return (
               <li
                 key={service.title}
-                /* Flat, not the full rise: a card is far too large an object
-                   to animate a blur across. See .anim-rise-flat. */
+                /* No blur on cards (too large to blur cheaply). See .anim-rise-flat. */
                 className="anim-rise anim-rise-flat"
                 style={
                   {
                     animationDelay: "var(--reveal-delay, 0ms)",
-                    // A card is a much larger object than a line of copy, and
-                    // the 14px default barely registers across one. Further
-                    // now than it was: the travel has to stay in proportion
-                    // to the longer curve, or the card spends the extra time
-                    // crawling the last few pixels instead of arriving.
+                    // Larger travel than the 14px default, which is barely
+                    // visible on an object this size.
                     "--rise-y": "34px",
-                    // Same reasoning one level down, for the lines inside.
                     "--inner-y": "18px",
-                    // Inherited by those lines, which run on the same clock
-                    // as the frame they sit in.
+                    // Inherited by the inner elements.
                     ...CARD_PACE,
                   } as CSSProperties
                 }
               >
-                {/* Hairline on near-black rather than a filled card: a solid
-                    surface here would punch a bright rectangle through the
-                    atmosphere the section is built on.
-
-                    No backdrop-blur. A backdrop filter has to re-sample
-                    everything behind it whenever that changes — and what is
-                    behind these is a drifting particle field, a glyph field
-                    and three wandering glows, so it changed every frame, in
-                    eight separate regions. What it bought was a 4px blur of a
-                    near-black background read through a 1.5% white fill,
-                    which is to say nothing you can see. */}
-                {/* `relative`, added for the stretched anchor below. Nothing
-                    else about this card changed — same hairline, same fill,
-                    same hover lift. */}
+                {/* No backdrop-blur: the animated background behind it would
+                    force a re-sample every frame for no visible gain.
+                    `relative` anchors the stretched title link. */}
                 <div
                   data-spotlight
                   className="group relative isolate flex h-full flex-col rounded-2xl border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] p-6 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-cinematic hover:border-accent-500/25 hover:bg-[color:var(--veil-2)] hover:-translate-y-1.5 hover:shadow-[0_12px_36px_-12px_color-mix(in_oklab,var(--color-accent-500)_12%,transparent)]"
                 >
-                  {/* The cursor light. See CardSpotlight and .spotlight-glow. */}
+                  {/* Cursor glow. See CardSpotlight and .spotlight-glow. */}
                   <span aria-hidden="true" className="spotlight-clip">
                     <span data-spotlight-glow className="spotlight-glow" />
                   </span>
@@ -330,36 +207,9 @@ export function ServicesSection() {
                     </svg>
                   </span>
 
-                  {/* The title is the link, where the service has a page.
-
-                      This card said "Learn more →" and was not a link — the
-                      whole grid was eight divs — so the one service page that
-                      exists was unreachable from the home page. That is the
-                      single worst internal-linking fault a site can have: the
-                      page a visitor is most likely to want next, and the page
-                      most worth ranking, with nothing pointing at it from the
-                      page that has all the authority.
-
-                      The anchor went on the h3 rather than on "Learn more"
-                      because anchor text is a ranking signal and a description
-                      of the destination: eight links all reading "Learn more"
-                      describe nothing, where "Custom Software Development"
-                      says exactly what is at the other end. The `after:`
-                      utilities stretch that anchor over the whole card, so the
-                      entire tile is clickable — the pointer and the hover lift
-                      are unchanged.
-
-                      The label has since been removed outright (see the note
-                      at the foot of the card). That leaves this anchor as the
-                      only thing making the tile clickable, which is what it
-                      already was; what the card no longer has is a written
-                      prompt to click it. Deliberate: seven of the eight had
-                      nothing to prompt towards.
-
-                      Services without a page render the plain heading they
-                      always did. A link to nowhere would be worse than none,
-                      and inventing seven more routes to make the grid uniform
-                      is not a decision this change gets to make. */}
+                  {/* The title is the link (descriptive anchor text) when the
+                      service has a page; `after:` stretches it over the card.
+                      Services without a page render plain text. */}
                   <h3
                     className="anim-rise-inner mt-5 text-[15px] font-medium leading-snug text-fg"
                     style={{ animationDelay: from(INNER.title) }}
@@ -382,16 +232,6 @@ export function ServicesSection() {
                   >
                     {service.body}
                   </p>
-
-                  {/* ── "Learn more →" is gone from every card ──
-                      It sat here as a span, on all eight cards, and only one
-                      of them has a page to go to. On the other seven it was
-                      an affordance with nothing behind it: a call to action
-                      that does not act, which a visitor discovers by clicking
-                      it and getting nothing. The link that matters is not
-                      lost with it — it is on the title, where the anchor text
-                      says what is at the other end, and it still stretches
-                      over the whole tile. */}
                 </div>
               </li>
             );

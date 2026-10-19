@@ -4,10 +4,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { useTheme } from "@/lib/useTheme";
 import { PALETTE, createParticleEngine, type Ink } from "./particleEngine";
 
-/**
- * What the component needs from whichever thread is drawing. The simulation
- * itself lives in particleEngine.ts; this is only the remote control.
- */
+/** Common interface for the worker and main-thread renderers (see particleEngine.ts). */
 type Driver = {
   resize(width: number, height: number, dpr: number): void;
   setInk(ink: Ink): void;
@@ -17,18 +14,14 @@ type Driver = {
 };
 
 /**
- * Drawn in a worker, the normal path.
+ * Default path: draw in a worker via OffscreenCanvas so the main thread
+ * doesn't run a rAF loop (which also forces style updates for every running
+ * CSS animation each frame).
  *
- * A main-thread rAF loop wakes the main thread sixty times a second, and each
- * of those frames re-ticks the style of every running CSS animation on the
- * page — measured on the hero at ~40x the idle style work of the page without
- * the loop. Transferred to an OffscreenCanvas, the field draws in its worker
- * and commits straight to the compositor; the main thread sleeps.
- *
- * `transferControlToOffscreen` can only ever be called once per canvas, and
- * React's development double-mount runs the effect, its cleanup and the
- * effect again on the same element. So the worker is keyed to the canvas and
- * its shutdown deferred by a tick: an immediate remount claims it back.
+ * `transferControlToOffscreen` can only be called once per canvas, and Strict
+ * Mode mounts, cleans up and remounts on the same element. So workers are
+ * keyed by canvas and termination is deferred a tick, letting a remount
+ * reclaim the worker.
  */
 const workers = new WeakMap<
   HTMLCanvasElement,
@@ -75,7 +68,7 @@ function workerDriver(
   };
 }
 
-/** Drawn on the main thread — only where OffscreenCanvas is unavailable. */
+/** Fallback when OffscreenCanvas is unavailable. */
 function mainThreadDriver(
   canvas: HTMLCanvasElement,
   init: { width: number; height: number; dpr: number; ink: Ink; intensity: number; reduceMotion: boolean },
@@ -115,8 +108,7 @@ function mainThreadDriver(
     run: (on) => {
       if (init.reduceMotion) return;
       if (on && !frame) {
-        // Reset the clock, or the first frame back integrates the whole time
-        // spent paused and every point jumps.
+        // Reset the clock so points don't jump after a pause.
         lastTime = performance.now();
         frame = requestAnimationFrame(step);
       } else if (!on && frame) {
@@ -137,27 +129,17 @@ const canUseWorker = () =>
   "transferControlToOffscreen" in HTMLCanvasElement.prototype;
 
 /**
- * Floating light points on a continuous, never-resolving drift.
+ * Drifting light points drawn on a canvas (cheaper than ~90 animated DOM
+ * nodes).
  *
- * Three things keep the field from reading as one animation: every point sits
- * at its own depth (which drives size, speed and brightness together), every
- * point sways laterally on its own period, and every point fades in and out
- * on a third, unrelated period. The result is sparse motion that the eye
- * registers as atmosphere rather than as elements moving.
- *
- * Canvas rather than DOM nodes: ~90 animated elements would each need their
- * own layer.
- *
- * The loop only runs when there is something to see. It stops when the tab is
- * hidden, when the canvas scrolls out of the viewport, and when the scene it
- * belongs to has been covered by the next one (see SceneCover) — so the two
- * fields on the page are never both burning frames at once. A single static
- * frame is rendered when the visitor prefers reduced motion.
+ * The loop pauses when the tab is hidden, the canvas is off screen, or its
+ * scene is covered by the next one (see SceneCover). With reduced motion,
+ * a single static frame is drawn.
  */
 export function ParticleField({
   className,
   style,
-  /** Scales the point count. The second scene runs a thinner field. */
+  /** Scales the point count. */
   intensity = 1,
 }: {
   className?: string;
@@ -169,8 +151,8 @@ export function ParticleField({
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
   const appliedIntensity = useRef(intensity);
   const theme = useTheme();
-  // Read by the mount effect without making it re-run: a theme or intensity
-  // change is a message to the running field, not a teardown of it.
+  // Lets the mount effect read current values without re-running; theme and
+  // intensity changes are sent to the running driver instead.
   const latest = useRef({ ink: PALETTE[theme] as Ink, intensity });
   latest.current = { ink: PALETTE[theme], intensity };
 
@@ -200,7 +182,7 @@ export function ParticleField({
     if (!driver) return;
     driverRef.current = driver;
 
-    // Rebuild on resize, debounced — orientation changes on mobile fire a lot.
+    // Debounced; mobile orientation changes fire many resize events.
     let resizeTimer: ReturnType<typeof setTimeout>;
     const onResize = () => {
       clearTimeout(resizeTimer);
@@ -220,7 +202,7 @@ export function ParticleField({
       };
     }
 
-    /* --- Run only when the field is actually being looked at --- */
+    // Run only while visible.
 
     let onScreen = true;
     let sceneLit = true;
@@ -231,15 +213,13 @@ export function ParticleField({
         onScreen = entries[entries.length - 1].isIntersecting;
         sync();
       },
-      // A little margin so the field is already drifting by the time its
-      // first pixel is on screen.
+      // Start slightly before it enters the viewport.
       { rootMargin: "120px" },
     );
     observer.observe(canvas);
 
-    // The hero stays inside the viewport while the next section slides over
-    // the top of it, so intersection alone never reports it as gone. The
-    // pinned pane advertises when it has been covered instead.
+    // The hero stays in the viewport while the next section slides over it,
+    // so also watch the scene's `data-scene-state` for "covered".
     const scene = canvas.closest<HTMLElement>("[data-scene-state]");
     let sceneWatcher: MutationObserver | undefined;
 
@@ -272,12 +252,12 @@ export function ParticleField({
     };
   }, []);
 
-  // Theme: new tiles, same points.
+  // Theme change: recolour, keep the points.
   useEffect(() => {
     driverRef.current?.setInk(PALETTE[theme]);
   }, [theme]);
 
-  // Intensity: a different point count, so the field is reseeded.
+  // Intensity change: point count changes, so reseed.
   useEffect(() => {
     const driver = driverRef.current;
     if (!driver || appliedIntensity.current === intensity) return;
@@ -288,7 +268,7 @@ export function ParticleField({
   }, [intensity]);
 
   return (
-    // The field is faded in by the caller; the drift itself never stops.
+    // Fade-in is handled by the caller.
     <canvas ref={canvasRef} aria-hidden="true" className={className} style={style} />
   );
 }

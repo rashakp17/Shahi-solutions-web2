@@ -1,22 +1,10 @@
 import type { ReactNode } from "react";
 
-/* ------------------------------------------------------------------
-   Stack marks — the small logos that sit inside the project chips.
-
-   These are drawn, not fetched: no <img>, no icon font, no network.
-   Each one is the simplest figure that still reads as the thing —
-   React's atom, Node's hexagon, Mongo's leaf — and the two or three
-   marks that have no drawable silhouette fall back to a monogram
-   rather than to a bad tracing of a logotype.
-
-   The brand colour lives in one place per entry, and the mark inherits
-   it through `currentColor`. The rest of this site deliberately does
-   not use vendor colours (see the note on Mark in TechStrip) — the
-   project cards do, because a stack line is a statement about what was
-   used and the marks are what make it scannable. To fold them back
-   into the house ramp, replace every `color` below with
-   `var(--color-accent-300)` and nothing else changes.
-   ------------------------------------------------------------------ */
+/*
+ * Small inline SVG tech marks for project chips. Marks without a simple
+ * shape use a monogram. Each mark inherits its `color` via currentColor;
+ * use var(--color-accent-300) instead to match the site accent.
+ */
 
 export type TechKey =
   | "react"
@@ -28,20 +16,16 @@ export type TechKey =
   | "typescript"
   | "postgres"
   | "vercel"
-  /* Not frameworks, and deliberately still here. A stack line is a
-     statement about what a build is made of, and on these two projects
-     the live tracking and the analytics layer are as load-bearing as the
-     runtime under them. Neither has a logotype worth tracing at 16px, so
-     both take the monogram path the registry already provides. */
+  // Not frameworks, but listed for some projects; rendered as monograms.
   | "gps"
   | "analytics";
 
 type Tech = {
   name: string;
   color: string;
-  /** The drawn mark, on a 24×24 canvas. */
+  /** SVG content on a 24x24 viewBox. */
   glyph?: ReactNode;
-  /** Used when there is no honest way to draw the mark small. */
+  /** Monogram fallback when there is no glyph. */
   mono?: string;
 };
 
@@ -141,13 +125,7 @@ const TECH: Record<TechKey, Tech> = {
   postgres: { name: "PostgreSQL", color: "#6B8CE8", mono: "PG" },
 };
 
-/**
- * One chip: mark in a tile, name beside it.
- *
- * The tile is what keeps a row of mixed marks even — a drawn glyph and a
- * two-letter monogram sit on the same footprint, so the chips line up on their
- * text rather than on whatever width the logo happened to have.
- */
+/** Tech chip: mark in a fixed-size tile, followed by the name. */
 export function TechChip({ tech }: { tech: TechKey }) {
   const { name, color, glyph, mono } = TECH[tech];
 

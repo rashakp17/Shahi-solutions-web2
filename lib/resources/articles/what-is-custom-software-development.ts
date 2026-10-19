@@ -1,22 +1,17 @@
 import type { Article } from "../types";
 
 /**
- * The pillar of the custom software development cluster.
- *
- * Everything else in the cluster is a chapter of this page — examples, the
- * process, the cost, the build-versus-buy decision — so this one stays broad
- * and hands off rather than trying to be all four. The four articles link back
- * here; this one links out to each of them at the point where the reader is
- * most likely to want the detail.
+ * Pillar page for the custom software development cluster. Stays broad and
+ * links out to the four detail articles, which all link back here.
  */
 export const article: Article = {
   slug: "what-is-custom-software-development",
   title: "What Is Custom Software Development?",
   metaTitle: "What Is Custom Software Development? A Practical Guide",
   description:
-    "Custom software development means building software around how your business already works, rather than changing how it works to fit a product. Here is what that involves.",
+    "Custom software development means building software around how your business already works, instead of reshaping the business to suit a product.",
   eyebrow: "Custom Software Development",
-  lead: "Custom software development is the practice of designing and building an application around one organisation's actual operations, instead of adopting a product built for the average of everyone else's. This guide covers what gets built, when it is worth it, what it costs, and — just as usefully — when buying something off the shelf is the better answer.",
+  lead: "Custom software development is the practice of designing and building an application around one organisation's actual operations, instead of adopting a product built for the average of everyone else's. This guide covers what gets built, when it is worth it and what it costs. It also covers when buying something off the shelf is the better answer.",
   updated: "2026-08-24",
   cluster: "custom-software-development",
 
@@ -27,20 +22,20 @@ export const article: Article = {
       blocks: [
         {
           kind: "p",
-          text: "Custom software is written for one organisation and shaped by that organisation's processes. Off-the-shelf software is written for a market and shaped by the average of everyone in it. That is the whole distinction, and every practical difference between the two follows from it.",
+          text: "Custom software is written for one organisation and shaped by that organisation's processes. Off-the-shelf software is written for a market and shaped by the average of everyone in it. Most of the practical differences between the two come from that.",
         },
         {
           kind: "p",
-          text: "In practice, a custom build starts from how work already happens. Someone sits with the people doing the job, watches the spreadsheet get filled in, the message get sent, the paper docket get carried across the yard — and then designs a system that removes those steps rather than one that assumes they never existed. The result is usually *less* software than a commercial product, not more: a smaller surface, with nothing on it that this business does not do.",
+          text: "In practice, a custom build starts from how work already happens. Someone sits with the people doing the job and watches the spreadsheet get filled in, the message get sent and the paper docket get carried across the yard. Then they design a system that removes those steps, instead of one that assumes they never existed. You usually end up with *less* software than a commercial product gives you, with nothing in it that this business does not do.",
         },
         {
           kind: "note",
           label: "A useful test",
-          text: "If the honest answer to a question about how something gets handled is “we have a workaround for it”, you are already paying for custom software. You are paying for it in salaried hours, and it is being maintained by whoever remembers the workaround.",
+          text: "If the honest answer to a question about how something gets handled is “we have a workaround for it”, you are already paying for custom software. The payment is in salaried hours, and the maintenance is done by whoever remembers the workaround.",
         },
         {
           kind: "p",
-          text: "The term covers a wide range of things. A **bespoke web application** replacing four spreadsheets is custom software. So is an integration layer that makes an accounting package and a warehouse system agree on what a stock level is. So is a customer-facing product that *is* the business. What they have in common is that the specification came from the organisation rather than from a vendor's roadmap.",
+          text: "The term covers a wide range of things. A **bespoke web application** replacing four spreadsheets is custom software. So is an integration layer that makes an accounting package and a warehouse system agree on what a stock level is. So is a customer-facing product that *is* the business. In each case the specification came from the organisation, not from a vendor's roadmap.",
         },
       ],
     },
@@ -51,7 +46,7 @@ export const article: Article = {
       blocks: [
         {
           kind: "p",
-          text: "The trade is not quality against cost — good commercial software is very good, and a bad custom build is worse than either. The trade is between **fit** and **leverage**. A product you buy has thousands of other customers paying down its development and filing its bug reports. A product you build fits your operation exactly and answers only to you.",
+          text: "People often frame this as quality against cost, but good commercial software is very good, and a bad custom build is worse than either. The real trade-off is between **fit** and **leverage**. A product you buy has thousands of other customers paying down its development and filing its bug reports. A product you build fits your operation exactly and answers only to you.",
         },
         {
           kind: "table",
@@ -66,7 +61,7 @@ export const article: Article = {
             ],
             [
               "Cost shape",
-              "Low to start, per seat, forever — and it rises with headcount.",
+              "Low to start, then per seat, forever. It rises with headcount.",
               "High to start, then hosting and maintenance. Flat as you grow.",
             ],
             [
@@ -93,7 +88,7 @@ export const article: Article = {
         },
         {
           kind: "p",
-          text: "Most organisations end up with both, and that is the correct outcome rather than a compromise. You buy the things that are the same everywhere — email, payroll, accounting, video calls — and you build the thing that is different, which is usually the operation your customers actually pay you for. The full version of this argument, with the arithmetic, is in [Custom Software vs Off-the-Shelf Software](/resources/custom-software-vs-off-the-shelf).",
+          text: "Most organisations end up with both, and that is usually the right outcome. You buy the things that are the same everywhere (email, payroll, accounting, video calls) and build the thing that is different, which is usually the operation your customers actually pay you for. The full version of this argument, with the arithmetic, is in [Custom Software vs Off-the-Shelf Software](/resources/custom-software-vs-off-the-shelf).",
         },
       ],
     },
@@ -104,7 +99,7 @@ export const article: Article = {
       blocks: [
         {
           kind: "p",
-          text: "Across the projects we take on, custom builds fall into five recognisable shapes. Knowing which one you are looking at is most of the estimating work, because each has a very different centre of gravity.",
+          text: "Across the projects we take on, custom builds fall into five recognisable shapes. Working out which one you are looking at is most of the estimating work, because the effort sits in a different place for each.",
         },
         {
           kind: "examples",
@@ -112,27 +107,27 @@ export const article: Article = {
             {
               label: "Systems of record",
               title: "One place the truth lives",
-              text: "ERP and CRM builds, inventory systems, case management. The point is not features — it is that stock, or a customer, or an order has exactly one authoritative representation, and every screen reads from it. These are the builds that eliminate reconciliation meetings.",
+              text: "ERP and CRM builds, inventory systems, case management. The aim is that stock, a customer or an order has exactly one authoritative record, and every screen reads from it. The feature list matters less. These are the builds that get rid of reconciliation meetings.",
             },
             {
               label: "Operations tools",
               title: "The work itself, made faster",
-              text: "Dispatch consoles, field apps, scheduling boards, approval queues. Judged on how many seconds they take out of a task that happens four hundred times a day — which is why they are worth designing around the person doing it rather than around the data model.",
+              text: "Dispatch consoles, field apps, scheduling boards, approval queues. They are judged on how many seconds they take out of a task that happens four hundred times a day, so they should be designed around the person doing it rather than around the data model.",
             },
             {
               label: "Integration",
               title: "Making two systems agree",
-              text: "The least glamorous category and often the highest return. A layer that reconciles an accounting package, a storefront and a warehouse so that nobody re-keys anything. Frequently the cheapest custom software a business will ever commission.",
+              text: "The least glamorous category, and often the one with the best return. A layer that reconciles an accounting package, a storefront and a warehouse so that nobody re-keys anything. Frequently the cheapest custom software a business will ever commission.",
             },
             {
               label: "Customer-facing products",
               title: "The thing being sold",
-              text: "A storefront with a configurator, a booking platform, a portal customers log into. Here the software *is* the product, so the bar is set by the market rather than by internal tolerance: it has to be fast, obvious and good-looking or it does not get used.",
+              text: "A storefront with a configurator, a booking platform, a portal customers log into. Here the software *is* the product, so the market sets the standard, not internal staff who will put up with things. If it is slow, confusing or ugly, people will not use it.",
             },
             {
               label: "Automation",
               title: "Work that stops needing a person",
-              text: "Document generation, reconciliation, alerting, report assembly. Usually the smallest projects and the easiest to justify, because the before and after is measured in hours per week that somebody can name.",
+              text: "Document generation, reconciliation, alerting, report assembly. Usually the smallest projects and the easiest to justify, because the saving is a number of hours per week that somebody can point to.",
             },
           ],
         },
@@ -156,26 +151,26 @@ export const article: Article = {
       blocks: [
         {
           kind: "p",
-          text: "There are four situations where a custom build is straightforwardly the right call. They are worth stating plainly, because most of the material written on this subject concludes that the answer is always yes.",
+          text: "In four situations a custom build is clearly the right call. We list them plainly because most of what is written on this subject concludes that the answer is always yes.",
         },
         {
           kind: "list",
           ordered: true,
           items: [
             "**The process is the advantage.** If how you route jobs, price work or handle exceptions is a reason customers choose you, a product that normalises it to the industry default is removing the thing you are selling.",
-            "**Per-seat licensing has outgrown the build.** Somewhere past roughly forty to sixty seats on a mid-priced subscription tool, three years of licences costs more than building the part of it you actually use. That crossover is arithmetic, not opinion — it is worked through in [Custom Software Development Cost](/resources/custom-software-development-cost).",
-            "**Nothing joins up.** When the real system of record is a spreadsheet somebody maintains by hand from three other systems, the integration work has already been commissioned. It is just being done by a person, unreliably, forever.",
+            "**Per-seat licensing has outgrown the build.** Somewhere past roughly forty to sixty seats on a mid-priced subscription tool, three years of licences costs more than building the part of it you actually use. The arithmetic is worked through in [Custom Software Development Cost](/resources/custom-software-development-cost).",
+            "**Nothing joins up.** When the real system of record is a spreadsheet somebody maintains by hand from three other systems, you are already paying for integration work. A person is doing it, unreliably, with no end date.",
             "**The software is the product.** If customers pay for the application, it cannot be somebody else's application with your logo on it.",
           ],
         },
         {
           kind: "p",
-          text: "And the situations where it does not make sense, which are just as common:",
+          text: "The situations where it does not make sense are just as common:",
         },
         {
           kind: "list",
           items: [
-            "The process is genuinely standard. Payroll, accounting, email, helpdesk — these are solved, regulated, and cheaper to buy than to own.",
+            "The process is genuinely standard. Payroll, accounting, email and helpdesk are solved problems, often regulated, and cheaper to buy than to own.",
             "The requirement is not settled. Building software around a process nobody has agreed on yet produces an expensive record of the disagreement.",
             "There is nobody to own it. Custom software needs a person inside the business who decides what it does next. Without one it drifts for a year and is then replaced.",
             "The budget only covers the build. A build with no maintenance line is a system that will be quietly abandoned around month fourteen.",
@@ -183,8 +178,8 @@ export const article: Article = {
         },
         {
           kind: "note",
-          label: "Worth saying out loud",
-          text: "We turn down custom builds that should be a subscription. It is a short conversation and it saves everyone a year — and the businesses we have it with tend to come back when they hit the case that genuinely needs building.",
+          label: "For the record",
+          text: "We turn down custom builds that should be a subscription. It is a short conversation and it saves everyone a year. The businesses we have it with tend to come back when they hit something that genuinely needs building.",
         },
       ],
     },
@@ -195,7 +190,7 @@ export const article: Article = {
       blocks: [
         {
           kind: "p",
-          text: "A custom software development project is mostly not typing. The build phase is the visible part, but the phases either side of it are where projects are won or lost: discovery decides whether the right thing gets built, and handover decides whether it survives.",
+          text: "Most of a custom software development project is not writing code. The build phase is the part people see, but projects succeed or fail in the phases either side of it. Discovery decides whether the right thing gets built, and handover decides whether it survives.",
         },
         {
           kind: "figure",
@@ -205,11 +200,11 @@ export const article: Article = {
         },
         {
           kind: "p",
-          text: "The single most useful thing to understand about the sequence: **discovery is not a formality and it is not free.** It is where the requirement gets pinned down to something specific enough to estimate, and a project that skips it does not save that time — it spends it later, during the build, at development rates, on rework. Each phase is broken down step by step in [the custom software development process](/resources/custom-software-development-process).",
+          text: "If you take one thing from the sequence, make it this: **discovery is a real phase, and it costs money.** It is where the requirement is pinned down well enough to estimate. A project that skips it does not save that time. It spends it later on rework, during the build, at development rates. Each phase is broken down step by step in [the custom software development process](/resources/custom-software-development-process).",
         },
         {
           kind: "p",
-          text: "Timelines follow the shape more than the feature count. A focused automation or integration is usually three to ten weeks. An operations tool with a handful of roles runs two to four months. A full system of record — an ERP, a platform with several user types and real permissions — is a four to nine month engagement, and anyone quoting six weeks for one is quoting for a prototype.",
+          text: "Timelines depend on the shape of the project more than the feature count. A focused automation or integration is usually three to ten weeks. An operations tool with a handful of roles runs two to four months. A full system of record, such as an ERP or a platform with several user types and real permissions, takes four to nine months. Anyone quoting six weeks for one is quoting for a prototype.",
         },
       ],
     },
@@ -220,20 +215,20 @@ export const article: Article = {
       blocks: [
         {
           kind: "p",
-          text: "This is the part that gets skipped in most engagements, and it is the part that decides whether the project produced an asset or a liability. At handover you should have all of the following, and it should be written into the agreement before the first line of code:",
+          text: "Most engagements skip this part, yet it decides whether the project leaves you with an asset or a liability. At handover you should have all of the following, written into the agreement before any code is written:",
         },
         {
           kind: "list",
           items: [
             "**The source code**, in a repository your organisation owns, with its full history.",
-            "**The infrastructure**, in accounts held in your name — not in the agency's account with a bill forwarded on.",
+            "**The infrastructure**, in accounts held in your name, not in the agency's account with the bill passed on to you.",
             "**The data**, in a documented schema, in a database you can back up and export without asking.",
-            "**The ability to hand it to someone else.** The honest test of a handover is whether a competent developer who has never met us can run the project locally from the README and ship a change in a day.",
+            "**The ability to hand it to someone else.** A fair test of a handover is whether a competent developer who has never met us can run the project locally from the README and ship a change in a day.",
           ],
         },
         {
           kind: "p",
-          text: "The last one is the only one that costs something to do properly, which is exactly why it is the one to insist on. Software that only its original authors can safely change is not owned, whatever the contract says.",
+          text: "The last one is the only item that takes real effort to do properly, which is why you should insist on it. If only the original authors can safely change the software, you do not really own it, whatever the contract says.",
         },
       ],
     },
@@ -246,7 +241,7 @@ export const article: Article = {
     },
     {
       q: "How much does custom software development cost?",
-      a: "A focused automation or integration typically runs from around $4,000 to $18,000, an operations tool from $12,000 to $40,000, and a full system of record such as an ERP from $40,000 upward. The variable that moves the number most is the number of distinct user roles, not the number of screens.",
+      a: "It depends on the type of project, from a focused automation at the small end to a full system of record such as an ERP at the large end. The variable that moves the number most is the number of distinct user roles, not the number of screens. Discovery produces a fixed price.",
     },
     {
       q: "How long does a custom software project take?",
@@ -254,7 +249,7 @@ export const article: Article = {
     },
     {
       q: "Is custom software better than off-the-shelf software?",
-      a: "Neither is better in general. Buy the things every business does the same way — accounting, payroll, email. Build the thing your business does differently, particularly if that difference is why customers choose you.",
+      a: "Neither is better in general. Buy the things every business does the same way, such as accounting, payroll and email. Build the thing your business does differently, particularly if that difference is why customers choose you.",
     },
     {
       q: "Who owns the code in a custom software project?",

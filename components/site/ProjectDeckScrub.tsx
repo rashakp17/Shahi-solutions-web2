@@ -3,29 +3,12 @@
 import { useEffect } from "react";
 
 /**
- * The depth cues on the card deck, and nothing else.
+ * Sets --pj-cover (0 to 1) on each project card as the next card covers it;
+ * CSS turns it into scale/lift/dim. Stacking itself is position: sticky.
  *
- * The stacking itself is `position: sticky` and works with JavaScript switched
- * off. What this adds is --pj-cover per card — 0 while a card owns the screen,
- * 1 once the next has fully covered it — which the stylesheet turns into a
- * scale, a small lift and a dim. That is the only thing on this page scrubbed
- * off the scrollbar apart from the statement pane, and for the same reason:
- * the effect *is* the connection to the scroll, so it has to give it back on
- * the way up.
- *
- * ── Why this is a sibling and not a wrapper ──
- * It used to live in ProjectsSection, which meant the whole section carried
- * `"use client"` — five projects' worth of copy, features, stacks and drawn
- * previews, plus the card markup and two SVG components, compiled into the
- * initial JavaScript bundle *and* rendered into the HTML, to run one scroll
- * handler. The section is a server component now and this is mounted beside
- * it, finding the deck by the attribute the markup already carries.
- *
- * Taking the deck as `children` would have undone the saving in the other
- * direction: everything passed through a client boundary is serialised into
- * the flight payload, so the same markup would have come back as data. A
- * query for one element costs nothing and keeps the whole subtree on the
- * server side of the line.
+ * Mounted beside ProjectsSection and finds the deck via [data-pj-deck], so
+ * the section stays a server component (passing it as children would
+ * serialize the markup into the RSC payload).
  */
 export function ProjectDeckScrub() {
   useEffect(() => {
@@ -41,16 +24,10 @@ export function ProjectDeckScrub() {
       slot.querySelector<HTMLElement>("[data-pj-card]"),
     );
 
-    // The stack is CSS. This only adds the depth cues on top of it, so with
-    // motion turned down the cards still deal themselves — they just do it
-    // without shrinking or dimming as they go.
+    // Reduced motion: keep the CSS stacking, skip the depth effect.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    /**
-     * Measured once and on resize, not per frame. `top` is each card's sticky
-     * offset, which is what the pair of them settles at; height is how far the
-     * next card has to travel to cover this one.
-     */
+    // Sticky top offsets and heights, measured once and on resize.
     let tops: number[] = [];
     let heights: number[] = [];
 
@@ -61,8 +38,7 @@ export function ProjectDeckScrub() {
     };
 
     let frame = 0;
-    // False until the observer says otherwise, which it does on its first
-    // callback. Reading before then would run on empty measurements.
+    // Set by the observer; avoids reading before measurements exist.
     let onScreen = false;
     let measured = false;
     const published = new Array(slots.length).fill(-1);
@@ -70,25 +46,20 @@ export function ProjectDeckScrub() {
     const read = () => {
       frame = 0;
 
-      // Every rect first, then every write. Interleaving them makes the
-      // browser flush layout between each pair, which is the difference
-      // between one measurement and five.
+      // Read all rects before writing to avoid layout thrashing.
       const positions = slots.map((slot) => slot.getBoundingClientRect().top);
 
       for (let i = 0; i < slots.length - 1; i++) {
         const step = tops[i + 1] - tops[i];
         const height = heights[i];
 
-        // Distance between this card's top edge and the next one's. It closes
-        // from a card-height-plus-gap down to `step` as the next card arrives
-        // and pins, and the last `height` of that closing is the ramp.
+        // Gap between this card and the next shrinks to `step` as the next
+        // card pins; the last `height` px of that is the 0-1 ramp.
         const gap = positions[i + 1] - positions[i];
         const raw = (height - (gap - step)) / height;
         const cover = raw < 0 ? 0 : raw > 1 ? 1 : raw;
 
-        // Three decimal places is finer than a pixel at these sizes, and
-        // skipping unchanged values keeps a slow drag from restyling the
-        // whole deck on every frame it does not move.
+        // Round and skip unchanged values to avoid needless style writes.
         const value = Math.round(cover * 1000) / 1000;
         if (value === published[i]) continue;
         published[i] = value;
@@ -107,18 +78,13 @@ export function ProjectDeckScrub() {
       onScroll();
     };
 
-    // Nothing is read while the deck is nowhere near the viewport. The handler
-    // is passive and cheap, but it is still five rects a frame for a section
-    // that is three screens away.
+    // Only read while the deck is near the viewport.
     const view = new IntersectionObserver(
       (entries) => {
         onScreen = entries[entries.length - 1].isIntersecting;
         if (!onScreen) return;
-        // Measured on first approach, not at mount. The section is
-        // `content-visibility: auto` (see globals.css), so at mount its
-        // cards have not been laid out, and asking for their sizes would
-        // force the whole deck through layout three screens early — the
-        // exact cost that skipping it is there to avoid.
+        // Measure on first approach, not at mount: the section uses
+        // content-visibility: auto, so measuring early forces layout.
         if (!measured) measure();
         onScroll();
       },

@@ -1,18 +1,10 @@
 /// <reference lib="webworker" />
 /**
- * The particle field, off the main thread.
+ * Draws the particle field into an OffscreenCanvas off the main thread. A
+ * main-thread rAF loop would force style updates for every running CSS
+ * animation each frame.
  *
- * Why this exists: a requestAnimationFrame loop on the main thread forces a
- * main-thread frame sixty times a second, and every main-thread frame
- * re-ticks the style of every running CSS animation on the page — the glyph
- * field, the glows, the planes — whether or not they could have run on the
- * compositor alone. Measured idle on the hero: 170 style recalcs and ~200ms
- * of style work every three seconds with the field on the main thread, 4
- * recalcs and ~5ms with it gone. Drawn here, into an OffscreenCanvas, the
- * frames go to the compositor directly and the main thread stays asleep.
- *
- * The page keeps every decision about *whether* to run (on screen, tab
- * visible, scene not covered) and sends `run`; this only draws.
+ * The page decides when to run (visibility, scene state) and sends `run`.
  */
 import { createParticleEngine, type Ink } from "./particleEngine";
 
@@ -34,8 +26,7 @@ type Message =
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 
-// Worker rAF where the browser has it (Chromium, Firefox), a 60Hz timer
-// where it does not — it only has to pace the draws, not sync with input.
+// Worker rAF where supported (Chromium, Firefox), else a ~60Hz timer.
 const nextFrame: (cb: (t: number) => void) => number =
   typeof scope.requestAnimationFrame === "function"
     ? (cb) => scope.requestAnimationFrame(cb)
@@ -65,8 +56,7 @@ const loop = (time: number) => {
 const setRunning = (run: boolean) => {
   running = run && !reduceMotion;
   if (running && !frame) {
-    // Reset the clock, or the first frame back integrates the whole time
-    // spent paused and every point jumps.
+    // Reset the clock so points don't jump after a pause.
     lastTime = performance.now();
     frame = nextFrame(loop);
   } else if (!running && frame) {

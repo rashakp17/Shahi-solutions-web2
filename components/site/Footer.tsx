@@ -5,29 +5,9 @@ import { ScrollStagger } from "@/components/ui/ScrollStagger";
 import { cn } from "@/lib/cn";
 import { LEGAL_NAME, SOCIAL_PROFILES, type SocialLabel } from "@/lib/site";
 
-/* ------------------------------------------------------------------
-   Footer
+/* Footer: link columns, contact details and the copyright line. */
 
-   The last thing on the page and the only part of it that is purely
-   information, so it is built as a directory rather than as another
-   composition: four columns, a hairline, a line of small print. The
-   ground carries on from the sections above it — same near-black, one
-   soft light at the top edge — so the page ends rather than stopping.
-
-   Everything here is real. The addresses and the phone number are
-   live links, the section links point at sections that exist, and the
-   two that do not have a home yet are marked as such below rather
-   than pointed at something approximate and forgotten about.
-   ------------------------------------------------------------------ */
-
-/**
- * Stamped when the page is built, not when it is viewed.
- *
- * The site is statically prerendered, so this resolves once at build time and
- * ships as a literal. That is the right trade for a copyright line: it costs
- * nothing at runtime and corrects itself on the next deploy, where a hardcoded
- * year needs a person to remember it.
- */
+/** Resolved at build time (the page is prerendered); updates on each deploy. */
 const YEAR = new Date().getFullYear();
 
 const iconProps = {
@@ -38,47 +18,20 @@ const iconProps = {
   strokeLinejoin: "round",
 } as const;
 
-/**
- * Where the service links go.
- *
- * Most land on the services section, because that is where they are: there are
- * no per-service pages to deep-link to. Listing them individually is still
- * worth it — the column is what tells a visitor (and a crawler) what the
- * company actually does, which a single "Services" link does not.
- *
- * `/#platform` and not `#platform`. This was a bare fragment while the site
- * was one page and it had to change the moment /resources and /services
- * existed: a bare fragment means "somewhere on the page you are already on",
- * so from an article every link in this column silently did nothing. The
- * leading slash costs a client navigation on the home page and is correct
- * everywhere.
- *
- * Custom Software is the exception and points at its own page, because it now
- * has one — the destination the resource cluster funnels into.
- */
+/** Every service in this column has its own page under /services. */
 const SERVICES: Array<{ label: string; href: string }> = [
-  { label: "Website Development", href: "/#platform" },
+  { label: "Website Development", href: "/services/website-development" },
   {
     label: "Custom Software",
     href: "/services/custom-software-development",
   },
-  { label: "Mobile App Dev", href: "/#platform" },
-  { label: "UI/UX Layouts", href: "/#platform" },
-  { label: "ERP & CRM Systems", href: "/#platform" },
-  { label: "Business Automation", href: "/#platform" },
+  { label: "Mobile App Dev", href: "/services/mobile-app-development" },
+  { label: "UI/UX Layouts", href: "/services/ui-ux-design" },
+  { label: "ERP & CRM Systems", href: "/services/erp-crm" },
+  { label: "Business Automation", href: "/services/business-automation" },
 ];
 
-/**
- * The company column, mapped onto the sections and routes that exist.
- *
- * `Why Choose Us` is the one with no home of its own. It points at the nearest
- * honest match rather than at a dead `#`, which would look like a working link
- * and do nothing. Repoint it the moment it lands.
- *
- * `Build Process` used to be in that category too and now has a real
- * destination — the process article — which is the first case of the resource
- * layer answering a question the main site had no page for.
- */
+/** `Why Choose Us` has no section of its own yet; repoint it when it does. */
 const COMPANY = [
   { label: "About Us", href: "/#about" },
   { label: "Why Choose Us", href: "/#platform" },
@@ -92,63 +45,9 @@ const COMPANY = [
 ];
 
 /**
- * The resource layer, as a column of its own.
- *
- * This is the footer's share of the internal linking the section depends on:
- * every page on the site now carries a link to the cluster, which is what
- * gives the articles a route in from anywhere rather than only from search.
- * Five entries rather than a single "Resources" link, for the same reason the
- * services are listed individually — the labels are the subjects.
- */
-const RESOURCES = [
-  {
-    label: "Custom Software Explained",
-    href: "/resources/what-is-custom-software-development",
-  },
-  {
-    label: "Real-World Examples",
-    href: "/resources/custom-software-development-examples",
-  },
-  {
-    label: "The Build Process",
-    href: "/resources/custom-software-development-process",
-  },
-  {
-    label: "What It Costs",
-    href: "/resources/custom-software-development-cost",
-  },
-  {
-    label: "Custom vs Off-the-Shelf",
-    href: "/resources/custom-software-vs-off-the-shelf",
-  },
-  { label: "All Resources", href: "/resources" },
-];
-
-/**
- * The artwork for a social account, and only the artwork.
- *
- * ── What changed and why ──
- * This was an array of four accounts whose `href` was `"#"` — placeholders,
- * left honest rather than guessed at. Four links to `#` cost something real
- * on both sides: a visitor who taps one is thrown to the top of the page, and
- * a crawler spends four of its internal links on a self-reference. Neither is
- * worth paying for an icon row.
- *
- * So the URLs moved to `SOCIAL_PROFILES` in lib/site.ts, which is now the one
- * place an account is declared, and the row below renders from that list. The
- * same list feeds `sameAs` in the organisation's structured data, so the
- * profiles a visitor can click and the profiles the company claims as its own
- * identity are the same set by construction — they cannot drift.
- *
- * That list is empty today, so the row renders nothing and `sameAs` is omitted
- * rather than published empty. Add the real URLs there and both come back on
- * with no change here.
- *
- * `Record<SocialLabel, ReactNode>` is total on purpose: every label the type
- * permits has a mark drawn for it, so a URL added in lib/site.ts can never
- * produce an empty circle in the footer. The two accounts that are not drawn
- * yet — Instagram and YouTube — are drawn here anyway, because a software
- * studio in 2026 is more likely to have those than a GitHub org.
+ * Icons for social accounts. URLs live in `SOCIAL_PROFILES` (lib/site.ts),
+ * which also feeds `sameAs` in the structured data. The Record covers every
+ * SocialLabel so adding a profile never renders an empty icon.
  */
 const SOCIAL_ART: Record<SocialLabel, ReactNode> = {
   LinkedIn: (
@@ -207,28 +106,15 @@ const SOCIAL_ART: Record<SocialLabel, ReactNode> = {
 };
 
 /**
- * The two links that are still dead, and knowingly so.
- *
- * `#privacy` and `#terms` point at fragments that exist nowhere, so both do
- * nothing when clicked, on every page. That is the same fault the four social
- * placeholders had, and it was not fixed the same way — deliberately.
- *
- * Removing them would take a real gap off the page without closing it. A
- * privacy policy is something visitors look for and something several
- * jurisdictions expect of a business collecting enquiries through a form, so
- * the honest fix is to write the two pages, not to delete the links to them.
- * Writing them needs facts about what the company does with an enquiry that
- * only the company has.
- *
- * When they land: add `/privacy` and `/terms` routes and point these at them.
- * They should also go into app/sitemap.ts at a low priority.
+ * TODO: these pages don't exist yet. Add `/privacy` and `/terms` routes,
+ * point these at them, and add both to app/sitemap.ts.
  */
 const LEGAL = [
   { label: "Privacy Policy", href: "#privacy" },
   { label: "Terms of Service", href: "#terms" },
 ];
 
-/** A column heading, in the same micro-label the rest of the page uses. */
+/** Column heading in the site's micro-label style. */
 function ColumnHead({ id, children }: { id: string; children: ReactNode }) {
   return (
     <h2
@@ -266,7 +152,7 @@ function LinkColumn({
   );
 }
 
-/** One line of contact detail: a boxed glyph, then the detail itself. */
+/** Contact line: icon followed by the detail. */
 function ContactRow({
   art,
   children,
@@ -291,9 +177,7 @@ function ContactRow({
 export function Footer() {
   return (
     <footer className="ft-scope relative isolate overflow-hidden border-t border-[color:var(--hair-1)] bg-ink-950">
-      {/* The ground. One wash from the top edge down, and a single soft light
-          sitting on the seam, so the border the footer starts on reads as lit
-          rather than as a ruled line under the page. */}
+      {/* Background gradient with a soft glow on the top border. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(120%_110%_at_50%_0%,var(--ground-4)_0%,var(--ground)_48%,var(--ground)_100%)]" />
         <div className="ft-seam absolute left-1/2 top-0 h-[20rem] w-[54rem] -translate-x-1/2 -translate-y-1/2 rounded-full" />
@@ -301,43 +185,29 @@ export function Footer() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 pb-9 pt-14 sm:pt-16">
-        {/* Five columns at lg, three at md, two at sm, one below.
-            The brand column keeps the extra width because it carries running
-            prose; the contact column keeps its own because an email address
-            and a street address do not wrap gracefully.
-
-            The fifth column is the resource layer, and adding it is what
-            forced the intermediate md step — five link columns at 768px are
-            each about 130px wide, which is narrower than several of the
-            labels. */}
+        {/* 4 columns at lg, 2 at sm, 1 below. Brand and contact columns are
+            wider: prose and addresses wrap badly. */}
         <ScrollStagger
           as="div"
           stagger={90}
           inRatio={0.1}
-          className="grid gap-x-10 gap-y-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[1.35fr_.85fr_.85fr_1.05fr_1.25fr]"
+          className="grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-[1.35fr_.85fr_.85fr_1.25fr]"
         >
           <div>
             <div className="ft-in">
               <Logo />
 
               <p className="mt-5 max-w-[21rem] text-[13.5px] leading-relaxed text-fg/45">
-                Accelerating business innovation with custom software,
-                enterprise platforms, and scalable digital solutions.
+                Custom software, business platforms and digital products for
+                companies that are ready to grow.
               </p>
 
-              {/* The row exists only if there is an account to put in it.
-                  With `SOCIAL_PROFILES` empty this renders nothing at all —
-                  not an empty <ul>, which would still take its 2.25rem of
-                  height and leave a gap under the paragraph that reads as a
-                  layout fault rather than as an absence. */}
+              {/* Skip the <ul> entirely when empty, so it leaves no gap. */}
               {SOCIAL_PROFILES.length > 0 && (
                 <ul className="mt-7 flex items-center gap-2.5">
                   {SOCIAL_PROFILES.map((social) => (
                     <li key={social.label}>
-                      {/* A plain anchor, not next/link: every one of these
-                          leaves the site, so there is no route to prefetch,
-                          and `noopener` stops the opened page reaching back
-                          through `window.opener`. Same split Button makes. */}
+                      {/* Plain <a>: external link, nothing to prefetch. */}
                       <a
                         href={social.href}
                         target="_blank"
@@ -373,32 +243,14 @@ export function Footer() {
           </div>
 
           <div>
-            <div className="ft-in">
-              <LinkColumn
-                id="ft-resources"
-                title="Resources"
-                links={RESOURCES}
-              />
-            </div>
-          </div>
-
-          <div>
-            {/* No id any more. This used to be the navbar's "Contact Us"
-                target, back when the footer was the only place the address
-                lived. The contact section above owns #contact now, and two
-                elements sharing an id on one page is invalid — the anchor
-                would resolve to whichever came first and the form would be
-                unreachable from the nav. */}
+            {/* No id="contact" here: the contact section owns that anchor. */}
             <section
               className="ft-in"
               aria-labelledby="ft-contact"
             >
               <ColumnHead id="ft-contact">Contact Us</ColumnHead>
 
-              {/* <address> rather than a plain list: this is the contact detail
-                  for the people who own the page, which is the one thing the
-                  element is actually for. not-italic because the browser
-                  default italicises it and nothing else here is italic. */}
+              {/* not-italic overrides the browser default for <address>. */}
               <address className="mt-6 not-italic">
                 <ul className="space-y-3.5">
                   <ContactRow
@@ -435,8 +287,6 @@ export function Footer() {
                       />
                     }
                   >
-                    {/* tel: wants the number unpunctuated; the label keeps the
-                        spacing a person reads it with. */}
                     <a href="tel:+918590371761" className="ft-link">
                       +91 85903 71761
                     </a>
@@ -463,9 +313,7 @@ export function Footer() {
           </div>
         </ScrollStagger>
 
-        {/* The small print. Reversed on a phone so the copyright — the thing
-            almost nobody is looking for — ends up under the two links that
-            somebody occasionally is. */}
+        {/* Reversed on mobile so the copyright sits below the legal links. */}
         <div
           className={cn(
             "mt-11 flex flex-col-reverse items-center gap-5 border-t border-[color:var(--hair-1)] pt-6",
@@ -473,20 +321,8 @@ export function Footer() {
           )}
         >
           <p className="text-[12.5px] text-fg/30">
-            {/* The registered company, not the brand, and this is the one
-                place on the site where that is the right choice.
-
-                A copyright line is a legal notice — it is asserting who holds
-                the rights — so it wants the registered entity. It is also the
-                conventional place a crawler finds a legal name to corroborate
-                the `legalName` published in the structured data, which is what
-                turns two strings into one confirmed entity rather than a claim
-                nothing on the page supports.
-
-                Everywhere else — the title tag, the H1, the navbar, the hero —
-                stays "Shahi Solutions". A legal suffix in a heading spends
-                characters a search result does not have and reads as
-                paperwork. */}
+            {/* Legal name here only (matches `legalName` in the structured
+                data). Everywhere else uses the brand name. */}
             © {YEAR} {LEGAL_NAME}. All rights reserved.
           </p>
 

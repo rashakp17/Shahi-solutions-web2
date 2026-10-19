@@ -1,18 +1,11 @@
 import { Renderer, Program, Mesh, Triangle, Texture } from 'ogl';
 
-/* ------------------------------------------------------------------
-   The warp's WebGL half, with no DOM in it.
-
-   Split out of WarpText.jsx so it can run in two places: a Web Worker
-   drawing into an OffscreenCanvas (the normal path — see warp.worker.js)
-   and the main thread, as the fallback where OffscreenCanvas is missing.
-   The shader, the warp maths and the pointer lensing are exactly the
-   React Bits originals; only where they run has changed.
-
-   What stays on the main thread is the sentence's rasterisation, because
-   it needs the DOM — a probe span to resolve the font, letter-spacing and
-   line-height the page would actually use. It arrives here as an image.
-   ------------------------------------------------------------------ */
+/*
+   WebGL renderer for WarpText, with no DOM access so it can run in a worker
+   (warp.worker.js) or on the main thread as a fallback. Shader and warp
+   logic are unchanged from React Bits. The text is rasterised on the main
+   thread (it needs the DOM) and passed in as an image.
+*/
 
 const vertex = `#version 300 es
 in vec2 position;
@@ -124,20 +117,12 @@ void main() {
 `;
 
 /**
- * Compiles and links the shader pair off the main thread, and resolves once
- * the GPU process has finished.
+ * Pre-compiles the shaders without blocking, using KHR_parallel_shader_compile.
  *
- * ogl's Program compiles and then immediately asks for the info log and the
- * link status, and either query blocks the main thread until the driver is
- * done. For this fragment shader that measured ~100–230ms in one task, and it
- * lands mid-scroll, because the component is mounted on approach.
- *
- * With KHR_parallel_shader_compile the same compile runs while the page keeps
- * scrolling, polled through COMPLETION_STATUS_KHR, which never blocks. The
- * program is then thrown away: what is kept is the GPU process's program
- * cache, keyed on the source, so the Program built afterwards from identical
- * source links from cache instead of from scratch. Without the extension this
- * resolves at once and the component behaves exactly as before.
+ * ogl's Program checks link status right after compiling, which blocks the
+ * main thread (100ms+ for this shader). Here we poll COMPLETION_STATUS_KHR
+ * instead, then discard the program; the driver's cache makes the real
+ * Program link quickly afterwards. Resolves immediately without the extension.
  */
 export const warmShader = (gl, vertexSource, fragmentSource) =>
   new Promise(resolve => {
@@ -166,7 +151,7 @@ export const warmShader = (gl, vertexSource, fragmentSource) =>
         performance.now() - started > 3000;
 
       if (!done) {
-        // setTimeout rather than rAF, so a backgrounded tab still finishes.
+        // setTimeout, not rAF, so it still completes in a background tab.
         setTimeout(poll, 24);
         return;
       }
@@ -180,8 +165,7 @@ export const warmShader = (gl, vertexSource, fragmentSource) =>
   });
 
 /**
- * One warp. `onFrame` schedules the next animation frame on whichever thread
- * this is running on; everything else is plain WebGL through ogl.
+ * `requestFrame`/`cancelFrame` are passed in so this works on either thread.
  *
  * @param {{
  *   canvas: HTMLCanvasElement | OffscreenCanvas,
@@ -287,7 +271,7 @@ export function createWarpRenderer({ canvas, dpr, uniforms, reduceMotion, reques
 
   return {
     gl,
-    /** Compile and link. Callers on the main thread warm the shader first. */
+    /** Compile and link. Main-thread callers run warmShader first. */
     build() {
       build();
       kick();
@@ -300,7 +284,7 @@ export function createWarpRenderer({ canvas, dpr, uniforms, reduceMotion, reques
         program.uniforms.uResolution.value[1] = gl.drawingBufferHeight;
       }
     },
-    /** The rasterised sentence: a canvas on the main thread, an ImageBitmap in a worker. */
+    /** Text image: a canvas on the main thread, an ImageBitmap in the worker. */
     setImage(image) {
       if (!ready) return;
       const previous = texture.image;

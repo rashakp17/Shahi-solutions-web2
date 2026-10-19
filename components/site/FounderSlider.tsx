@@ -13,39 +13,14 @@ import { cn } from "@/lib/cn";
 /** Time on each card before it advances, ms. */
 const INTERVAL = 2000;
 
-/**
- * How long the slider waits after the visitor touches it before taking over
- * again. Long enough that reading a card, or swiping back to one, is not
- * immediately undone; short enough that an accidental brush does not stop the
- * thing for good.
- */
+/** Pause after user interaction before auto-advancing resumes, ms. */
 const RESUME_AFTER = 6000;
 
 /**
- * An auto-advancing slider, built on the scroll container it already needs.
- *
- * The track is a real horizontally scrolling element with CSS scroll-snap, and
- * advancing is `scrollTo`. That is deliberate rather than the transform-based
- * carousel this would usually be: a scroll container gets native touch
- * dragging, momentum, snapping, keyboard scrolling and the platform's own
- * rubber-banding for free, and all of it behaves the way the rest of the phone
- * does. A transform track has to reimplement every one of those, and the
- * reimplementation is always slightly wrong.
- *
- * It also means the slider degrades honestly: with JavaScript disabled the
- * markup is still a scrollable row of cards that a person can swipe. Nothing
- * is hidden behind the script — the script only takes over the advancing.
- *
- * ── Pausing ──
- * Content that moves on its own has to be stoppable, and it stops for three
- * different reasons here:
- *
- *   the visitor touches it   they are reading, or steering; either way the
- *                            slider should not fight them
- *   it scrolls off screen    advancing a slider nobody can see burns frames
- *                            and loses the visitor's place in it
- *   reduced motion           it never advances at all, and stays a plain
- *                            swipeable row
+ * Auto-advancing slider on a native scroll-snap container (advances with
+ * scrollTo), so touch, momentum and keyboard scrolling work natively and it
+ * still works without JS. Pauses on interaction, when off screen, and never
+ * advances with reduced motion.
  */
 export function FounderSlider({
   children,
@@ -54,7 +29,7 @@ export function FounderSlider({
 }: {
   children: ReactNode;
   className?: string;
-  /** Names the group for anyone arriving on it with a screen reader. */
+  /** Accessible name for the list. */
   label: string;
 }) {
   const trackRef = useRef<HTMLUListElement | null>(null);
@@ -62,7 +37,7 @@ export function FounderSlider({
   const count = slides.length;
 
   const [index, setIndex] = useState(0);
-  /** Set while the visitor is steering, and for a beat afterwards. */
+  /** True during user interaction and for RESUME_AFTER ms afterwards. */
   const heldRef = useRef(false);
   const resumeRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -75,7 +50,6 @@ export function FounderSlider({
     });
   }, []);
 
-  /** Called by anything the visitor does to the track. */
   const hold = useCallback(() => {
     heldRef.current = true;
     clearTimeout(resumeRef.current);
@@ -84,10 +58,8 @@ export function FounderSlider({
     }, RESUME_AFTER);
   }, []);
 
-  // Keep `index` in step with wherever the track actually is — whether it got
-  // there from the timer, a swipe, or a keyboard scroll. Reading the scroll
-  // position rather than tracking it separately means there is one source of
-  // truth and the dots can never disagree with the cards.
+  // Derive `index` from the scroll position so the dots always match the
+  // visible card, however it got there.
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
@@ -109,7 +81,7 @@ export function FounderSlider({
     };
   }, [count]);
 
-  // The advance itself.
+  // Auto-advance.
   useEffect(() => {
     const track = trackRef.current;
     if (!track || count < 2) return;
@@ -142,8 +114,6 @@ export function FounderSlider({
     <div className={className}>
       <ul
         ref={trackRef}
-        // aria-label rather than a list role change: it is still a list of
-        // people, it just happens to scroll.
         aria-label={label}
         className="fd-track"
         onPointerDown={hold}
@@ -159,10 +129,7 @@ export function FounderSlider({
         ))}
       </ul>
 
-      {/* Position, and a way to steer. Deliberately real buttons rather than
-          decorative dots — on a slider that moves by itself, the ability to go
-          back to the card that just left is the difference between a control
-          and a decoration. */}
+      {/* Dots are real buttons so users can go back to a card. */}
       <div className="fd-dots">
         {slides.map((_, i) => (
           <button

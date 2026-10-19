@@ -12,61 +12,49 @@ import type { Faq } from "@/lib/resources/types";
 export const metadata: Metadata = {
   title: "Custom Software Development Services",
   description:
-    "Custom software development for businesses that have outgrown their tools — ERP and CRM platforms, operations systems, integrations and customer-facing products, built to be owned.",
+    "Custom software development for businesses that have outgrown their tools: ERP and CRM platforms, operations systems, integrations and customer-facing products that you own.",
   alternates: { canonical: "/services/custom-software-development" },
   ...socialMetadata({
     title: "Custom Software Development Services | Shahi Solutions",
     description:
-      "ERP and CRM platforms, operations systems, integrations and customer-facing products — designed around how your business already works.",
+      "ERP and CRM platforms, operations systems, integrations and customer-facing products, designed around how your business already works.",
     path: "/services/custom-software-development",
   }),
 };
 
 /**
- * What we build, in the five shapes the resource cluster uses.
- *
- * The categories are the same ones, in the same order, with the same names.
- * That is not a shortcut — it is what makes the article and this page read as
- * one argument rather than as marketing and content written by different
- * people. A reader who arrives here from
- * /resources/custom-software-development-examples should recognise the ground.
+ * Same categories, order and names as the custom-software-development-examples
+ * article. Keep them in sync.
  */
 const CAPABILITIES = [
   {
     title: "Systems of record",
     body: "ERP and CRM platforms, inventory and case management. One authoritative version of a stock level, a customer or a job, with every screen reading from it.",
-    detail: "Where reconciliation meetings stop being necessary.",
+    detail: "No more meetings to work out whose numbers are right.",
   },
   {
     title: "Operations tools",
     body: "Dispatch consoles, scheduling boards, approval queues and offline-capable field apps, designed around the person doing the work rather than the data model beneath it.",
-    detail: "Judged in seconds saved per task, not in features.",
+    detail: "Measured by the time they save on each task.",
   },
   {
     title: "Integration & automation",
-    body: "Layers that make existing systems agree — a canonical mapping, a scheduled sync and an exception queue — plus document generation and reporting driven from live records.",
+    body: "Connections that keep your existing systems in step (shared data mapping, scheduled syncs and an exception queue), plus document generation and reporting from live records.",
     detail: "Usually the smallest project with the clearest return.",
   },
   {
     title: "Customer-facing products",
-    body: "Storefronts with real product customisation, booking platforms and customer portals, built to the standard the market sets rather than the one staff will tolerate.",
-    detail: "Where the software is the thing being sold.",
+    body: "Storefronts with real product customisation, booking platforms and customer portals, built to the standard your customers expect.",
+    detail: "Here the software is part of what you sell.",
   },
   {
     title: "Data & reporting",
     body: "Migration from whatever the operation runs on today, and the reporting layer that makes the new system answer questions the old one could not.",
-    detail: "Rehearsed against production data before launch day.",
+    detail: "Tested against real data before launch day.",
   },
 ];
 
-/**
- * How we work — the process, compressed to what a buyer needs on this page.
- *
- * The full version is the process article, and this deliberately does not try
- * to be it. Five lines and a link is the right amount of process on a service
- * page; the reader who wants the failure modes of each phase is one click from
- * two thousand words about them.
- */
+/** Short summary of the process; the full version is the process article. */
 const PHASES = [
   {
     name: "Discovery",
@@ -74,11 +62,11 @@ const PHASES = [
   },
   {
     name: "Design",
-    body: "The data model first, because it is the decision that is cheapest now and most expensive later. Interface designs at real fidelity alongside it, responsive from the outset.",
+    body: "We start with the data model, because it is cheap to change now and expensive to change later. Detailed, responsive interface designs are made alongside it.",
   },
   {
     name: "Build",
-    body: "One- to two-week increments, each ending with working software on a staging URL you can open. Not a percentage-complete report.",
+    body: "One- to two-week cycles, each ending with working software on a staging link you can open and try, instead of a progress report.",
   },
   {
     name: "Testing",
@@ -86,7 +74,7 @@ const PHASES = [
   },
   {
     name: "Launch & handover",
-    body: "A rehearsed migration, monitoring live before launch, and every account — repository, hosting, domains — in your name from day one.",
+    body: "A rehearsed data migration, monitoring in place before go-live, and every account (repository, hosting, domains) in your name from day one.",
   },
 ];
 
@@ -97,11 +85,11 @@ const FAQS: Faq[] = [
   },
   {
     q: "How do projects start?",
-    a: "With a discovery engagement — typically two to four weeks — that produces a written scope, a prioritised backlog and a fixed price. You can commission discovery on its own and take the specification anywhere, including to another supplier.",
+    a: "With a discovery phase, usually two to four weeks, that produces a written scope, a prioritised backlog and a fixed price. You can commission discovery on its own and take the specification anywhere, including to another supplier.",
   },
   {
     q: "How much does a project cost?",
-    a: "A focused automation or integration runs from around $4,000 to $18,000, an internal operations tool from $12,000 to $40,000, and a full platform from $40,000 upward. The number is driven more by the count of distinct user roles than by the count of screens.",
+    a: "It depends on the type of project, from a focused automation at the small end to a full platform at the large end. The number is driven more by the count of distinct user roles than by the count of screens. Discovery gives you a fixed price before the build starts.",
   },
   {
     q: "Who owns the code and the infrastructure?",
@@ -109,11 +97,11 @@ const FAQS: Faq[] = [
   },
   {
     q: "Will you tell me if I should buy something instead?",
-    a: "Yes. If a subscription product does what you need, that is the recommendation you will get. It is a short conversation and it saves everyone a year.",
+    a: "Yes. If a subscription product does what you need, that is the recommendation you will get. It is a short conversation, and it can save you a year.",
   },
   {
     q: "What happens after launch?",
-    a: "A support window, then an ongoing maintenance arrangement covering security and dependency updates, monitoring and fixes — typically 15 to 20 percent of the build cost per year. Enhancement work is quoted separately and is your call each year.",
+    a: "A support window, then an ongoing maintenance arrangement covering security and dependency updates, monitoring and fixes, typically 15 to 20 percent of the build cost per year. Enhancement work is quoted separately and is your call each year.",
   },
 ];
 
@@ -128,23 +116,14 @@ export default function CustomSoftwareDevelopmentPage() {
   const path = "/services/custom-software-development";
 
   /**
-   * `Service` plus the breadcrumb.
-   *
-   * The FAQ on this page is deliberately *not* published as `FAQPage`. Google
-   * narrowed that rich result to authoritative government and health sources
-   * in 2023, so on a commercial service page it earns nothing — and marking up
-   * a sales FAQ as though it were reference material is the kind of technically
-   * valid, practically dishonest signal this section is built to avoid. The
-   * questions are on the page because buyers ask them; that is reason enough.
-   * The articles keep their `FAQPage` because they are genuinely informational.
+   * Service and BreadcrumbList JSON-LD. No `FAQPage` here: Google limits that
+   * rich result to government and health sites, so it doesn't apply to a
+   * commercial page.
    */
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      /* The full organisation, referenced by `@id` from the Service below —
-         same reasoning as on the articles: one description of the company,
-         emitted wherever it is needed, rather than a thinner inline copy per
-         page that quietly disagrees with the canonical one. */
+      /* Full org node, referenced by `@id` from the Service. */
       organizationNode(),
       {
         "@type": "Service",
@@ -152,7 +131,7 @@ export default function CustomSoftwareDevelopmentPage() {
         name: "Custom Software Development",
         serviceType: "Custom software development",
         description:
-          "Custom software development for businesses that have outgrown their tools — ERP and CRM platforms, operations systems, integrations and customer-facing products.",
+          "Custom software development for businesses that have outgrown their tools: ERP and CRM platforms, operations systems, integrations and customer-facing products.",
         url: absolute(path),
         provider: { "@id": `${absolute("/")}#organization` },
         areaServed: "Worldwide",
@@ -202,10 +181,10 @@ export default function CustomSoftwareDevelopmentPage() {
           </h1>
 
           <p className="rs-lead">
-            We build software for businesses that have outgrown their tools —
+            We build software for businesses that have outgrown their tools:
             platforms, operations systems and integrations designed around how
-            the work already happens, rather than products the work has to be
-            bent to fit. Everything we build, you own.
+            your team already works, instead of products your work has to bend
+            to fit. You own everything we build.
           </p>
 
           <div className="rs-cta-actions rs-hero-actions">
@@ -219,7 +198,7 @@ export default function CustomSoftwareDevelopmentPage() {
               href="/resources/custom-software-development-cost"
               className="rs-cta-secondary"
             >
-              See what it costs
+              What drives the cost
             </Link>
           </div>
         </header>
@@ -228,10 +207,9 @@ export default function CustomSoftwareDevelopmentPage() {
           <section id="what-we-build" className="rs-section">
             <h2 className="rs-h2">What we build</h2>
             <p className="rs-p">
-              Five shapes cover almost everything a business commissions.
-              Knowing which one you are looking at is most of the estimating
-              work, because each has a very different centre of gravity — and
-              it is the first thing discovery establishes.
+              Almost every project we take on falls into one of five types.
+              Working out which one you need is most of the estimating work, so
+              it is the first thing we settle in discovery.
             </p>
 
             <ol className="rs-examples">
@@ -248,10 +226,9 @@ export default function CustomSoftwareDevelopmentPage() {
           <section id="how-we-work" className="rs-section">
             <h2 className="rs-h2">How we work</h2>
             <p className="rs-p">
-              Five phases, and the build is under half of it. The phases either
-              side are where projects are won or lost: discovery decides whether
-              the right thing gets built, and handover decides whether it
-              survives us.
+              There are five phases, and the build itself is less than half the
+              work. Discovery makes sure the right thing gets built, and handover
+              makes sure you can run it without us.
             </p>
 
             <ol className="rs-phases">
@@ -270,8 +247,8 @@ export default function CustomSoftwareDevelopmentPage() {
 
             <aside className="rs-bridge">
               <p className="rs-bridge-prompt">
-                Each phase, with what it produces and the specific way it fails
-                when it is rushed.
+                What each phase produces, and what goes wrong when it is
+                rushed.
               </p>
               <Link
                 href="/resources/custom-software-development-process"
@@ -288,9 +265,9 @@ export default function CustomSoftwareDevelopmentPage() {
           <section id="what-you-own" className="rs-section">
             <h2 className="rs-h2">What you own</h2>
             <p className="rs-p">
-              This is written into the agreement before the first line of code,
-              and it is the part of an engagement that decides whether the
-              project produced an asset or a liability.
+              Ownership is written into the agreement before any code is
+              written. It is what makes the finished system an asset you
+              control.
             </p>
             <ul className="rs-list">
               <li className="rs-list-item">
@@ -302,8 +279,7 @@ export default function CustomSoftwareDevelopmentPage() {
               <li className="rs-list-item">
                 <span className="rs-list-text">
                   <strong className="rs-strong">The infrastructure</strong>, in
-                  accounts held in your name — not in ours with a bill forwarded
-                  on.
+                  accounts held in your name, not ours.
                 </span>
               </li>
               <li className="rs-list-item">
@@ -334,16 +310,10 @@ export default function CustomSoftwareDevelopmentPage() {
         <CaseStudyRail
           studies={studies}
           heading="Custom software we have built"
-          intro="Three builds from the portfolio, each commissioned because nothing on the market did the job — with what was made and why."
+          intro="Three projects from our portfolio, each built because nothing on the market did the job."
         />
 
-        {/* The funnel, running the other way.
-
-            A visitor who arrived here from an article has already read one of
-            these; a visitor who arrived from the home page has read none, and
-            these are the pages that answer the questions a service page cannot
-            without becoming an essay. Linking back into the cluster is what
-            makes the section a loop rather than a one-way ramp. */}
+        {/* Links back to the cluster's articles. */}
         <section className="rs-related" aria-labelledby="svc-guides-head">
           <p className="rs-eyebrow">Before you commission anything</p>
           <h2 id="svc-guides-head" className="rs-h2">

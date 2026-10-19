@@ -1,29 +1,14 @@
 /**
- * The particle field's simulation and drawing, with no DOM in it.
- *
- * Shared by the two places the field can run: a Web Worker drawing into an
- * OffscreenCanvas (the normal path — see particles.worker.ts), and the main
- * thread, as a fallback for browsers without OffscreenCanvas. Everything here
- * takes a 2D context and a tile factory rather than reaching for `document`,
- * which a worker does not have.
+ * Particle simulation and drawing, shared by the worker (particles.worker.ts)
+ * and the main-thread fallback. No DOM access: takes a 2D context and a tile
+ * factory since workers have no `document`.
  */
 
 export type Ink = { core: string; pale: string; halo: string };
 
 /**
- * The field, in both lights.
- *
- * Canvas takes numbers, not custom properties, so this is the one palette in
- * the project that has to be written out twice rather than flipping on its
- * own. See lib/useTheme.ts.
- *
- * The light set is not the dark set darkened. On black these are points of
- * light and the pale one is the brightest — it is what a particle near the
- * front looks like. On white there is nothing brighter than the ground, so
- * the field becomes ink instead: the "pale" role, still meaning "the ones in
- * front", becomes the *darkest* of the three rather than the lightest, and
- * the halo stays a mid blue because a soft blue bloom is one of the few
- * additive effects that survives being put on paper.
+ * Per-theme colours (canvas can't read CSS variables; see lib/useTheme.ts).
+ * On light, "pale" is the darkest colour since particles are drawn as ink.
  */
 export const PALETTE = {
   dark: { core: "138,178,255", pale: "232,238,252", halo: "109,155,255" },
@@ -33,17 +18,17 @@ export const PALETTE = {
 type Particle = {
   x: number;
   y: number;
-  /** 0 = far and faint, 1 = near, larger and quicker. */
+  /** 0 = far/faint, 1 = near/larger/faster. */
   depth: number;
   r: number;
   /** Drift velocity in px/second. */
   vx: number;
   vy: number;
   alpha: number;
-  /** Lateral sway, so travel is never a straight vertical line. */
+  /** Horizontal sway. */
   swayAmp: number;
   swaySpeed: number;
-  /** Independent fade cycle — each point breathes on its own period. */
+  /** Per-particle fade cycle speed. */
   fadeSpeed: number;
   phase: number;
   blue: boolean;
@@ -52,16 +37,9 @@ type Particle = {
 const DENSITY = 1 / 8200; // particles per CSS pixel²
 const MAX_PARTICLES = 170;
 
-/* ------------------------------------------------------------------
-   Sprites.
-
-   Points are stamped from pre-rendered tiles rather than rebuilt as a
-   path each frame. Per point per frame the old loop did: beginPath, arc,
-   a template-literal `rgba(...)`, a CSS colour parse, fill — and again
-   for the halo. A sprite reduces the inner loop to one alpha write and
-   one drawImage. The tiles are built once per size, and rebuilt only
-   when the device pixel ratio or the palette actually changes.
-   ------------------------------------------------------------------ */
+// Sprites: points are drawn from pre-rendered tiles (one drawImage each)
+// instead of building paths per frame. Tiles are rebuilt only when the DPR
+// or palette changes.
 
 /** Tile radius, CSS px. Points scale down from this, never up. */
 const SPRITE_R = 12;
@@ -88,7 +66,7 @@ function makeSprite(
   return tile;
 }
 
-/** A point: solid to `CORE_SOLID`, then a short feather standing in for AA. */
+/** Solid to `CORE_SOLID`, then a short feathered edge. */
 function makeDot(newTile: TileFactory, dpr: number, rgb: string) {
   return makeSprite(newTile, dpr, (g, r) => {
     const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
@@ -102,7 +80,7 @@ function makeDot(newTile: TileFactory, dpr: number, rgb: string) {
   });
 }
 
-/** The halo on the nearest points — near-flat, so it reads as the old disc. */
+/** Soft halo for the nearest points. */
 function makeHalo(newTile: TileFactory, dpr: number, rgb: string) {
   return makeSprite(newTile, dpr, (g, r) => {
     const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
@@ -117,9 +95,8 @@ function makeHalo(newTile: TileFactory, dpr: number, rgb: string) {
 }
 
 /**
- * One field. `resize` sizes the backing store and reseeds the points; `step`
- * advances and draws one frame; `paint` draws without advancing (the static
- * frame for reduced motion).
+ * `resize` sizes the canvas and reseeds points; `step` advances and draws;
+ * `paint` draws without advancing (used for the reduced-motion frame).
  */
 export function createParticleEngine(
   canvas: Tile,
@@ -161,9 +138,7 @@ export function createParticleEngine(
     );
 
     particles = Array.from({ length: Math.max(count, 0) }, () => {
-      // Cubed so most points sit far back and only a few come forward —
-      // with a dense field this is what keeps it from reading as a
-      // starfield: the great majority are barely there.
+      // Cubed so most points are far back and faint.
       const depth = Math.pow(Math.random(), 3);
 
       return {
@@ -171,8 +146,7 @@ export function createParticleEngine(
         y: Math.random() * height,
         depth,
         r: 0.3 + depth * 1.5,
-        // A third drift sideways or downward instead of up, so the field
-        // has no single direction of travel.
+        // About a third drift sideways or down instead of up.
         vx: (Math.random() - 0.5) * (3 + depth * 7),
         vy:
           Math.random() < 0.32
@@ -193,14 +167,14 @@ export function createParticleEngine(
     if (!blueDot || !paleDot || !haloDot) return;
 
     for (const p of particles) {
-      // Two unrelated periods: a slow fade cycle, plus the sway offset.
+      // Fade cycle and sway use separate periods.
       const fade = 0.45 + 0.55 * Math.sin(p.phase + seconds * p.fadeSpeed);
       const a = fade > 0 ? p.alpha * fade : 0;
       if (a <= 0.002) continue;
 
       const x = p.x + Math.sin(p.phase + seconds * p.swaySpeed) * p.swayAmp;
 
-      // A faint halo on the nearest points only — cheap sense of depth.
+      // Halo on the nearest points only.
       if (p.depth > 0.55) {
         const hr = p.r * 3.6;
         ctx.globalAlpha = a * 0.07;
@@ -221,8 +195,7 @@ export function createParticleEngine(
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
-      // Wrap on every edge — the field drifts in mixed directions, so it
-      // would deplete from the bottom if only the top were handled.
+      // Wrap on all edges since particles move in mixed directions.
       if (p.y < -14) {
         p.y = height + 14;
         p.x = Math.random() * width;
@@ -243,7 +216,7 @@ export function createParticleEngine(
     setIntensity(v: number) {
       intensity = v;
     },
-    /** New palette: rebuild the tiles in place, keep the points. */
+    /** Rebuild sprites for the new palette; points are kept. */
     setInk(next: Ink) {
       ink = next;
       if (width) sprites(dprNow);

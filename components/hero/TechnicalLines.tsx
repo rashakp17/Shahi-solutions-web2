@@ -2,16 +2,9 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * Barely-visible technical linework: hairline rules, coordinate ticks,
- * measurement brackets and wide arcs.
- *
- * Drawn as two SVG passes on different parallax planes. The viewBox is
- * sliced rather than stretched, so nothing skews on wide or narrow screens,
- * and every path is kept out of the central band where the headline sits.
- *
- * Stroke opacities run 0.03–0.09 against a near-black ground — under the
- * vignette these are essentially invisible until you look for them, which is
- * the intent. They give the empty areas of the screen something to hold.
+ * Faint technical linework (rules, ticks, brackets, arcs) in two SVG passes
+ * for the far and mid parallax planes. Uses `slice` so nothing skews, and
+ * keeps paths out of the central headline area.
  */
 
 const stroke = "currentColor";
@@ -25,7 +18,7 @@ function lineVars(x: number, y: number, duration: number, delay: number): CSSPro
   } as CSSProperties;
 }
 
-/** Small coordinate cross, the kind that marks a datum on a technical plot. */
+/** Small crosshair mark. */
 function Tick({ x, y, s = 5, o = 0.5 }: { x: number; y: number; s?: number; o?: number }) {
   return (
     <g opacity={o}>
@@ -35,7 +28,7 @@ function Tick({ x, y, s = 5, o = 0.5 }: { x: number; y: number; s?: number; o?: 
   );
 }
 
-/** Corner bracket — a framing mark, like a crop or measurement guide. */
+/** Corner bracket. */
 function Bracket({
   x,
   y,
@@ -74,7 +67,7 @@ export function TechnicalLines({ variant }: { variant: "far" | "mid" }) {
           <circle cx={720} cy={1480} r={880} />
         </g>
 
-        {/* Hairline rules — edges only, nothing crosses the headline */}
+        {/* Hairline rules, edges only */}
         <g opacity={0.4}>
           <line x1={0} y1={132} x2={392} y2={132} />
           <line x1={1048} y1={132} x2={1440} y2={132} />
@@ -84,7 +77,7 @@ export function TechnicalLines({ variant }: { variant: "far" | "mid" }) {
           <line x1={1244} y1={690} x2={1244} y2={900} />
         </g>
 
-        {/* Long shallow diagonals reaching in from the corners */}
+        {/* Corner diagonals */}
         <g opacity={0.3}>
           <line x1={-40} y1={640} x2={360} y2={900} />
           <line x1={1480} y1={210} x2={1090} y2={-30} />
@@ -95,14 +88,14 @@ export function TechnicalLines({ variant }: { variant: "far" | "mid" }) {
 
   return (
     <svg {...common} opacity={0.16}>
-      {/* Measurement brackets in the corners */}
+      {/* Corner brackets */}
       <g strokeLinecap="square">
         <Bracket x={72} y={96} w={54} h={54} o={0.5} />
         <Bracket x={1368} y={804} w={-54} h={-54} o={0.5} />
         <Bracket x={72} y={804} w={40} h={-40} o={0.32} />
       </g>
 
-      {/* Coordinate ticks, scattered around the edges */}
+      {/* Ticks around the edges */}
       <g opacity={0.6}>
         <Tick x={148} y={318} />
         <Tick x={92} y={556} s={4} o={0.4} />
@@ -114,7 +107,7 @@ export function TechnicalLines({ variant }: { variant: "far" | "mid" }) {
         <Tick x={824} y={848} s={4} o={0.3} />
       </g>
 
-      {/* Short scale marks — a ruler edge running down each side */}
+      {/* Ruler marks on each side */}
       <g opacity={0.34}>
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <line key={`l-${i}`} x1={40} y1={300 + i * 44} x2={i % 2 ? 52 : 60} y2={300 + i * 44} />
@@ -124,7 +117,7 @@ export function TechnicalLines({ variant }: { variant: "far" | "mid" }) {
         ))}
       </g>
 
-      {/* A couple of geometric paths */}
+      {/* Geometric paths */}
       <g opacity={0.26}>
         <polyline points="112,206 214,206 268,142" />
         <polyline points="1328,668 1226,668 1170,732" />
@@ -135,7 +128,7 @@ export function TechnicalLines({ variant }: { variant: "far" | "mid" }) {
   );
 }
 
-/** Wraps a linework pass in its own extremely slow independent shift. */
+/** Linework pass wrapped in its own slow shift animation. */
 export function TechnicalLinesLayer({
   variant,
   className,

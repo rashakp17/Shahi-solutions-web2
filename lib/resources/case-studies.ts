@@ -1,48 +1,23 @@
 /**
- * The work, in the reduced form a resource article needs.
+ * Case studies shown under resource articles.
  *
- * ── Why this is not imported from ProjectsSection ──
- * That component holds the same five projects, and duplicating them is a real
- * cost that was weighed rather than overlooked. Its `Project` type carries a
- * `ReactNode` of hand-drawn fallback art per project and a `TechKey[]` resolved
- * against a registry of drawn logos — several hundred lines of JSX which exist
- * to make a full-bleed deck card work, and which a link under an article has
- * no use for. Importing it would pull that whole tree into the resource routes
- * to read six strings off it, and `ProjectsSection` is a client component, so
- * it would cross the boundary as well.
- *
- * What is duplicated is six fields per project. What matters is that the two
- * cannot silently disagree about anything a reader would notice: the titles,
- * categories and live URLs are the same strings, and `relevance` — the one
- * field that is not a copy — exists only here, because "why this project is
- * under this article" is a question the homepage deck never asks.
- *
- * If a sixth project lands, it goes in both. If that stops being tolerable,
- * the move is to lift the six shared fields into one module and have
- * ProjectsSection attach its art to them by id — not to import the deck here.
+ * Duplicates a few fields from ProjectsSection instead of importing it, to
+ * avoid pulling that client component and its artwork into resource routes.
+ * Keep titles, categories and URLs in sync when adding a project.
  */
 
 export type CaseStudy = {
   id: string;
   title: string;
-  /** The label above the title, in caps. Same string the deck card uses. */
+  /** Label above the title. Same as the homepage card. */
   category: string;
-  /**
-   * One sentence on what was built. Shorter than the deck's copy, because
-   * this appears three-across under an article rather than as the subject of
-   * a full-width card.
-   */
+  /** One sentence on what was built. */
   summary: string;
-  /**
-   * Why an article is pointing at it. Written per project rather than per
-   * article — a project is relevant for the same reason wherever it is cited,
-   * and writing it once means the reason cannot be contradicted by the next
-   * article to cite it.
-   */
+  /** Why this project is relevant to the article citing it. */
   relevance: string;
-  /** The live site, where there is one. */
+  /** Live site URL, if any. */
   href?: string;
-  /** A capture of the real thing, once the file exists. See `shot` below. */
+  /** Screenshot. */
   shot?: { src: string; alt: string };
 };
 
@@ -94,7 +69,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     summary:
       "A dark, scroll-led studio site for an interiors and turnkey fit-out practice working across India and the UAE.",
     relevance:
-      "What a bespoke front end buys when the brand experience is the product — nothing on a template gets here.",
+      "Shows what a bespoke front end can do when the brand experience is the product. A template could not get here.",
     href: "https://moodbyteal.com/",
     shot: {
       src: "/projects/mood-by-teal.webp",
@@ -119,14 +94,7 @@ export const CASE_STUDIES: CaseStudy[] = [
 
 const BY_ID = new Map(CASE_STUDIES.map((study) => [study.id, study]));
 
-/**
- * Resolve a list of ids, skipping anything unknown.
- *
- * Silently rather than throwing: an article naming a project that has since
- * been renamed should lose one card under it, not take the whole route down
- * with a build error. The ids are ours and typos are caught the first time
- * the page is opened.
- */
+/** Looks up case studies by id, skipping unknown ids instead of throwing. */
 export function caseStudiesByIds(ids: string[]): CaseStudy[] {
   return ids.map((id) => BY_ID.get(id)).filter((s): s is CaseStudy => !!s);
 }

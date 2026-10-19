@@ -1,45 +1,12 @@
 import type { CSSProperties } from "react";
 import type { DiagramKey } from "@/lib/resources/types";
 
-/* ------------------------------------------------------------------
-   The article figures
-
-   ── Why these are HTML and not SVG ──
-   Every one of these is a diagram whose content is labelled quantities or
-   labelled boxes, and for that shape HTML wins on four counts that all
-   matter here:
-
-     It reflows. An SVG has one aspect ratio and one internal layout; a
-     five-phase bar drawn wide enough to label on a desktop is illegible
-     at 360px, and the usual fix is to ship two drawings and hide one.
-     These are flex and grid, so the same markup becomes a column on a
-     phone and a row on a laptop.
-
-     The text is text. Real DOM text is selectable, searchable, indexable
-     and read correctly by a screen reader in document order — none of
-     which is reliably true of <text> inside an <svg>. On a page whose
-     entire purpose is that its content is genuinely readable, drawing
-     the words would be exactly the wrong trade.
-
-     It costs no layout shift. An SVG with text in it re-lays that text
-     out when the webfont arrives. A diagram made of divs shifts no more
-     than the paragraph above it.
-
-     It themes for free. Everything below is drawn from the same custom
-     properties as the rest of the site, so all five follow the toggle
-     without a second palette.
-
-   None of them are decorative. Each one carries information the prose
-   states but does not show — a proportion, a coverage, a topology — and
-   each is captioned by the block that renders it.
-   ------------------------------------------------------------------ */
+/* Article diagrams, built with HTML/CSS rather than SVG so they reflow on
+   mobile, keep real accessible text and follow the theme variables. */
 
 /**
- * The five phases, and the share of a typical engagement each takes.
- *
- * The numbers are the midpoints of the ranges the process article gives, and
- * they sum to 100 deliberately: a proportion diagram whose parts do not add up
- * is a diagram somebody will check.
+ * Share of a typical project per phase. Midpoints of the ranges in the
+ * process article; must sum to 100.
  */
 const PHASES = [
   { name: "Discovery & scoping", share: 15, note: "2–4 weeks" },
@@ -63,10 +30,7 @@ function BuildProcess() {
             <span className="rs-bar-note">{phase.note}</span>
           </span>
 
-          {/* The track is aria-hidden and the share is announced from the
-              value beside it instead. A screen reader has no use for a
-              rectangle, and reading "15%" once is the whole of the
-              information the bar carries. */}
+          {/* Decorative; the value is read from the label beside it. */}
           <span className="rs-bar-track" aria-hidden="true">
             <span
               className="rs-bar-fill"
@@ -81,13 +45,7 @@ function BuildProcess() {
   );
 }
 
-/**
- * Where the money goes in a mid-sized build.
- *
- * A single stacked bar rather than a second list of bars, because the point
- * this figure makes is about the *whole* — that feature code is a minority of
- * a total — and a stack is the only form that shows a total.
- */
+/** Cost breakdown of a mid-sized build, shown as one stacked bar. */
 const COST_PARTS = [
   { name: "Discovery & scope", share: 15 },
   { name: "Design & architecture", share: 12 },
@@ -111,8 +69,7 @@ function CostComposition() {
         ))}
       </div>
 
-      {/* The legend is the accessible copy of the bar above it — same order,
-          same numbers, as a real list. */}
+      {/* Legend doubles as the accessible version of the bar. */}
       <ul className="rs-legend">
         {COST_PARTS.map((part, i) => (
           <li key={part.name} className="rs-legend-item">
@@ -130,14 +87,7 @@ function CostComposition() {
   );
 }
 
-/**
- * Coverage: what a product reaches and what a build reaches.
- *
- * Six processes drawn from the same operation, marked per option. The
- * asymmetry is the argument, and it is deliberately not one-sided — the
- * product column is full marks on the first three, which is the honest
- * picture and the reason most businesses run both.
- */
+/** Process coverage for off-the-shelf vs custom software. */
 const COVERAGE: Array<{
   process: string;
   bought: "full" | "partial" | "none";
@@ -180,10 +130,7 @@ function BuildVsBuy() {
             <span className="rs-coverage-name">{row.process}</span>
 
             <span className="rs-coverage-cell">
-              {/* The column header is aria-hidden, so each cell names its own
-                  option. A row read aloud is then self-contained — which is
-                  what a two-column comparison has to be when it is being
-                  heard rather than seen. */}
+              {/* Header is aria-hidden, so each cell labels itself for screen readers. */}
               <span className="rs-sr">Off-the-shelf: </span>
               <Mark state={row.bought} />
             </span>
@@ -208,12 +155,7 @@ function BuildVsBuy() {
   );
 }
 
-/**
- * The system-of-record topology: many ways in, one store.
- *
- * Drawn as three bands with a spine between them, because the thing worth
- * seeing is that the middle band has exactly one box in it.
- */
+/** System of record: many inputs and outputs around one central store. */
 const RECORD_INPUTS = ["Warehouse floor", "Sales desk", "Finance", "Field team"];
 const RECORD_OUTPUTS = ["Live dashboards", "Month-end reporting", "Exports & API"];
 
@@ -250,13 +192,7 @@ function SystemsMap() {
   );
 }
 
-/**
- * The arrangement most established businesses land on.
- *
- * Three columns, with the middle one narrower and marked as the seam. The
- * design says what the prose says: the integration layer is small, it is in
- * the middle of everything, and it is the part with an owner.
- */
+/** Bought tools, built core, and the integration layer between them. */
 const SPINE = [
   {
     label: "Bought",

@@ -2,68 +2,35 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-/**
- * Intrinsic size of the artwork, after the white ground was unpremultiplied
- * into alpha and the canvas cropped to the ink. Passed to next/image so the
- * box is reserved before the file arrives and the bar never reflows around it.
- */
+/** Intrinsic size of the logo PNGs, so next/image reserves space. */
 const ART = { w: 2201, h: 773 };
 
 /**
- * What the mark actually measures on screen, for the srcset.
- *
- * Without this, next/image has only the intrinsic size to go on and builds a
- * fixed-density srcset from it — 2201px at 1x, 4402 at 2x, both of which round
- * up to the largest configured device width. The browser was being handed a
- * 3840px-wide wordmark for a box 114px across, twice over (the light and dark
- * files are both in the markup), and both carry `priority` so both were
- * preloaded. It was the largest thing this page fetched before first paint.
- *
- * With a size declared the srcset switches to width descriptors and the
- * browser takes 128px, or 256 on a retina screen — the same wordmark, two
- * orders of magnitude smaller.
- *
- * 120px is the sm:h-10 case (40px tall, at the artwork's 2.85:1) rounded up;
- * the h-9 default asks for less. It tracks the height of the bar: too small
- * and the mark goes soft, too large and it is only waste again.
+ * Rendered width for `sizes`. Without it next/image serves a ~3840px image
+ * for a ~114px box. 120px covers the sm:h-10 size; update if the height changes.
  */
 const RENDERED_WIDTH = "120px";
 
 /**
- * The wordmark.
- *
- * Two files rather than one, and CSS picks between them.
- *
- * The supplied artwork is a navy lockup on an opaque white ground — the file
- * was 70% white by area — which is right for paper and unusable on a dark
- * page twice over: the white would print as a rectangle around the mark, and
- * the navy itself is barely off the ground it would be sitting on. So the
- * ground was removed into the alpha channel (coverage derived from distance
- * from white, which keeps the anti-aliased edges instead of leaving the halo
- * a hard threshold gives), and a second copy was recoloured for dark: the
- * wordmark to near-white, the accent "A" and "Solutions" to the house blue.
- * That split is the artwork's own — those two are a brighter blue than SHAHI
- * in the original, so the mark keeps its two-tone relationship rather than
- * flattening to one silhouette.
- *
- * Swapped in CSS rather than by reading the theme in JS, for the same reason
- * the theme toggle's icons are: both are in the markup the server sends, so
- * there is nothing to hydrate and the right one is up on the first paint.
- *
- * `alt=""` on both, deliberately. The link already carries the accessible
- * name; captioning the images too would announce the company twice.
+ * Wordmark linking home. Light and dark PNGs are both rendered and CSS shows
+ * the one for the current theme, so there's no hydration flash.
+ * Images use alt="" because the link's aria-label already names it.
  */
-export function Logo({ className }: { className?: string }) {
+export function Logo({
+  className,
+  prefetch,
+}: {
+  className?: string;
+  /** `false` when already on the home page (see Navbar). */
+  prefetch?: false;
+}) {
   return (
     <Link
       href="/"
+      prefetch={prefetch}
       className={cn(
-        // py-2 with a matching negative margin: the artwork alone is under the
-        // 24px minimum for a tap target on the shortest bar, and this grows
-        // the hit area without the bar growing with it.
-        // w-fit because `flex` makes the anchor block-level, so in the footer
-        // — where it is not a flex child — it stretched the full column width
-        // and clicking empty space navigated home.
+        // py-2 / -my-2 enlarges the tap target without changing layout.
+        // w-fit stops the link stretching full width in the footer.
         "group -my-2 flex w-fit items-center py-2 transition-opacity duration-300 hover:opacity-80",
         className,
       )}
@@ -75,8 +42,7 @@ export function Logo({ className }: { className?: string }) {
         width={ART.w}
         height={ART.h}
         sizes={RENDERED_WIDTH}
-        // In the header on every route, so it is never worth lazy-loading —
-        // that only buys a blank box where the wordmark should be.
+        // Above the fold on every route.
         priority
         className="logo-light h-9 w-auto sm:h-10"
       />

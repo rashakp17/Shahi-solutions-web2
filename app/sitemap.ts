@@ -1,27 +1,12 @@
 import type { MetadataRoute } from "next";
 import { ARTICLES } from "@/lib/resources";
+import { SERVICE_PAGES } from "@/lib/service-pages";
 import { SITE_URL } from "@/lib/site";
 
 /**
- * The sitemap, generated from the routes that exist rather than maintained.
- *
- * The article entries come from the same registry the pages are rendered from,
- * so an article cannot exist without being listed and cannot be listed without
- * existing. A hand-written sitemap.xml is right on the day it is committed and
- * quietly wrong from the next article onward — and a sitemap pointing at a 404
- * is worse than no sitemap, because it is a signal a crawler acts on.
- *
- * ── On the numbers ──
- * `priority` is relative *within this site* and nothing more; it does not
- * compete with anybody else's. Google has said for years that it largely
- * ignores both this and `changeFrequency`. They are set anyway because other
- * crawlers do read them and the cost is nothing — but they are not worth
- * tuning, and nobody should read the 0.7 below as a lever.
- *
- * `lastModified` is the one field that genuinely matters, and it is the one
- * field here with a real source: each article's own `updated` date, which is
- * also what the page displays and what its structured data publishes. Three
- * places, one fact.
+ * Sitemap. Articles come from the resource registry. Google mostly ignores
+ * `priority` and `changeFrequency`; `lastModified` uses each article's
+ * `updated` date.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const articles = ARTICLES.map((article) => ({
@@ -31,13 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  /**
-   * The newest article date, standing in for the index's own.
-   *
-   * `new Date()` would be a lie that changes on every build: the index has not
-   * been modified, a page it links to has. Deriving it means the date only
-   * moves when something on the page actually did.
-   */
+  /* Newest article date, used for the other pages instead of the build time. */
   const latest = ARTICLES.reduce(
     (newest, article) =>
       article.updated > newest ? article.updated : newest,
@@ -57,6 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.9,
     },
+    ...SERVICE_PAGES.map((page) => ({
+      url: `${SITE_URL}/services/${page.slug}`,
+      lastModified: new Date(latest),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     {
       url: `${SITE_URL}/resources`,
       lastModified: new Date(latest),

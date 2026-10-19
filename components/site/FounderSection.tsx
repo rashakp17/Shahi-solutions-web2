@@ -7,100 +7,31 @@ import { BlurReveal } from "@/components/ui/BlurReveal";
 import { ScrollStagger } from "@/components/ui/ScrollStagger";
 import { cn } from "@/lib/cn";
 
-/* ------------------------------------------------------------------
-   Founder — three panels sharing a width, one of them open
+/* Founder section: three portrait panels in a row. The hovered panel widens
+   (founder by default); the others share the remaining width. The founder
+   always keeps the white label plate and key light, whichever panel is open.
 
-   Three portraits in a row. The open one takes a little over half the
-   row and the other two split what is left; at rest the open one is
-   the founder, and pointing at either of the others hands it to them.
-   Nothing is positioned, nothing overlaps and nothing travels — the
-   only thing that changes is how the width is divided.
-
-   ── Why the founder is not simply "the wide one" ──
-   Any panel can be open, so width alone can no longer say who the
-   section is about. The founder keeps the white plate and the key
-   light wherever it sits and the other two never get either. Width
-   says who is being looked at; the plate says whose page this is.
-
-   ── Why there is no hit-zone machinery here ──
-   This was a ring that rotated the pointed-at card to the front, and
-   it needed two invisible fixed zones and a re-entry guard to survive
-   its own interaction: promoting a card moved that card out from under
-   the cursor, which drops the hover, which brings it back, at frame
-   rate. It is the trap documented on .tm-slot — nothing about hover
-   may move the surface hover is tested against.
-
-   Expanding inverts that. Pointing at a panel makes the panel wider,
-   so both its edges travel *away* from the cursor and the pointer that
-   began the hover is still inside it. The interaction cannot chase
-   itself, so the pointer touches the real panels and the zones, the
-   guard and the ellipse are all gone.
-
-   The one thing kept from the ring is where the reset lives: on the
-   wrapper rather than on each panel, so crossing the gap between two
-   panels does not collapse the row back to the founder and start an
-   animation nobody asked for.
-
-   Below md the row is abandoned rather than squeezed — the founder
-   goes first at full width and the pair falls into a two-up
-   underneath. Three panels inside 375px are three spines, and there is
-   no hover on a touch screen to open them anyway.
-   ------------------------------------------------------------------ */
+   Widening moves a panel's edges away from the cursor, so hover can't
+   flicker and no hit-zone logic is needed. Below md, a slider is used. */
 
 type Person = {
   name: string;
   role: string;
-  /**
-   * A real photograph, once there is one. Drop the file in
-   * `public/team/` and point at it here — the frame, aspect and
-   * lighting are already right, and the monogram below stops being
-   * drawn the moment a path resolves.
-   *
-   * Missing files fall back rather than break: a path can be written
-   * here before the image lands (same contract as the project shots).
-   */
+  /** Path under `public/team/`. Falls back to a monogram if it fails to load. */
   photo?: string;
   /**
-   * Where the face is in the frame, as an `object-position`. Optional —
-   * `.fd-photo` carries a sensible default.
-   *
-   * Worth setting per person because the crop is not fixed: an open
-   * panel is nearly square and crops the photograph top and bottom,
-   * while a closed one is a third of that width and crops it hard from
-   * the sides. A face sitting off-centre survives the first and can be
-   * clipped by the second, and the two portraits here both sit left of
-   * their frame's middle. The horizontal figure only bites while the
-   * panel is closed; the vertical one only while it is open.
+   * `object-position` for the face. Open panels crop top/bottom, closed ones
+   * crop the sides, so off-centre faces need this. Defaults via `.fd-photo`.
    */
   focus?: string;
 };
 
-/* ---- THE PORTRAITS ------------------------------------------------
-
-   All three are real now, and all three were prepared the same way:
-   converted out of `media/`, held to one aspect (0.654) so the row
-   crops consistently, and given a `focus` matched to where the face
-   actually sits in the frame.
-
-   Jaseem's needed one extra step. It arrived square, and a square in
-   these panels barely crops at all where a 0.654 portrait crops hard —
-   which would have drawn him noticeably smaller in frame than the
-   other two. It is cropped to the shared aspect around him before
-   conversion, not fitted by the browser.
-
-   Any fourth person wants the same treatment, in this order: crop to
-   0.654 about the face, convert, then set `focus`.
-   ------------------------------------------------------------------ */
+/* Portraits are cropped to a 0.654 aspect around the face before export so
+   all panels crop consistently. New photos: crop, convert, then set `focus`. */
 
 /**
- * The row, in the order it is laid out — left to right. The founder is
- * the middle entry, not the first, so this list reads as the row does
- * rather than as a ranking; `FOUNDER_AT` below is the single place
- * that says which one it is.
- *
- * Three is the count this shape wants. Two is not a row, it is a pair,
- * and at four a closed panel is narrower than the name it has to
- * carry.
+ * Left-to-right row order; `FOUNDER_AT` marks the founder. Designed for
+ * three: with four, closed panels get too narrow for the names.
  */
 const PEOPLE: Person[] = [
   {
@@ -124,28 +55,19 @@ const PEOPLE: Person[] = [
 ];
 
 /**
- * Which entry above is the founder — the one that is open at rest and
- * keeps the white plate and the key light wherever the pointer goes.
- *
- * Middle, and deliberately: the open panel is a little over half the
- * row, so opening one at either end would shove the other two hard
- * against the opposite edge and unbalance the block. Opening from the
- * middle spreads in both directions.
- *
- * It is an index rather than a flag on the person because two things
- * need it — the row, to know what to open, and the column below md, to
- * pull the founder out to the front of a list that has no middle.
+ * Index of the founder in PEOPLE: open by default and always styled as lead.
+ * Middle position keeps the row balanced when it's open.
  */
 const FOUNDER_AT = 1;
 
-/** Drift, one per panel. No two periods share a factor, so the row never lines up. */
+/** Float animation per panel; different periods keep them out of sync. */
 const FLOAT = [
   { lift: "3px", duration: "14s", delay: "-4s" },
   { lift: "4px", duration: "12s", delay: "-3s" },
   { lift: "3.5px", duration: "13.5s", delay: "-8s" },
 ];
 
-/** Intro choreography (ms), matching the other section headings on the site. */
+/** Intro timings (ms), shared with other section headings. */
 const INTRO = {
   eyebrow: 0,
   eyebrowLift: 320,
@@ -159,15 +81,8 @@ const INTRO = {
 const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
 
 /**
- * The portrait, or the plate that stands in for one.
- *
- * The onError swap is the point of the component, and it is the same
- * contract the project previews run: a file referenced before it
- * exists leaves a monogram rather than a broken frame, so the section
- * is never worse than it was before someone tried to improve it.
- *
- * Initials are first-word + last-word rather than the first two, so
- * "Sudhesh K. Valappil" reads SV and not SK.
+ * Photo, or a monogram if it's missing or fails to load.
+ * Initials use the first and last word ("Sudhesh K. Valappil" -> SV).
  */
 function Portrait({ person }: { person: Person }) {
   const [failed, setFailed] = useState(false);
@@ -185,10 +100,8 @@ function Portrait({ person }: { person: Person }) {
           src={photo}
           alt={`${person.name}, ${person.role}`}
           fill
-          /* One figure covers all three, because any panel can be the
-             open one: 460px is a little over what the open panel
-             measures at the widest breakpoint (2.2/4.2 of a 46em row),
-             and a closed panel only ever asks for less. */
+          /* 460px covers the open panel at its widest (2.2/4.2 of a 46em
+             row); closed panels are smaller. */
           sizes="(min-width: 768px) 460px, 90vw"
           className="fd-photo"
           style={person.focus ? { objectPosition: person.focus } : undefined}
@@ -203,23 +116,13 @@ function Portrait({ person }: { person: Person }) {
   );
 }
 
-/**
- * One person, framed.
- *
- * `lead` is the founder's, and it belongs to the person rather than
- * to whichever panel happens to be open — see the note at the top. It
- * swaps the label from dark glass to the white plate, which is the
- * only light surface in the section and does more to say whose page
- * this is than the width does.
- */
+/** A person's card. `lead` (founder only) uses the white label plate. */
 function Card({ person, lead = false }: { person: Person; lead?: boolean }) {
   return (
     <figure className={cn("fd-card", lead && "fd-card--lead")}>
       <Portrait person={person} />
 
-      {/* Sits over the foot of the portrait rather than under it: the
-          card is one object with a label laid on it, and a plate in
-          flow underneath would make it two stacked rectangles. */}
+      {/* Overlaid on the bottom of the portrait. */}
       <figcaption className="fd-label">
         <span className="fd-name">{person.name}</span>
         <span className="fd-role">{person.role}</span>
@@ -230,21 +133,9 @@ function Card({ person, lead = false }: { person: Person; lead?: boolean }) {
 
 export function FounderSection() {
   /**
-   * Which panel is open. The founder is the rest state, and the row
-   * returns to it when the pointer leaves.
-   *
-   * Nothing here is announced to assistive tech and no panel is
-   * focusable, because the row reveals nothing: all three names and
-   * roles are in the DOM and legible however the width is split. It is
-   * an arrangement, not a disclosure, so it stays out of the tab order
-   * rather than adding three stops that change only which panel is
-   * widest.
-   *
-   * No jitter guard, unlike the ring this replaced. Opening a panel
-   * moves its edges away from the cursor, so a pointer resting on a
-   * boundary is pulled *into* the panel it just entered rather than
-   * being handed back and forth across it. The interaction is stable
-   * on its own geometry.
+   * Index of the open panel; resets to the founder on pointer leave.
+   * Not focusable or announced: all content is visible regardless of which
+   * panel is open, so this is purely visual.
    */
   const [open, setOpen] = useState(FOUNDER_AT);
 
@@ -254,9 +145,7 @@ export function FounderSection() {
       data-motion-scope
       className="fd-scope relative isolate overflow-hidden bg-ink-950 pt-12 pb-20 sm:pt-14 sm:pb-24"
     >
-      {/* Ground and key light. One wash for the section floor, one soft
-          core behind the front seat — the cheapest way to say where to
-          look, and the only lighting in here. */}
+      {/* Background gradient and grain. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(120%_85%_at_50%_38%,var(--ground-4)_0%,var(--ground)_50%,var(--ground-deep)_100%)]" />
         <div className="bg-grain absolute inset-0 opacity-[0.02]" />
@@ -282,20 +171,11 @@ export function FounderSection() {
               } as CSSProperties
             }
           >
-            {/* Not "Leadership" — the heading below says that now, and an
-                eyebrow that repeats the line under it is a label with
-                nothing to label. */}
             Our team
           </p>
 
-          {/* h2. It was an h1 while this had a page of its own; on the
-              single page the hero's headline is the only h1 there is.
-
-              Set in caps, which the rest of the site's headings are not.
-              Caps need their tracking opened rather than closed, so this
-              one runs positive where the others sit at -0.04em — see
-              .fd-heading. To fold it back into the house style, change
-              the two lines to sentence case and drop that rule. */}
+          {/* h2: the hero headline is the page's only h1. Uppercase with
+              positive tracking via .fd-heading, unlike other headings. */}
           <BlurReveal
             as="h2"
             lines={[{ text: "Meet our" }, { text: "leadership", accent: true }]}
@@ -321,7 +201,7 @@ export function FounderSection() {
               } as CSSProperties
             }
           >
-            The vision and drive behind Shahi Solutions.
+            The people who run Shahi Solutions.
           </p>
         </div>
       </ScrollStagger>
@@ -329,13 +209,11 @@ export function FounderSection() {
       {/* ============ the row, md and up ============ */}
       <div
         className="fd-rig relative z-10 mt-14 hidden px-5 md:block"
-        /* The reset lives on the wrapper rather than on each panel, so
-           crossing the gap between two panels does not collapse the row
-           back to the founder and start an animation nobody asked for. */
+        /* Reset on the wrapper, not each panel, so crossing the gap between
+           panels doesn't snap back to the founder. */
         onPointerLeave={() => setOpen(FOUNDER_AT)}
       >
-        {/* DOM order is arrival order — ScrollStagger hands out its
-            delays in it — so the row is dealt left to right. */}
+        {/* ScrollStagger delays follow DOM order (left to right). */}
         <ScrollStagger as="ul" stagger={130} inRatio={0.15} className="fd-row">
           {PEOPLE.map((person, i) => {
             const lead = i === FOUNDER_AT;
@@ -344,10 +222,7 @@ export function FounderSection() {
               <li
                 key={`${person.name}-${person.role}`}
                 className="fd-panel"
-                /* Presence, not a value — `data-open` is what the
-                   stylesheet keys the wider flex-grow off, and an
-                   attribute that is either there or absent cannot be
-                   half-set the way a class string can. */
+                /* CSS keys the wider flex-grow off `data-open`. */
                 data-open={i === open ? "" : undefined}
                 onPointerEnter={() => setOpen(i)}
               >
@@ -361,13 +236,10 @@ export function FounderSection() {
                     } as CSSProperties
                   }
                 >
-                  {/* The key light rides with the founder rather than
-                      with whichever panel happens to be open. */}
+                  {/* Key light follows the founder, not the open panel. */}
                   {lead ? <span aria-hidden="true" className="fd-core" /> : null}
 
-                  {/* The founder fades and scales up into place; the
-                      other two slide in from the side of the row they
-                      sit on, so it opens outward from the middle. */}
+                  {/* Founder scales in; the others slide in from their side. */}
                   <div
                     className="fd-in"
                     style={
@@ -392,27 +264,11 @@ export function FounderSection() {
       </div>
 
       {/* ============ below md ============
+          Auto-advancing slider, founder first.
 
-          A slider, one card at a time, advancing on its own.
-
-          The three of them are a composition in the row above — the
-          founder in the middle with the other two opening away from
-          him — and at this width there is no composition to have. The
-          stacked column that replaced it was honest but long: three
-          full-width cards is most of a screen and a half of scrolling
-          past faces, and the founder, who is the subject, stopped being
-          the largest thing on screen the moment you scrolled past him.
-
-          A slider gives each person the whole width and none of the
-          scroll. Reading order rather than row order, so the founder
-          leads: a row has a middle to build outward from, a sequence
-          does not.
-
-          ScrollStagger wraps the slider rather than its cards. Gating
-          each card individually would ask an IntersectionObserver about
-          slides that are scrolled out of the track sideways — they do
-          not intersect the viewport, so they would be held at opacity 0
-          and the slider would advance onto blank frames. */}
+          ScrollStagger wraps the whole slider, not each card: off-screen
+          slides never intersect, so per-card gating would leave them at
+          opacity 0. */}
       <ScrollStagger
         as="div"
         inRatio={0.12}

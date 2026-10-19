@@ -5,37 +5,19 @@ import { BlurReveal } from "@/components/ui/BlurReveal";
 import { Button } from "@/components/ui/Button";
 import { ScrollStagger } from "@/components/ui/ScrollStagger";
 
-/* ------------------------------------------------------------------
-   Contact — the detail on the left, the form on the right
-
-   The layout is the brief's. The palette is not: the reference is dark
-   type on white, and this site has no white page. Inverting it rather
-   than bolting a light panel onto a near-black site keeps the one rule
-   the rest of these sections follow — the page is the ground, and a
-   card is a lighter thing sitting on it.
-
-   ── Where an enquiry actually goes ──
-   Nowhere, on its own. There is no backend in this project and no mail
-   service configured, so a form that POSTed anywhere would be a form
-   that swallowed enquiries silently — the worst possible failure for
-   the one page whose entire job is to be reachable.
-
-   So the submit hands off to the visitor's mail client with the
-   subject and body already filled in, addressed to the same inbox the
-   detail beside it lists. It is honest, it needs no server, and the
-   message reaches a real place. The note under the button says so
-   plainly rather than letting the mail app appear unannounced.
-
-   Swap it for a real endpoint when there is one: the handler below is
-   the only thing that has to change, and the markup already carries
-   proper `name` attributes for a POST.
-   ------------------------------------------------------------------ */
+/*
+ * Contact: details on the left, form on the right.
+ *
+ * There is no backend, so submit opens the visitor's mail client with a
+ * prefilled mailto: link. To use a real endpoint, change only onSubmit; the
+ * fields already have `name` attributes.
+ */
 
 const EMAIL = "request.sdec@gmail.com";
-/** tel: wants the number unpunctuated; the label keeps the spacing a person reads. */
+/** Unformatted for tel:; the visible label keeps spacing. */
 const PHONE_HREF = "tel:+918590371761";
 
-/** Intro choreography (ms), matching the other section headings on the site. */
+/** Intro timings (ms), matching other section headings. */
 const INTRO = {
   eyebrow: 0,
   eyebrowLift: 320,
@@ -56,7 +38,7 @@ const iconProps = {
   strokeLinejoin: "round",
 } as const;
 
-/** One line of contact detail: a boxed glyph, then the detail itself. */
+/** One contact detail row: icon, label, value. */
 function Detail({
   art,
   label,
@@ -81,7 +63,7 @@ function Detail({
   );
 }
 
-/** A labelled control. The label is a real <label>, not a placeholder. */
+/** Form field with a real <label>. */
 function Field({
   name,
   label,
@@ -99,11 +81,8 @@ function Field({
 }) {
   return (
     <p className="ct-field">
-      {/* The reference shows a label above every control *and* a greyed
-          example inside it. Both are kept, and they are not the same
-          thing: the placeholder is an example of an answer and vanishes
-          the moment anyone types, so it cannot be the only thing naming
-          the field. */}
+      {/* Label plus placeholder: the placeholder disappears on input, so it
+          can't be the only name for the field. */}
       <label htmlFor={`ct-${name}`} className="ct-label">
         {label}
       </label>
@@ -142,7 +121,7 @@ function PlaneIcon() {
 }
 
 export function ContactSection() {
-  /** Set once the mail client has been handed the message. */
+  /** True once the mailto: link has been opened. */
   const [handedOff, setHandedOff] = useState(false);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -154,9 +133,7 @@ export function ContactSection() {
     const subject = read("subject");
     const message = read("message");
 
-    // The sender's name goes in the body rather than the subject: it is
-    // the reply-to that matters and a mail client already supplies it,
-    // so the subject stays the one thing the enquiry is about.
+    // Name goes in the body; the subject stays the enquiry topic.
     const body = message + (name ? `\n\n— ${name}` : "");
 
     window.location.href =
@@ -172,15 +149,14 @@ export function ContactSection() {
       id="contact"
       className="ct-scope relative isolate overflow-hidden bg-ink-950 py-20 sm:py-24"
     >
-      {/* Ground and one soft core behind the form, which is the thing on
-          this page a visitor came to use. */}
+      {/* Background gradient and grain. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(120%_85%_at_70%_28%,var(--ground-4)_0%,var(--ground)_52%,var(--ground-deep)_100%)]" />
         <div className="bg-grain absolute inset-0 opacity-[0.02]" />
       </div>
 
       <div className="ct-grid relative z-10 mx-auto max-w-6xl px-5 sm:px-8">
-        {/* ---------------- left: who to reach, and how ---------------- */}
+        {/* Left: contact details */}
         <ScrollStagger as="div" inRatio={0.2} className="ct-aside">
           <div>
             <p
@@ -199,10 +175,7 @@ export function ContactSection() {
               Contact
             </p>
 
-            {/* h2 — the hero's headline is the page's only h1. Two lines
-                rather than the reference's one: at this size a single line of
-                display type would run most of the column's width and leave
-                the copy beneath it looking like a caption. */}
+            {/* h2: the hero headline is the page's only h1. */}
             <BlurReveal
               as="h2"
               lines={[{ text: "Connect" }, { text: "with us", accent: true }]}
@@ -228,15 +201,12 @@ export function ContactSection() {
                 } as CSSProperties
               }
             >
-              Have an idea or an upcoming software project? Reach out to our
-              consulting team. We will align on requirements, draft
-              architectural options, and outline a timeline.
+              Planning a software project, or just have an idea? Get in touch
+              and we’ll talk through what you need, suggest how to build it and
+              give you a timeline.
             </p>
 
-            {/* <address> rather than a plain list: this is the contact
-                detail for the people who own the page, which is the one
-                thing the element is actually for. not-italic because the
-                browser italicises it by default. */}
+            {/* <address> for the site owner's contact info; not-italic overrides the browser default. */}
             <address
               className="anim-rise mt-10 not-italic"
               style={
@@ -308,11 +278,9 @@ export function ContactSection() {
           </div>
         </ScrollStagger>
 
-        {/* ---------------- right: the form ---------------- */}
+        {/* Right: form */}
         <ScrollStagger as="div" inRatio={0.15} className="ct-formwrap">
-          {/* Flat, not the full rise — the whole form is inside it, and a
-              blur across it is a full-form repaint per frame. See
-              .anim-rise-flat. */}
+          {/* anim-rise-flat (no blur): blurring the whole form repaints it every frame. */}
           <div
             className="anim-rise anim-rise-flat"
             style={{ "--rise-y": "34px" } as CSSProperties}
@@ -336,13 +304,11 @@ export function ContactSection() {
                 <PlaneIcon />
               </Button>
 
-              {/* Said out loud, not hidden in a comment. A form that opens
-                  a mail client without warning reads as broken to anyone
-                  who does not have one configured. */}
+              {/* Tell users submit opens their mail app, so it doesn't look broken. */}
               <p className="ct-note" role={handedOff ? "status" : undefined}>
                 {handedOff
                   ? `Your email app should be open with the message ready to send to ${EMAIL}. If nothing happened, write to us there directly.`
-                  : "Sending opens your email app with the message ready — nothing is submitted from this page."}
+                  : "Sending opens your email app with the message filled in. Nothing is sent from this page."}
               </p>
             </form>
           </div>

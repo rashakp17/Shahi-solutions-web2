@@ -18,38 +18,26 @@ type Glyph = {
   /** Drift components, px. */
   dx: number;
   dy: number;
-  /** Total rotation across one cycle, deg. Kept tiny. */
+  /** Total rotation across one cycle, deg. */
   rot: number;
   scaleFrom: number;
   scaleTo: number;
   depth: Depth;
-  /** Hidden below md, to keep the mobile field sparse and cheap. */
+  /** Hidden below md. */
   desktopOnly?: boolean;
 };
 
 /**
- * The vocabulary is the platform's own: braces and shell prompts, status
- * codes, latency percentiles, versions, regions, throughput. Nothing is
- * decorative-mathematical — every mark is something that would actually
- * appear in a terminal, a dashboard or a request log.
+ * Dev/infra-themed marks. Plain ASCII only, so JetBrains Mono never falls
+ * back to another font.
  *
- * All of it is deliberately plain ASCII. These render in JetBrains Mono with
- * no font substitution, so nothing falls back to a system face with different
- * metrics and breaks the monospaced rhythm of the field.
+ * Keep the centre (x 26-74, y 26-68) empty for the headline and CTAs. Some
+ * glyphs sit past the edges on purpose and get clipped.
  *
- * The composition rule: the centre band (x 26–74 crossed with y 26–68) is
- * left empty, because that is where the headline and CTAs sit. Everything is
- * pushed to the sides, the corners, and the top and bottom edges. A number of
- * glyphs are positioned past the viewport boundary on purpose — they clip,
- * which is what makes the field read as a window onto something larger rather
- * than a decorated rectangle.
- *
- * All values are hand-authored and deterministic: the server and client must
- * render identical markup, and the placement is meant to look intentional
- * rather than scattered.
+ * Hand-authored (not random) so server and client markup match.
  */
 const GLYPHS: Glyph[] = [
-  // ---------- FAR: faintest, slowest, carries the blur of distance ----------
+  // ---------- FAR: faintest, slowest ----------
   { char: "{ }", x: -2, y: 18, size: 2.4, opacity: 0.030, duration: 58, delay: -12, dx: 14, dy: -44, rot: 4, scaleFrom: 1, scaleTo: 1.1, depth: "far" },
   { char: "99.99%", x: 6, y: 88, size: 1.0, opacity: 0.026, duration: 54, delay: -31, dx: -11, dy: -52, rot: -3, scaleFrom: 1.06, scaleTo: 0.95, depth: "far" },
   { char: "</>", x: 91, y: 14, size: 1.9, opacity: 0.028, duration: 61, delay: -7, dx: -13, dy: -38, rot: 6, scaleFrom: 0.96, scaleTo: 1.12, depth: "far" },
@@ -63,7 +51,7 @@ const GLYPHS: Glyph[] = [
   { char: "us-east-1", x: 22, y: 97, size: 0.85, opacity: 0.025, duration: 51, delay: -19, dx: 13, dy: -53, rot: -3, scaleFrom: 1.04, scaleTo: 0.95, depth: "far", desktopOnly: true },
   { char: "#!", x: 72, y: 4, size: 1.6, opacity: 0.027, duration: 57, delay: -41, dx: -14, dy: -45, rot: 6, scaleFrom: 1, scaleTo: 1.13, depth: "far", desktopOnly: true },
 
-  // ---------- MID: the readable-if-you-look layer ----------
+  // ---------- MID ----------
   { char: "200 OK", x: 8, y: 27, size: 0.72, opacity: 0.046, duration: 38, delay: -6, dx: 14, dy: -52, rot: 3, scaleFrom: 1, scaleTo: 1.12, depth: "mid" },
   { char: "{ }", x: 12, y: 45, size: 0.95, opacity: 0.042, duration: 33, delay: -19, dx: 13, dy: -48, rot: -4, scaleFrom: 1.06, scaleTo: 0.96, depth: "mid" },
   { char: "99.982%", x: 87, y: 31, size: 0.7, opacity: 0.046, duration: 36, delay: -21, dx: -12, dy: -50, rot: -3, scaleFrom: 0.96, scaleTo: 1.1, depth: "mid" },
@@ -90,13 +78,10 @@ const GLYPHS: Glyph[] = [
 ];
 
 /**
- * Marks framed inside a thin outline — the one thing the two arrays below
- * could not express between them, since a glyph and a shape were always
- * separate objects. A boxed mark carries more weight than a loose one, so
- * these run brighter and there are only four, kept well clear of the centre.
+ * Glyphs inside a thin outlined box.
  *
- * `tilt` is a static rotation. It cannot live on the outer element: the drift
- * keyframe owns `transform` there and would overwrite it every frame.
+ * `tilt` is applied on an inner element because the drift animation owns
+ * `transform` on the outer one.
  */
 const BOXED: Array<{
   char: string;
@@ -141,25 +126,9 @@ const SHAPES: Array<{
 ];
 
 const PLANES: Array<{ depth: Depth; motion: string; blur: string }> = [
-  // Blur lives on each mark, not on the plane.
-  //
-  // On the plane it looked like the cheaper option — one filtered layer
-  // instead of a dozen — but a filter has to be recomputed whenever anything
-  // inside it changes, and every mark on the plane is drifting continuously.
-  // That meant re-blurring a full-screen surface on the main thread every
-  // frame, twice over (the hero and the second scene each carry a field).
-  //
-  // And not as `filter: blur()` on the mark either, which is what it was.
-  // A drifting mark is its own composited layer, and a filter on a
-  // composited layer is not rasterised once — it is a render surface plus a
-  // blur pass, redone on the GPU every frame. Fifty of those, for marks at
-  // 2–6% opacity, was most of what kept scrolling through the hero and the
-  // services grid under 60fps in a trace.
-  //
-  // `glyph-soft` softens the text with a text-shadow instead, which is part
-  // of the layer's content: painted once, then only moved. Same
-  // depth-of-field cue. The mid plane's 0.5px is dropped outright — it
-  // could not be seen at these opacities, only paid for.
+  // No filter: blur() on planes or marks: with everything drifting, it gets
+  // recomputed every frame. `glyph-soft` uses text-shadow instead, which is
+  // painted once and then just moved.
   { depth: "far", motion: "anim-plane-far", blur: "glyph-soft" },
   { depth: "mid", motion: "anim-plane-mid", blur: "" },
   { depth: "near", motion: "anim-plane-near", blur: "" },
@@ -188,16 +157,9 @@ function driftVars(g: {
 }
 
 /**
- * Infrastructure marks floating at three depths.
- *
- * Each plane is carried by its own parallax wrapper (far 54s, mid 36s, near
- * 25s) and blurred according to distance, so the field has genuine depth
- * instead of sliding as one sheet. Within a plane every glyph drifts, rotates
- * and scales on its own period, and fades in and out across its cycle.
- *
- * Opacities run 0.023–0.062. That is deliberately below the threshold where
- * you would read them as content — they register as texture first, and only
- * resolve into symbols if you go looking.
+ * Faint drifting glyphs on three parallax planes (far, mid, near). Each glyph
+ * drifts, rotates, scales and fades on its own cycle. Opacities are kept low
+ * (0.023-0.062) so they read as texture.
  */
 export function BackgroundGlyphs({ className }: { className?: string }) {
   return (
@@ -208,9 +170,7 @@ export function BackgroundGlyphs({ className }: { className?: string }) {
             <span
               key={`g-${i}`}
               className={cn(
-                // nowrap: a mark placed hard against an edge has almost no
-                // width to lay out in, and "[ ]" or "200 OK" would otherwise
-                // break across two lines instead of clipping cleanly.
+                // nowrap so glyphs near an edge clip instead of wrapping.
                 "anim-drift absolute whitespace-nowrap font-mono tabular-nums tracking-[0.16em] text-accent-200",
                 plane.blur,
                 g.desktopOnly && "hidden md:block",
@@ -247,8 +207,7 @@ export function BackgroundGlyphs({ className }: { className?: string }) {
           ))}
 
           {SHAPES.filter((s) => s.depth === plane.depth).map((s, i) => (
-            // The drift keyframe owns `transform`, so a shape needing a static
-            // tilt gets it from an inner element the animation cannot overwrite.
+            // Static rotation goes on the inner span; drift owns `transform`.
             <span
               key={`s-${i}`}
               className={cn("anim-drift absolute hidden md:block", plane.blur)}

@@ -1,24 +1,7 @@
 /**
- * What the company does, in one place.
- *
- * These eight strings were living inside ServicesSection, next to the drawn
- * icon for each card, which was the right home while the grid was the only
- * thing that needed them. Three things need them now:
- *
- *   The grid itself, on the home page.
- *   The `hasOfferCatalog` in the organisation's structured data, which is how
- *   a search engine — and increasingly an answer engine being asked "what
- *   does Shahi Solutions do" — gets a list rather than a paragraph to guess
- *   from.
- *   The `href`, which decides whether a card is a link.
- *
- * Splitting the copy out and leaving the artwork behind is deliberate: the
- * icons are eight blocks of JSX that only the grid can use, and pulling them
- * into a data module would drag a React dependency into something the sitemap
- * and the JSON-LD read. The `id` union below is what keeps the two halves
- * honest — ServicesSection's icon map is typed against it, so adding a service
- * here without drawing its mark is a build error rather than a hole in the
- * grid.
+ * Service data, used by the home page grid and the `hasOfferCatalog` JSON-LD.
+ * Icons stay in ServicesSection, whose icon map is typed against `ServiceId`,
+ * so a new service without an icon fails the build.
  */
 
 export type ServiceId =
@@ -33,18 +16,12 @@ export type ServiceId =
 
 export type Service = {
   id: ServiceId;
-  /** The card's h3, and the name published in the offer catalogue. */
+  /** Card heading and offer catalogue name. */
   title: string;
   body: string;
   /**
-   * A page of its own, where one exists.
-   *
-   * Only custom software development has one today, and that is not an
-   * oversight — see the note in app/services/layout.tsx. The presence of an
-   * href is what turns a card into a link: with one, the card's title becomes
-   * a real anchor pointing at the page, which is how the service page is
-   * reachable from the home page at all. Without one the card stays exactly
-   * as it was, because a link to nowhere is worse than no link.
+   * Service page URL, if one exists. When set, the card title becomes a link.
+   * See lib/service-pages.ts.
    */
   href?: string;
 };
@@ -53,42 +30,47 @@ export const SERVICES: Service[] = [
   {
     id: "website-development",
     title: "Website Development",
-    body: "Ultra-fast, responsive websites built with Next.js, React, and modern SEO architectures to maximise organic reach.",
+    body: "Fast, responsive websites built with Next.js and React, and set up properly for search from day one.",
+    href: "/services/website-development",
   },
   {
     id: "custom-software-development",
     title: "Custom Software Development",
-    body: "Tailored backend ecosystems, APIs, and cloud infrastructure engineered for complex business workloads.",
+    body: "Backends, APIs and cloud infrastructure built around the way your business actually works.",
     href: "/services/custom-software-development",
   },
   {
     id: "mobile-app-development",
     title: "Mobile App Development",
-    body: "High-performance cross-platform iOS and Android applications utilising React Native and Flutter.",
+    body: "iOS and Android apps built with React Native and Flutter, from a single shared codebase.",
+    href: "/services/mobile-app-development",
   },
   {
     id: "ui-ux-design",
     title: "UI/UX Design",
-    body: "Visually stunning, accessible, and user-centric wireframes and layouts that boost engagement and brand trust.",
+    body: "Clear, accessible wireframes and interface designs that make your product easy to use and easy to trust.",
+    href: "/services/ui-ux-design",
   },
   {
     id: "erp-crm",
     title: "ERP & CRM Solutions",
-    body: "Streamlined operational platforms that unify finance, inventory, and customer records into one system of record.",
+    body: "Finance, inventory and customer records in one system, so every team works from the same numbers.",
+    href: "/services/erp-crm",
   },
   {
     id: "digital-marketing",
     title: "Digital Marketing",
-    body: "Data-driven growth strategies, performance campaigns, and content built to compound rather than spike.",
+    body: "Campaigns, SEO and content planned around measurable results, aiming for steady growth over one-off spikes.",
   },
   {
     id: "sales-solutions",
     title: "Sales Solutions",
-    body: "Innovative digital funnels and pipeline tooling that turn early interest into predictable revenue.",
+    body: "Sales funnels and pipeline tools that help turn enquiries into paying customers.",
   },
   {
     id: "business-automation",
     title: "Business Automation",
-    body: "Robust workflow scripting and integrations that take the repetitive work out of daily operations.",
+    body: "Scripts and integrations that take repetitive, manual work out of your daily operations.",
+    href: "/services/business-automation",
   },
 ];

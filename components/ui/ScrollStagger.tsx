@@ -8,26 +8,15 @@ import {
   trackScrollSpeed,
 } from "@/lib/scrollSpeed";
 
-/**
- * Ratio of an item that must be inside the viewport before it is released.
- *
- * Paired with a zero-ratio exit, this is a hysteresis band rather than a
- * single line: an item has to be meaningfully on screen to arrive, and
- * completely gone to reset. One shared boundary would let an item resting
- * right on it — or a trackpad's momentum wobbling by a pixel — flip in and
- * out repeatedly.
- */
+// Visible ratio needed to reveal. Items only reset once fully off screen,
+// which gives hysteresis and avoids flicker at the boundary.
 const IN_RATIO = 0.2;
 
-/**
- * Fraction of the observer's root an item must be filling to count as
- * arrived regardless of its own ratio — the escape hatch for items too tall
- * to ever satisfy `inRatio`. A third of the screen is well past the point
- * where a visitor would say the thing is in front of them.
- */
+// Also reveal once an item fills this much of the viewport, for items too
+// tall to ever reach `inRatio`.
 const COVER_RATIO = 0.34;
 
-/** Every 5% up to the band, so a slow-climbing ratio still reports in. */
+/** Thresholds every 5% up to inRatio. */
 function thresholds(inRatio: number) {
   const out: number[] = [];
   for (let t = 0; t < inRatio; t += 0.05) out.push(Math.round(t * 100) / 100);
@@ -36,76 +25,27 @@ function thresholds(inRatio: number) {
 }
 
 /**
- * Releases each child's entrance when that child scrolls into view, instead
- * of running the whole list off one clock.
+ * Reveals each child (sets `data-reveal="in"`) when it scrolls into view.
+ * The animation itself is CSS; scroll only triggers it, nothing is scrubbed.
  *
- * A staggered list gated on a single moment only works if the visitor is
- * looking when that moment happens. Eight cards on a shared timer have all
- * finished within ~1.5s of the section committing, so anyone scrolling at a
- * reading pace arrives to a grid that is already static — the entrance played
- * to an empty room.
- *
- * Here the scroll position is the trigger and the clock is still CSS. Nothing
- * is scrubbed: crossing the threshold hands the item its own delay and lets
- * its animation run at its own speed, so the motion never stutters with the
- * scroll wheel or reverses on a nudge upward.
- *
- * Items that cross together — a whole row of a grid shares a top edge, so
- * they always do — are handed increasing delays in DOM order. That is what
- * turns "a row appeared" into "these arrived one after another". In a single
- * column each item crosses on its own and the scroll itself does the spacing.
- *
- * ── On outrunning the entrance ──
- * Every item plays its full choreography at its designed pace, whatever the
- * scroll is doing. There is deliberately no fast-scroll path here — no
- * collapsing of the stagger, no skipping ahead — because an entrance that
- * changes speed depending on how the visitor arrived is two different
- * designs, and the faster one is always the worse one.
- *
- * The problem that would otherwise create — flying past a section before it
- * has assembled and seeing a blank band — is solved a layer up, by the page
- * settling onto a section instead of stopping wherever the flick ran out.
- * See the scroll-snap block in globals.css. That keeps the question "how does
- * the content arrive" separate from "where does the visitor come to rest",
- * which is the only way either one stays tuneable.
- *
- * Reversible on purpose, matching the rest of the page: scroll away and back,
- * and the entrance plays again.
+ * Items revealed in the same batch (e.g. a grid row) get increasing
+ * `--reveal-delay` in DOM order. During fast scrolling, items are revealed
+ * immediately with `data-reveal-fast`. Items reset when they leave the
+ * viewport, so the entrance replays.
  */
 export function ScrollStagger({
   children,
   className,
   /** Gap between items that arrive in the same batch, ms. */
   stagger = 100,
-  /**
-   * Element to render as. A list of things wants `ul`, which is the default;
-   * a single block whose only job is to wait for its own section — a heading
-   * group, say — wants `div`, and gets the same gate with nothing to stagger.
-   */
+  /** Element to render as. Use `div` for a single block with nothing to stagger. */
   as: Tag = "ul",
-  /**
-   * How much of an item must be on screen before it is released. Defaults to
-   * the shared band; raise it for items that are tall enough to be halfway
-   * down the fold at the default ratio and would otherwise start their
-   * entrance before the visitor is really looking at them.
-   */
+  /** Visible ratio needed to reveal. Raise it for tall items. */
   inRatio = IN_RATIO,
   /**
-   * Margin on the observer's viewport.
-   *
-   * Grown slightly, where this used to be shrunk. The entrance is several
-   * hundred ms of curve, so releasing an item at the moment it becomes
-   * visible leaves it blank for the first part of the time it is on screen —
-   * the visitor watches it assemble instead of arriving to it assembled.
-   * Over a third of a viewport of run-up below the fold (it was a tenth, and
-   * a brisk scroll still arrived at half-built sections) means it is most of
-   * the way in as they reach it. The tenth at the top stops a section
-   * resetting the instant its last pixel clears the fold.
-   *
-   * Worth clearing for anything already the size of the viewport: a
-   * full-height layer combined with a padded root means the ratio the caller
-   * asked for lands noticeably earlier than the same fraction of the section,
-   * and for those the plain viewport is the honest measure.
+   * Observer root margin. Extends below the fold so the entrance is mostly
+   * done by the time the item is visible. Set to "0px" for viewport-sized
+   * items, where the padded root would trigger too early.
    */
   rootMargin = "10% 0px 35% 0px",
 }: {
@@ -130,9 +70,7 @@ export function ScrollStagger({
       return;
     }
 
-    // Held from JS rather than from the server-rendered markup: with the
-    // attribute baked in, a visitor without JS would be left looking at an
-    // empty grid forever.
+    // Hide from JS, not in server markup, so content stays visible without JS.
     for (const item of items) item.dataset.reveal = "out";
     trackScrollSpeed();
 
@@ -143,21 +81,9 @@ export function ScrollStagger({
         for (const entry of entries) {
           const item = entry.target as HTMLElement;
 
-          // The ratio is a fraction of the *item*, so an item taller than the
-          // observer's root can never reach a ratio of 1 — and past a certain
-          // height it can never reach `inRatio` either. At the 0.3 the
-          // ventures column asks for, anything over about four viewports is
-          // unreleasable: it scrolls into view, its ratio tops out below the
-          // band, no threshold is ever crossed again, and it sits there held
-          // at its first frame — blurred and at zero opacity — for the rest of
-          // the visit. That is the entrance that "gets stuck", and it is a
-          // property of the item's height rather than of anything the visitor
-          // did, so it reproduces every time on a viewport short enough.
-          //
-          // The second reading is the one that survives it: how much of the
-          // *screen* the item is filling. An item covering a third of the
-          // viewport has plainly arrived, whatever fraction of itself that
-          // happens to be.
+          // Items much taller than the viewport can never reach `inRatio` and
+          // would stay hidden, so also accept items covering enough of the
+          // screen.
           const rootHeight = entry.rootBounds?.height ?? window.innerHeight;
           const fillsScreen =
             rootHeight > 0 &&
@@ -175,16 +101,11 @@ export function ScrollStagger({
           }
         }
 
-        // DOM order, not callback order — the observer makes no promises
-        // about how a batch is sequenced, and left to itself a row would
-        // arrive shuffled.
+        // Entry order within a batch isn't guaranteed; sort by DOM order.
         arriving.sort((a, b) => items.indexOf(a) - items.indexOf(b));
 
-        // Released mid-flick: skip the stagger and the choreography and
-        // arrive almost at once, or the visitor is past the section before
-        // it has assembled. The flag stays until the item resets — taking
-        // it off while the entrance is held on its last frame would hand
-        // the animation its long duration back and rewind it mid-curve.
+        // Fast scroll: skip the stagger and use the short animation. Keep the
+        // flag until reset; removing it early would restart the animation.
         const fast = scrollSpeed() > FAST_SCROLL;
 
         arriving.forEach((item, i) => {
@@ -195,25 +116,16 @@ export function ScrollStagger({
       },
       {
         rootMargin,
-        // Stops on the way up to the band, not just at it. A tall item's ratio
-        // climbs slowly and may top out short of `inRatio`; without something
-        // to cross on the way, the screen-coverage test above would never get
-        // a callback to be evaluated in.
+        // Intermediate thresholds so tall items still get callbacks for the
+        // screen-coverage check.
         threshold: thresholds(inRatio),
       },
     );
 
     for (const item of items) observer.observe(item);
 
-    /* The look-ahead, for a flick.
-
-       At several thousand px/s the run-up above is gone in a frame or two —
-       a section crosses the whole screen in a third of a second — so even an
-       instant release lands as the item arrives, not before it. This second
-       observer watches a screen and a bit further out each way, and while the page
-       is moving fast it releases whatever is coming, so the visitor flies
-       into content that is already there. At a reading pace it does nothing
-       and the band above decides as before. */
+    // Look-ahead for fast scrolling: reveals items up to ~a screen away so
+    // they're ready on arrival. Does nothing at normal speed.
     const lookahead = new IntersectionObserver(
       (entries) => {
         if (scrollSpeed() <= FAST_SCROLL) return;
@@ -225,17 +137,13 @@ export function ScrollStagger({
           item.dataset.reveal = "in";
         }
       },
-      // Both directions: a flick back up the page arrives at sections from
-      // above, and they reset on the way past, so they need it as much.
+      // Both directions, for fast scrolling upward too.
       { rootMargin: "120% 0px 120% 0px" },
     );
 
     for (const item of items) lookahead.observe(item);
 
-    // Slow, then a sudden flick: anything already released is finished on
-    // the spot. On an entrance still playing that is a jump to its last
-    // frame; on one already done it changes nothing. The flag then stays
-    // until the item resets, for the same reason as above.
+    // When fast scrolling starts, finish any entrance still playing.
     const offFast = onScrollFast(() => {
       for (const item of items) {
         if (item.dataset.reveal === "in") item.dataset.revealFast = "";

@@ -1,10 +1,8 @@
 import type Lenis from "lenis";
 
 /**
- * The page's one Lenis instance, shared so the rest of the site can reach
- * it — the mobile menu pauses it, in-page links glide through it. Null when
- * smooth scrolling is off (reduced motion, or before it has mounted), and
- * every caller treats that as "use the browser's own scroll".
+ * Shared Lenis instance (used by the mobile menu and in-page links). Null when
+ * smooth scrolling is off or not mounted yet; callers fall back to native scroll.
  */
 let instance: Lenis | null = null;
 let wake: (() => void) | null = null;
@@ -19,9 +17,8 @@ export function getLenis() {
 }
 
 /**
- * Lenis is driven frame by frame only while it is actually moving (see
- * SmoothScroll.tsx), so anything that starts a scroll programmatically has
- * to wake the driver as well.
+ * The Lenis RAF loop only runs while scrolling (see SmoothScroll.tsx), so
+ * programmatic scrolls must wake it.
  */
 export function wakeSmoothScroll() {
   wake?.();

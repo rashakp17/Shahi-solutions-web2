@@ -3,33 +3,15 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Ground colours for the browser's own chrome — the address bar on mobile,
- * the window frame on some desktops. Kept in step with the toggle so the
- * furniture around the page does not stay on the theme the visitor just left.
- *
- * These two are the `--ground` values from globals.css. Duplicated here
- * because a `<meta>` attribute cannot read a custom property; if the ground
- * changes there, it changes here.
+ * theme-color meta values (browser UI). Must match --ground in globals.css;
+ * a meta tag can't read CSS variables.
  */
 const CHROME = { dark: "#04050a", light: "#ffffff" } as const;
 
 /**
- * The theme switch.
- *
- * Writes straight to `document.documentElement` rather than going through
- * React state, and that is deliberate rather than a shortcut. The attribute
- * is already on <html> before React exists — the inline script in the layout
- * puts it there to avoid a flash — so making a component the owner of that
- * value would mean two sources of truth for it, and a first render that has
- * to guess which one is right.
- *
- * The same reasoning drives the icon. Which glyph is correct depends on the
- * current theme, which is a client-only fact, so deriving it during render
- * would either mismatch on hydration or force a mounted-yet flag and a frame
- * of nothing. Both glyphs are therefore always in the markup and CSS shows
- * exactly one, keyed off the same attribute everything else reads. The server
- * and the client render identical HTML and the correct icon is up on the
- * first paint.
+ * Theme toggle. Writes data-theme on <html> directly (set initially by the
+ * layout's inline script) instead of React state. Both icons are rendered and
+ * CSS shows the right one, avoiding hydration mismatches.
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const toggle = () => {
@@ -38,11 +20,8 @@ export function ThemeToggle({ className }: { className?: string }) {
 
     root.dataset.theme = next;
 
-    // Suppress the page-wide colour transition for the length of the swap.
-    // Ground and ink cross-fading is what makes the switch feel deliberate;
-    // every *other* transition on the page firing at once — fifty hairlines,
-    // every hover state, the navbar's glass — is just noise, and on a long
-    // page it is enough work to drop frames.
+    // Disable other transitions during the swap; firing them all at once
+    // drops frames.
     root.dataset.themeSwitching = "true";
     window.setTimeout(() => {
       delete root.dataset.themeSwitching;
@@ -51,9 +30,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     try {
       localStorage.setItem("theme", next);
     } catch {
-      // Private mode, or storage disabled. The theme still changes for this
-      // page view; it just will not be remembered, which is the right
-      // failure — losing the preference is better than losing the toggle.
+      // Storage unavailable: the theme still changes, just isn't persisted.
     }
 
     document
@@ -65,9 +42,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      // Static, on purpose. A label that named the current theme would be a
-      // third thing to keep in sync with the attribute, and it would be the
-      // one thing on the page that could hydrate wrong without being visible.
+      // Static label so it can't mismatch on hydration.
       aria-label="Switch between light and dark theme"
       title="Switch between light and dark theme"
       className={cn(
@@ -78,9 +53,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* Sun on the dark theme, moon on the light one: the icon is the
-          destination, not the current state — it is what you get if you
-          press it. */}
+      {/* Icon shows the theme you switch to: sun in dark mode, moon in light. */}
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"

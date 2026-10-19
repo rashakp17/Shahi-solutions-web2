@@ -5,13 +5,8 @@ import { BlurReveal } from "@/components/ui/BlurReveal";
 import { ScrollStagger } from "@/components/ui/ScrollStagger";
 import { cn } from "@/lib/cn";
 
-/* ------------------------------------------------------------------
-   The ventures themselves — names, categories, descriptions and where
-   each one lives. Facts about the three companies, nothing else.
-
-   No logo files and no brand hexes: those belong to the other site's
-   design. Everything visual here is built from this project's tokens.
-   ------------------------------------------------------------------ */
+/* Venture data. No external logos or brand colours; styling uses this
+   project's tokens. */
 
 const VENTURES: Array<{
   name: string;
@@ -43,27 +38,14 @@ const VENTURES: Array<{
 ];
 
 /**
- * Intro choreography (ms), from the moment the panel reaches the viewport
- * rather than from page load — it is most of a page down, and on a page-load
- * clock it would have finished long before anyone arrived.
- *
- * One continuous move rather than three entrances in a queue: each element
- * starts while the one before it is still resolving, so the overlap is where
- * the flow comes from, not the delays.
- *
- *   eyebrow      0     → 320    the smallest thing, and the first
- *   heading      90    → 640    starts under the eyebrow's tail
- *   copy         440   → 860    starts ~200ms before the heading lands
- *
- * The whole panel is therefore settled well under a second after it is
- * released. It was ~1.5s; tightened at the owner's direction that the
- * section was slow to come in.
+ * Intro timings (ms), relative to when the panel is revealed, not page load.
+ * Each element starts before the previous one finishes.
  */
 const INTRO = {
   eyebrow: 0,
   eyebrowLift: 320,
   heading: 90,
-  /** Word onsets: the next word is moving well before the last has landed. */
+  /** Delay between words. */
   headingStagger: 75,
   headingDuration: 480,
   copy: 440,
@@ -71,13 +53,8 @@ const INTRO = {
 } as const;
 
 /**
- * Offsets inside a venture, from that venture's own arrival. The block itself
- * carries the travel, the focus pull and the light; these are the parts
- * assembling behind it.
- *
- * Held tight on purpose. A venture reads as one object arriving, so the last
- * part of it has to land inside the block's own travel — the link finishing
- * at ~560ms, a shade after the block itself stops at 520ms.
+ * Offsets (ms) for parts of a venture, relative to its own reveal. Kept tight
+ * so the last part finishes (~560ms) just after the block settles (~520ms).
  */
 const PART = {
   index: 0,
@@ -87,18 +64,13 @@ const PART = {
   nameDuration: 400,
   body: 150,
   link: 200,
-  /** Length of a single part's slide, shared by all of them. */
+  /** Slide duration for each part. */
   lift: 360,
 } as const;
 
 /**
- * Gap between ventures when several are released together — the scroll spaces
- * them out on its own most of the time, but a fast scroll or a tall viewport
- * hands the whole column over at once, and then this is the cadence.
- *
- * Deliberately shorter than a venture takes to resolve (~560ms), so 02 is
- * already moving while 01 is still settling and the column reads as one
- * continuous arrival rather than three separate ones.
+ * Delay between ventures revealed together (fast scroll or tall viewport).
+ * Shorter than one venture's entrance (~560ms) so they overlap.
  */
 const VENTURE_STAGGER = 180;
 
@@ -106,30 +78,15 @@ const from = (offset: number) => `calc(var(--reveal-delay, 0ms) + ${offset}ms)`;
 
 export function VenturesSection() {
   return (
-    // `overflow-x-clip`, and specifically not `overflow-hidden`.
-    //
-    // Something has to clip here: the entrance starts each block translated by
-    // --enter-x, which alternates sign, so half of them begin 2.8rem to the
-    // *right* of where they land. There is slack for that inside a desktop
-    // column; on a phone there is not, and those blocks were widening the
-    // document by ~25px and giving the whole page a horizontal scroll.
-    //
-    // But `hidden` cannot be the fix. An ancestor with hidden overflow becomes
-    // the scrollport for anything sticky inside it, and this section does not
-    // scroll internally, so the left panel would simply never stick. `clip`
-    // clips without establishing a scroll container, which leaves the sticky
-    // panel measuring against the viewport exactly as before. That difference
-    // is the entire reason this rule is `clip`; do not "simplify" it.
+    // overflow-x-clip, not overflow-hidden. The --enter-x offset would cause
+    // horizontal scroll on mobile, but `hidden` creates a scroll container
+    // and breaks the sticky left panel. `clip` doesn't.
     <section
       id="ventures"
       data-motion-scope
       className="relative isolate overflow-x-clip bg-ink-950"
     >
-      {/* Kept deliberately quiet — this is the one section whose subject is
-          content rather than spectacle. The particle field is the only moving
-          part, and it stops itself whenever the section is off screen, so it
-          costs nothing on top of the fields already on the page: only ever
-          one of them runs. */}
+      {/* Background. ParticleField pauses itself when off screen. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -146,27 +103,20 @@ export function VenturesSection() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
-        {/* items-start, not center: a sticky child of a stretched grid item
-            has no room to travel, because the item is already as tall as the
-            row. */}
+        {/* items-start: a stretched grid item leaves the sticky panel no
+            room to move. */}
         <div className="grid gap-14 md:grid-cols-12 md:items-start md:gap-10 lg:gap-16">
           {/* ================= left — the pinned panel ================= */}
           <ScrollStagger
             as="div"
             className="block md:sticky md:col-span-5 md:top-32"
-            // Released as soon as it peeks in, with a quarter-screen of
-            // run-up below the fold, so it is already moving on arrival.
+            // Start revealing a quarter-screen before it's visible.
             inRatio={0.05}
             rootMargin="10% 0px 25% 0px"
           >
             <div>
-              {/* The lift lengths are set per element rather than left on the
-                  shared default, because the three are not the same size and
-                  should not travel for the same length of time: the eyebrow is
-                  a chip and is done in 320ms, the copy is a paragraph and takes
-                  420ms. The blur is in em throughout, so a radius that reads as
-                  ~5px on the chip is ~9px on the copy without either of them
-                  turning to mush. */}
+              {/* Durations set per element by size. Blur is in em so it
+                  scales with font size. */}
               <p
                 className="anim-rise inline-flex items-center rounded-full border border-[color:var(--hair-2)] bg-[color:var(--veil-1)] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.28em] text-fg/40"
                 style={
@@ -190,10 +140,7 @@ export function VenturesSection() {
                 lineDelay={40}
                 stagger={INTRO.headingStagger}
                 duration={INTRO.headingDuration}
-                // Half the size of the hero headline, so the same em radius is
-                // half the haze. Scaled back up to ~0.22em, which lands at
-                // 8–12px across the clamp — visible as a focus pull, never
-                // enough to stop the word being a word.
+                // Boost blur since the text is smaller than the hero headline.
                 blurScale={1.45}
                 fromReveal
                 className="mt-7 text-[clamp(2.1rem,5vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-fg"
@@ -212,8 +159,8 @@ export function VenturesSection() {
                   } as CSSProperties
                 }
               >
-                Explore our specialized ventures delivering innovative solutions
-                across technology, digital marketing, and education.
+                Three specialist ventures, covering software development,
+                digital marketing and software training.
               </p>
             </div>
           </ScrollStagger>
@@ -222,9 +169,7 @@ export function VenturesSection() {
           <ScrollStagger
             className="block md:col-span-7"
             stagger={VENTURE_STAGGER}
-            // Released as soon as a venture peeks in, with a quarter-screen
-            // of run-up, rather than waiting for a third of it to be up — that
-            // wait is what made the column read as slow to arrive.
+            // Start revealing a quarter-screen before each venture is visible.
             inRatio={0.05}
             rootMargin="10% 0px 25% 0px"
           >
@@ -237,19 +182,12 @@ export function VenturesSection() {
                   className={cn("relative pl-8 sm:pl-14", !last && "pb-20 sm:pb-28")}
                   style={
                     {
-                      // Alternating, and small: 01 settles in from the left, 02
-                      // from the right, 03 from the left again. Read one after
-                      // another that alternation is what turns three blocks
-                      // into a sequence — and at 2.8rem it is a block finding
-                      // its place, not a card flying across the column.
+                      // Alternate entrance side: left, right, left.
                       "--enter-x": i % 2 === 0 ? "-2.8rem" : "2.8rem",
                     } as CSSProperties
                   }
                 >
-                  {/* The spine. Runs the full height of the block including the
-                      gap below it, so the thread is continuous from one venture
-                      to the next, and is drawn downward as each arrives. The
-                      last one fades out rather than stopping dead. */}
+                  {/* Vertical line connecting ventures; the last one fades out. */}
                   <span
                     aria-hidden="true"
                     className={cn(
@@ -260,7 +198,6 @@ export function VenturesSection() {
                     )}
                   />
 
-                  {/* The node on the spine. */}
                   <span
                     aria-hidden="true"
                     className="venture-accent absolute left-0 top-2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-accent-400/70"
@@ -301,10 +238,7 @@ export function VenturesSection() {
                         stagger={PART.nameStagger}
                         duration={PART.nameDuration}
                         blurScale={1.45}
-                        // Counted from this venture's own release, not from the
-                        // list's. Without it the name of the second venture
-                        // starts on the first venture's clock and arrives
-                        // ahead of the block it belongs to.
+                        // Time from this venture's reveal, not the list's.
                         fromReveal
                         className="mt-3.5 text-[clamp(1.65rem,3.6vw,2.5rem)] font-semibold leading-[1.05] tracking-[-0.035em] text-fg"
                       />

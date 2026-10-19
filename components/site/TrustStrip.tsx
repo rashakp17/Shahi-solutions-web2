@@ -10,15 +10,8 @@ const COMPANIES = [
 ];
 
 /**
- * A single quiet band under the hero. Deliberately not a card grid — the page
- * should still read as mostly negative space when you scroll past the fold.
- *
- * It paints its own ground, like every other section on the page. A strip this
- * plain does not obviously need one — there is nothing here but a line of type
- * — but "nothing behind it" means the body shows through, and a band that
- * inherits rather than declares is one token change away from being a hole in
- * the middle of the page. It was, until the footer landed under it and made
- * the hole visible.
+ * Marquee of client names under the hero. Sets its own background like the
+ * other sections so the body doesn't show through.
  */
 export function TrustStrip() {
   return (
@@ -38,14 +31,8 @@ export function TrustStrip() {
           }}
         >
           <div className="anim-marquee flex w-max items-center">
-            {/* Duplicated once — the keyframe translates exactly -50%.
-                Spacing rides on each name as a trailing margin rather than as
-                a flex `gap` on the two rows: a gap makes the track
-                pass + gap + pass, so -50% stops half a gap short of the
-                second pass and the row jerks back by that much once per
-                cycle. At this strip's spacing that half gap is 28–40px, which
-                is not subtle. As a margin, half the track is exactly one
-                pass. */}
+            {/* Rendered twice; the keyframe translates -50%. Use margin on each
+                name, not flex gap, or the loop jumps by half a gap each cycle. */}
             {[0, 1].map((pass) => (
               <div key={pass} className="flex items-center">
                 {COMPANIES.map((name) => (

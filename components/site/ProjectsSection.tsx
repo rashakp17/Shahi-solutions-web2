@@ -8,83 +8,37 @@ import { useEffect, useRef, useState } from "react";
 import { TechChip, type TechKey } from "@/components/site/TechMarks";
 import { cn } from "@/lib/cn";
 
-/* Still a client component, and that was measured rather than assumed.
- *
- * The obvious move here is to drop `"use client"` and keep only the two parts
- * that need a browser — the deck scrub and the capture — as leaves, so five
- * projects' worth of copy, features and drawn previews stop being compiled
- * into the bundle. It works, and it is a worse page: a server component's
- * whole rendered tree is serialised into the flight payload inlined in the
- * document, so the markup comes back as data. Built both ways, that trade was
- * 8KB gzipped onto the initial document to take 2.5KB off the JavaScript.
- *
- * So the boundary stays where it was and the two leaves stand on their own
- * anyway, because they earn it for other reasons: ProjectDeckScrub keeps the
- * scroll rig out of the render path, and Preview below is what lets a capture
- * stay unmounted until its card is near. If this section ever grows a route of
- * its own, or the copy grows enough to change that arithmetic, measure it
- * again before moving the line — the answer is not obvious in either
- * direction. */
+/* Kept as a client component on purpose. As a server component the rendered
+ * tree is serialised into the flight payload, which measured ~8KB gzipped on
+ * the document to save ~2.5KB of JS. Re-measure before moving the boundary. */
 
-/* ------------------------------------------------------------------
-   Projects — a deck of cards dealt by the scroll
-
-   Each card is `position: sticky` at its own top offset, a fraction
-   lower than the one before it. Scrolling pins them one after another,
-   so a card holds the screen while the next rises over it and the ones
-   already dealt stay behind it as a stack of edges.
-
-   The stacking is pure CSS and works with JavaScript switched off —
-   sticky does all of it. What JS adds is the depth: how far the next
-   card has come over this one, published as --pj-cover, which the
-   stylesheet turns into a scale, a small lift and a dim. That is the
-   only thing scrubbed off the scrollbar here, and it is scrubbed for
-   the same reason the statement pane is: the effect *is* the
-   connection to the scroll, and it has to give it back on the way up.
-   ------------------------------------------------------------------ */
+/* Projects: a deck of sticky cards, each pinned slightly lower than the last.
+   Stacking is pure CSS. ProjectDeckScrub adds depth by publishing --pj-cover
+   (how far the next card covers this one), which the CSS turns into scale,
+   lift and dim. */
 
 type Project = {
   title: string;
-  /** Sits above the title, in caps. Keep it to three words — it is a label. */
+  /** Short label above the title, shown in caps. Keep it to ~3 words. */
   category: string;
   description: string;
-  /**
-   * What the build does, four at a time. Two columns of two: an odd count
-   * leaves a hole in the grid, and more than four turns the card into a
-   * feature list with a screenshot attached.
-   */
+  /** Exactly four: the grid is two columns of two. */
   features: string[];
-  /** Drawn marks, resolved from the registry in TechMarks. */
+  /** Keys into the TechMarks registry. */
   stack: TechKey[];
-  /**
-   * The live site, where there is one to point at. Its presence is what turns
-   * the whole card into a link — see the stretched anchor in the card below —
-   * so a project without a URL stays a card that talks about the work rather
-   * than one that quietly goes nowhere when clicked.
-   */
+  /** Live site. When set, the whole card becomes a link. */
   href?: string;
   /**
-   * A capture of the real thing, once there is one. It wins over `art`, and if
-   * the file is missing the card falls back to the drawing rather than to a
-   * broken frame — so a path can be written here before the file lands.
-   *
-   * `clip` is a screen recording and `src` its poster. Both together is the
-   * good case: the still is what the card shows until the clip is decoded and
-   * visible, and it is the whole of what a reduced-motion visitor gets.
-   *
-   * A clip with no poster is allowed, because pulling a still out of a
-   * recording needs a tool that is not always to hand, and waiting for one is
-   * not a good enough reason to leave the real capture off the card. The card
-   * shows the drawing until the clip arms — which happens a full viewport
-   * early, so in practice nobody sees the handover — and a reduced-motion
-   * visitor keeps the drawing, which is the right answer for them anyway.
-   * Add the poster when there is one; nothing else has to change.
+   * Real capture; takes priority over `art`, and falls back to `art` if the
+   * file fails to load. `clip` is a screen recording, `src` its poster.
+   * A clip without a poster shows `art` until it mounts, and reduced-motion
+   * users keep `art`.
    */
   shot?: { src?: string; alt: string; clip?: string };
   art: ReactNode;
 };
 
-/** A rounded bar. The previews are drawn from these and nothing else. */
+/** Rounded placeholder bar used to draw the previews. */
 function Bar({ className }: { className?: string }) {
   return <div className={cn("rounded-full bg-fg/10", className)} />;
 }
@@ -109,31 +63,22 @@ function Panel({
 }
 
 /**
- * The previews are drawn, not photographed.
- *
- * There are no screenshots in this project and no images to point at, and the
- * alternative — a stock mockup or a generated screen — would be a picture of
- * work that was never done, sitting under a heading that says this is the
- * work. These are abstract: the *shape* of each kind of build, at a size where
- * it reads as a product surface and never as a claim about a specific one.
- * Swap each one for a real screenshot as it becomes available; the frame,
- * aspect and hover are already right.
+ * `art` is an abstract drawing of each build, used until a real capture
+ * (`shot`) is available. Avoid stock mockups here.
  */
 const PROJECTS: Project[] = [
   {
     title: "Fetch Kids",
     category: "Personalised Kids’ E-Commerce",
     description:
-      "A storefront for personalised kids’ products — name labels, bag tags and stationery sets. The customisation happens on the product page itself, with collections, wishlist and cart built around it, and delivery across India.",
+      "A storefront for personalised kids’ products: name labels, bag tags and stationery sets. Customers personalise items right on the product page, with collections, wishlist and cart built around it, and delivery across India.",
     features: [
       "Product Customisation",
       "Collections & Wishlist",
       "Cart & Checkout",
       "Pan-India Delivery",
     ],
-    // The features are observable from the live site. The stack is not — it is
-    // the one taken from the layout brief, so correct it here if the real build
-    // differs; nothing else has to change when it does.
+    // Stack comes from the brief, not the live site. Correct if it differs.
     stack: ["react", "node", "mongodb", "tailwind", "stripe"],
     href: "https://www.fetchkids.in/",
     shot: {
@@ -162,16 +107,14 @@ const PROJECTS: Project[] = [
     title: "MOODbyTEAL",
     category: "Interior Design Studio",
     description:
-      "The studio site for Teal Culture, an interiors and turnkey fit-out practice working across India and the UAE. Dark, cinematic and scroll-led: the hero is a room the visitor walks into, and the services, philosophy and work all unfold from it in one continuous descent.",
+      "The studio site for Teal Culture, an interiors and turnkey fit-out practice working across India and the UAE. The site is dark and cinematic: the opening video puts the visitor inside a room, and the services, philosophy and portfolio follow as they scroll.",
     features: [
       "Cinematic Video Hero",
       "Scroll-Driven Motion",
       "Work & Studio Pages",
       "WhatsApp Enquiries",
     ],
-    // Same caveat as Fetch Kids: the features are observable on the live site,
-    // the stack is inferred from what a motion-led build of this kind takes.
-    // Correct it here if the real build differs.
+    // Stack is inferred, not confirmed. Correct if it differs.
     stack: ["next", "react", "tailwind", "vercel"],
     href: "https://moodbyteal.com/",
     shot: {
@@ -209,7 +152,7 @@ const PROJECTS: Project[] = [
     title: "Emarath ERP",
     category: "Enterprise Resource Planning System",
     description:
-      "A comprehensive ERP platform that unifies core business operations — inventory, procurement, finance, HR and reporting — into a single system. Role-based access control, real-time dashboards and automated workflows throughout.",
+      "An ERP platform that brings inventory, procurement, finance, HR and reporting into a single system, with role-based access, live dashboards and automated workflows.",
     features: [
       "Inventory & Procurement",
       "Finance & HR Modules",
@@ -217,12 +160,8 @@ const PROJECTS: Project[] = [
       "Real-Time Dashboards",
     ],
     stack: ["react", "node", "postgres"],
-    // A still and no clip. The `clip` path that used to sit here pointed at a
-    // recording that does not exist — harmless while the poster was missing
-    // too and the card fell back to the drawing, but with a real capture in
-    // place it would have mounted a <video> over it and left the frame on a
-    // poster that never plays. A capture is whatever exists; see `shot` in
-    // the Project type.
+    // Still only. Don't add a `clip` unless the recording exists, or a dead
+    // <video> mounts over the still.
     shot: {
       src: "/projects/emarath-erp.jpeg",
       alt: "The Emarath ERP sales dashboard: a row of lead and follow-up counters above a team activity board, with revenue and conversion totals beside a leaderboard of the sales team.",
@@ -267,7 +206,7 @@ const PROJECTS: Project[] = [
     title: "Fleet Management",
     category: "Logistics & Vehicle Tracking",
     description:
-      "A fleet solution for tracking vehicles, drivers, trips and maintenance schedules in real time. Live GPS, fuel and expense monitoring, automated service alerts, and the analytics to cut operating cost rather than just report it.",
+      "A fleet system for tracking vehicles, drivers, trips and maintenance in real time, with live GPS, fuel and expense monitoring, automatic service alerts, and analytics that help bring running costs down.",
     features: [
       "Live GPS Tracking",
       "Driver & Trip Logs",
@@ -275,7 +214,7 @@ const PROJECTS: Project[] = [
       "Fuel & Expense Reports",
     ],
     stack: ["react", "node", "gps", "analytics"],
-    /* A still and no clip — same as Emarath above. */
+    /* Still only, same as Emarath. */
     shot: {
       src: "/projects/fleet-management.jpeg",
       alt: "The Fleet Management console: a live tracking map of vehicle positions along the Kerala coast, with a searchable per-vehicle list of registrations, speeds and online status down the left.",
@@ -309,7 +248,7 @@ const PROJECTS: Project[] = [
     title: "VRS Real Invest",
     category: "Real Estate Website",
     description:
-      "A professional real estate site built around property investment opportunities, company services and consultation booking — a clean, unhurried experience whose whole job is turning an interested visitor into an enquiry.",
+      "A real estate website presenting property investment opportunities, the company’s services and consultation booking, designed to make it easy for interested visitors to get in touch.",
     features: [
       "Property Showcase",
       "Investment Enquiries",
@@ -318,8 +257,7 @@ const PROJECTS: Project[] = [
     ],
     stack: ["react", "tailwind", "vercel"],
     href: "https://vrsrealinvest.com.au/",
-    /* No `src` — the recording is here, a frame grab of it is not. See the
-       note on `shot` in the type above. */
+    /* Clip only, no poster yet. */
     shot: {
       clip: "/projects/vrs-real-invest.mp4",
       alt: "The VRS Real Invest home page: a featured luxury portfolio of properties beside an investment performance dashboard.",
@@ -352,51 +290,18 @@ const PROJECTS: Project[] = [
   },
 ];
 
-/**
- * How far ahead of the viewport a clip is mounted.
- *
- * One viewport of run-up. The element does not exist before this — see the
- * note on `armed` below — so the margin has to cover fetching a poster and
- * opening a video decoder on a slow connection, without arming five cards
- * while the visitor is still in the hero.
- */
+/** Mount a clip one viewport before its card arrives, to give it time to load. */
 const ARM_MARGIN = "100% 0px";
 
 /**
- * The right-hand panel: the capture where there is one, the drawing where
- * there is not.
+ * Card preview: the capture if there is one, otherwise the drawing. onError
+ * falls back to the drawing so a missing file never leaves an empty frame.
  *
- * The onError swap is the point of the component. A file referenced before it
- * exists would otherwise leave a card with an empty frame in the loudest
- * position on it; this way the drawing is still the floor, and the only thing
- * a missing file costs is the photograph.
- *
- * ── The two gates on the clip ──
- * `armed` decides whether the <video> exists at all; the observer under it
- * decides whether that video is playing.
- *
- * They are separate because `preload="none"` does not cover the poster. A
- * poster is fetched as soon as the element is parsed, whatever the preload
- * hint says — so two video elements in this deck were pulling down their full
- * stills during the initial page load, for a section three screens below the
- * fold, and between them that was most of a megabyte before anything on the
- * first screen had finished. Not mounting the element until its card is
- * approaching is the only thing that actually makes `preload` honest.
- *
- * The second gate is the older one and still earns its place. A muted loop is
- * cheap to hold but not cheap to decode, and a deck of five all running behind
- * each other is five decodes for one visible card — so the clip starts on
- * arrival and pauses on the way out.
- *
- * Until it arms — and forever, under reduced motion — the still stands in, and
- * it goes through next/image rather than the video's own `poster` attribute.
- * A poster is a plain URL fetched as-is; through the loader the same frame is
- * negotiated down to AVIF and sized to the panel rather than to whatever the
- * file happens to measure.
- *
- * Reduced motion keeps that still and nothing else. The clip is a site
- * scrolling itself — there is no way to show it calmly, and the frame already
- * says what the card needs it to say.
+ * The clip has two gates. `armed` delays mounting the <video> until the card
+ * is near, because the poster is fetched on parse regardless of `preload`.
+ * A second observer plays/pauses it so only visible clips decode.
+ * Before arming (and always under reduced motion) the still is shown via
+ * next/image so it gets optimised.
  */
 function Preview({ project }: { project: Project }) {
   const [failed, setFailed] = useState(false);
@@ -415,8 +320,7 @@ function Preview({ project }: { project: Project }) {
     const view = new IntersectionObserver(
       (entries) => {
         if (!entries[entries.length - 1].isIntersecting) return;
-        // One-shot: once the card has been reached the clip stays mounted, and
-        // the observer below takes over deciding whether it runs.
+        // One-shot: once armed, the clip stays mounted.
         view.disconnect();
         setArmed(true);
       },
@@ -434,8 +338,7 @@ function Preview({ project }: { project: Project }) {
     const view = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // Autoplay can still be refused (a data-saver setting, a policy this
-          // page cannot see). Nothing to recover — the still is underneath.
+          // Autoplay may be refused; the still stays visible, so ignore it.
           void video.play().catch(() => {});
         } else {
           video.pause();
@@ -448,14 +351,8 @@ function Preview({ project }: { project: Project }) {
     return () => view.disconnect();
   }, [armed]);
 
-  // Three cases, not a shot/no-shot pair: a capture may arrive as a clip, as
-  // a still, or as both, and the frame is only styled as a capture when one
-  // of them is actually on screen. Nested inside `shot ? …`, a clip with no
-  // poster took the still branch, asked next/image for a file that was never
-  // there, and tripped the error fallback — so the one project with a real
-  // recording and no frame grab showed the drawing and never mounted its
-  // video. The padding went with it: .pj-art--shot strips the frame's inset
-  // for a full-bleed capture, and it was being applied to a drawing.
+  // A shot can be a clip, a still, or both. Only apply .pj-art--shot (which
+  // removes the frame's padding) when a capture is actually rendered.
   const showingShot = Boolean((clip && armed) || shot?.src);
 
   return (
@@ -470,9 +367,7 @@ function Preview({ project }: { project: Project }) {
             loop
             playsInline
             preload="none"
-            /* Decoration inside a card that is itself one big link: controls
-               here would be a second thing to click in the same box. The
-               alt text the still carries is on the card's own link. */
+            /* Decorative: the card is already a link, so no controls or focus. */
             aria-hidden="true"
             tabIndex={-1}
             onError={() => setFailed(true)}
@@ -484,8 +379,7 @@ function Preview({ project }: { project: Project }) {
             src={shot.src}
             alt={shot.alt}
             fill
-            /* Roughly what the panel occupies at each break — the column is
-               1.2fr of a 72rem grid on desktop and the full width below it. */
+            /* Panel is 1.2fr of a 72rem grid on desktop, full width below. */
             sizes="(min-width: 1024px) 46vw, 92vw"
             className="pj-shot"
             onError={() => setFailed(true)}
@@ -498,7 +392,7 @@ function Preview({ project }: { project: Project }) {
   );
 }
 
-/** The tick beside every feature. Same figure as the eyebrow dot elsewhere. */
+/** Check mark shown beside each feature. */
 function Check() {
   return (
     <svg
@@ -525,7 +419,7 @@ function Check() {
   );
 }
 
-/** `out` turns the arrow up and to the right — the one that means "leaves here". */
+/** `out` points the arrow up-right, for external links. */
 function Arrow({ out = false }: { out?: boolean }) {
   return (
     <svg
@@ -549,29 +443,23 @@ function Arrow({ out = false }: { out?: boolean }) {
 export function ProjectsSection() {
   return (
     <section id="projects" className="pj-scope relative isolate">
-      {/* A raised ground, a step lighter than the sections either side of it.
-          The brief asked for dark cards on a light page and this site does not
-          have a light page — so the relationship is kept and the values are
-          not: the deck sits on the lightest surface on the site and the cards
-          are the darkest thing on it. */}
+      {/* Background a step lighter than neighbouring sections so the dark
+          cards stand out. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_0%,var(--ground-4)_0%,var(--ground-4)_46%,var(--ground)_100%)]" />
         <div className="bg-grain absolute inset-0 opacity-[0.02]" />
       </div>
 
-      {/* Back to a section rhythm. The tall pt here was clearing the fixed
-          navbar while the work had a page of its own; mid-page that job belongs
-          to scroll-margin-top (see globals.css) and this is just the space
-          above a heading. */}
-      <div className="relative z-10 mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+      {/* Navbar offset for anchor links is handled by scroll-margin-top in
+          globals.css. */}
+<div className="relative z-10 mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
         {/* ---- heading ---- */}
         <div className="max-w-2xl">
           <p className="anim-rise inline-flex items-center rounded-full border border-[color:var(--hair-2)] bg-[color:var(--veil-2)] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.28em] text-fg/45">
             Our work
           </p>
 
-          {/* h2. It was an h1 while the work had a page of its own; on the
-              single page the hero's headline is the only h1 there is. */}
+          {/* h2: the hero headline is the page's only h1. */}
           <BlurReveal
             as="h2"
             lines={[{ text: "Things we have" }, { text: "built", accent: true }]}
@@ -582,15 +470,13 @@ export function ProjectsSection() {
           />
 
           <p className="anim-rise mt-5 max-w-md text-[14.5px] leading-relaxed text-fg/45">
-            Five kinds of build, and the shape each one takes. Scroll to deal
+            Five projects, each a different kind of build. Scroll to move
             through them.
           </p>
         </div>
 
         {/* ---- the deck ----
-
-            `data-pj-deck` is how ProjectDeckScrub finds this without the deck
-            having to be handed through a client boundary — see the note there. */}
+            ProjectDeckScrub finds the deck via `data-pj-deck`. */}
         <ProjectDeckScrub />
         <div data-pj-deck className="pj-deck mt-14 sm:mt-16">
           {PROJECTS.map((project, i) => (
@@ -604,10 +490,7 @@ export function ProjectsSection() {
                 <div className="pj-grid">
                   {/* ---- copy ---- */}
                   <div className="flex min-w-0 flex-col">
-                    {/* The index and its rule. In the column rather than in a
-                        corner of the card: read as the first line of the copy
-                        it numbers, it says which of five this is; floated in
-                        the margin it was decoration. */}
+                    {/* Card index, e.g. "01". */}
                     <span aria-hidden="true" className="pj-num">
                       {String(i + 1).padStart(2, "0")}
                     </span>
@@ -627,11 +510,7 @@ export function ProjectsSection() {
                       ))}
                     </ul>
 
-                    {/* ---- stack ----
-                        Below a rule and under its own label, because it
-                        answers a different question from everything above it:
-                        the copy is what the thing does, this is what it is
-                        made of. */}
+                    {/* ---- stack ---- */}
                     <div className="pj-stack">
                       <p className="pj-stack-label">Technologies used</p>
                       <ul className="pj-chips">
@@ -641,25 +520,10 @@ export function ProjectsSection() {
                       </ul>
                     </div>
 
-                    {/* Pushed to the bottom of the column so the action sits on
-                        the same line on every card, whatever the copy above it
-                        does.
-
-                        One link per card, and it is stretched over the whole
-                        card by a pseudo-element (see .pj-cta::after). That is
-                        what makes clicking anywhere on the card work without
-                        nesting a second anchor inside the first — which is
-                        invalid, and which browsers resolve by guessing.
-
-                        No `href`, no action. The two internal builds — the ERP
-                        and the fleet console — are behind a client's login and
-                        there is nothing to show a visitor, so the card talks
-                        about the work and stops there. It used to offer "View
-                        Project" pointing at the contact form, which is a link
-                        that does not do what its label says: a visitor
-                        clicking to see the project landed on an enquiry form
-                        having seen nothing. The card is not clickable at all
-                        now, which is the honest version of the same state. */}
+                    {/* mt-auto keeps the CTA aligned at the bottom across cards.
+                        .pj-cta::after stretches the link over the whole card,
+                        avoiding nested anchors. No `href` means no CTA (the
+                        internal builds have nothing public to link to). */}
                     {project.href ? (
                       <a
                         href={project.href}

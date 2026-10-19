@@ -3,19 +3,13 @@
 import { useEffect } from "react";
 
 /**
- * A soft light that follows the cursor across a hovered card.
+ * Cursor-following glow on `[data-spotlight]` cards.
  *
- * One listener for the whole document rather than one per card. It does
- * nothing until the pointer is over an element marked `data-spotlight`, and
- * then all it writes is one `transform` on that card's `[data-spotlight-glow]`
- * — a gradient painted once, moved by the compositor, at most once a frame.
- * The fade in and out is a CSS opacity transition on :hover.
+ * One document-level listener; moves the card's `[data-spotlight-glow]` via
+ * transform, at most once per frame. Fade in/out is CSS on :hover. The card
+ * rect is cached and only re-read after a scroll.
  *
- * The card's rect is read once on entering it and again only after a scroll,
- * so a pointermove costs no layout read in the common case.
- *
- * Mouse only. A touch has no hover, and a glow left behind wherever a finger
- * last landed would read as a stuck highlight.
+ * Mouse only: on touch the glow would get stuck where the finger landed.
  */
 export function CardSpotlight() {
   useEffect(() => {

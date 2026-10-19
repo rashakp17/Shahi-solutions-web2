@@ -3,30 +3,19 @@
 import { useEffect, useRef } from 'react';
 import { createWarpRenderer, warmShader, vertex, fragment } from './warpGL';
 
-/* ------------------------------------------------------------------
-   React Bits "Warp Text", from the @react-bits registry.
+/*
+   React Bits "Warp Text" (@react-bits registry), modified.
 
-   Upstream source, with the additions below. The shader, the warp
-   maths, the pointer lensing and the render loop are exactly as
-   shipped — they now live in warpGL.js, and normally run in a Web
-   Worker (warp.worker.js) rather than on the main thread. What stays
-   here is the sentence's rasterisation, which needs the DOM, and the
-   decisions about size, visibility and the pointer.
+   The WebGL renderer lives in warpGL.js and normally runs in a worker
+   (warp.worker.js). This file handles text rasterisation (needs the DOM),
+   sizing, visibility and pointer input.
 
-     'use client'    required; this project is the App Router and the
-                     whole component is a WebGL context in an effect.
-     JSDoc types     the file is .jsx in a strict TS project. Without a
-                     declared prop type, TS infers `color` as string
-                     from its default and the build fails on the
-                     gradient below.
-     color as array  canvas has no equivalent of background-clip: text,
-                     so one fillStyle is the only way to colour the
-                     glyphs, and this section's design is a ramp. A
-                     plain string behaves exactly as before.
-     fitToContainer  false draws at the declared size and lets the
-                     frame crop, instead of shrinking the sentence to
-                     86% of the frame. Defaults to true, i.e. upstream.
-   ------------------------------------------------------------------ */
+   Changes from upstream:
+   - JSDoc prop types, needed so strict TS doesn't infer `color` as string.
+   - `color` can be an array of gradient stops.
+   - `fitToContainer: false` draws at the declared size and lets the frame
+     crop instead of shrinking to fit. Defaults to true (upstream behaviour).
+*/
 
 const getFontValue = value => (typeof value === 'number' ? `${value}px` : value);
 
@@ -46,11 +35,7 @@ const drawLine = (ctx, line, x, y, letterSpacing) => {
   });
 };
 
-/**
- * The fill for the glyphs. Built across the full canvas width rather than
- * across the drawn text, so the ramp is anchored to the frame the visitor is
- * looking at whatever the sentence happens to measure.
- */
+/** Text fill. Gradients span the full canvas width, not the text width. */
 const buildFill = (ctx, color, width) => {
   if (typeof color === 'string') return color;
   if (!color || color.length === 0) return '#ffffff';
@@ -133,8 +118,7 @@ const buildTextCanvas = ({ container, width, height, dpr, props }) => {
 /**
  * @typedef {Object} WarpTextProps
  * @property {string} [text]
- * @property {string | string[]} [color] Flat colour, or stops for a
- *   left-to-right gradient across the frame.
+ * @property {string | string[]} [color] Colour, or left-to-right gradient stops.
  * @property {number} [warpStrength]
  * @property {number} [warpScale]
  * @property {number} [speed]
@@ -147,8 +131,7 @@ const buildTextCanvas = ({ container, width, height, dpr, props }) => {
  * @property {string} [fontFamily]
  * @property {string | number} [letterSpacing]
  * @property {string | number} [lineHeight]
- * @property {boolean} [fitToContainer] False draws at the declared size and
- *   lets the frame crop, instead of shrinking the sentence to fit.
+ * @property {boolean} [fitToContainer] If false, crop instead of shrinking to fit.
  * @property {string} [className]
  * @property {import('react').CSSProperties} [style]
  */
@@ -170,9 +153,9 @@ const canUseWorker = () =>
   'transferControlToOffscreen' in HTMLCanvasElement.prototype;
 
 /**
- * The WebGL side in a worker — the normal path. Everything goes over
- * postMessage; the sentence goes over as an ImageBitmap, transferred.
- * `onFail` hands over to the main thread if the worker cannot get a context.
+ * Default path: render in a worker. The text image is sent as a transferred
+ * ImageBitmap. `onFail` switches to the main thread if the worker can't get
+ * a WebGL context.
  */
 function workerDriver(canvas, init, onFail) {
   const offscreen = canvas.transferControlToOffscreen();
@@ -195,10 +178,9 @@ function workerDriver(canvas, init, onFail) {
   return {
     setSize: (width, height, dpr) => post({ type: 'size', width, height, dpr }),
     setImage: source => {
-      // Flipped and left unpremultiplied here, because WebGL ignores both
-      // UNPACK_FLIP_Y and UNPACK_PREMULTIPLY_ALPHA for an ImageBitmap —
-      // without this the sentence uploads upside down, and its anti-aliased
-      // edges pick up a dark fringe the canvas path never had.
+      // WebGL ignores UNPACK_FLIP_Y and UNPACK_PREMULTIPLY_ALPHA for
+      // ImageBitmaps, so flip and skip premultiply here (otherwise the text
+      // is upside down with dark edges).
       createImageBitmap(source, { imageOrientation: 'flipY', premultiplyAlpha: 'none' }).then(
         image => (dead ? image.close() : post({ type: 'image', image }, [image])),
         () => {}
@@ -212,17 +194,16 @@ function workerDriver(canvas, init, onFail) {
     dispose: () => {
       post({ type: 'dispose' });
       dead = true;
-      // The worker closes itself after tearing the context down; this is
-      // only the backstop if that message never lands.
+      // The worker closes itself after cleanup; this is a fallback.
       setTimeout(() => worker.terminate(), 1000);
     }
   };
 }
 
 /**
- * The fallback, where OffscreenCanvas is unavailable: the same renderer on
- * the main thread, with the shader warmed asynchronously first so its
- * compile cannot stall a scroll (see warmShader in warpGL.js).
+ * Fallback without OffscreenCanvas: same renderer on the main thread. The
+ * shader is compiled asynchronously first so it doesn't block scrolling
+ * (see warmShader in warpGL.js).
  */
 function mainThreadDriver(canvas, init) {
   const warp = createWarpRenderer({
@@ -408,21 +389,11 @@ const WarpText = ({
       return true;
     };
 
-    /* Drawn twice on the first pass, and the second one is not belt-and-braces.
-
-       `document.fonts.ready` resolves when no font load is *pending* — not
-       when a particular face has arrived. The display face here is not
-       preloaded (see the note in app/layout.tsx) and nothing else on the page
-       asks for it, so at this point there is nothing pending and the wait
-       returns instantly, against a font the browser has not fetched. Drawing
-       there rasterises the sentence in the fallback, and since this is a
-       canvas rather than text the swap-in never reaches it.
-
-       The probe inside buildTextCanvas is what finally requests the face. So
-       the first draw puts something correct-in-shape on screen immediately,
-       and the second — awaited *after* the probe has made the request — lands
-       once the real face is in. Only ever done once; a resize redraws in the
-       font that is by then already loaded. */
+    // First pass draws twice. The font isn't preloaded (see app/layout.tsx),
+    // so `document.fonts.ready` can resolve before it's even requested. The
+    // probe in buildTextCanvas triggers the load; waiting on fonts.ready
+    // after that and redrawing picks up the real font, since a canvas won't
+    // update on font swap.
     const rasterize = async () => {
       const version = ++rasterVersion;
       if (disposed) return;
@@ -438,10 +409,8 @@ const WarpText = ({
       draw();
     };
 
-    // The observer reports the frame once on observe, at the size the
-    // renderer was created at. An unchanged size is a no-op: re-rasterising
-    // would redo the sentence and re-upload a full-frame texture for nothing,
-    // and resetting a canvas's width, even to the same value, clears it.
+    // Skip unchanged sizes (ResizeObserver fires once on observe). Resetting
+    // canvas width clears it, even to the same value.
     const resize = () => {
       if (disposed || !driver) return;
       const rect = container.getBoundingClientRect();
@@ -470,8 +439,8 @@ const WarpText = ({
       canvas.addEventListener('pointerleave', onPointerLeave);
     };
 
-    // Only if the worker cannot get a context: a fresh canvas (the first was
-    // transferred and cannot come back) and the main-thread renderer.
+    // Worker failed: needs a new canvas, since the first was already
+    // transferred to the worker and can't be reused.
     const fallBack = () => {
       if (disposed) return;
       console.warn('WarpText: worker rendering unavailable, drawing on the main thread.');

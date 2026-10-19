@@ -1,15 +1,9 @@
 /**
- * The warp's WebGL, off the main thread.
+ * Runs the WarpText WebGL renderer off the main thread, which avoids a
+ * main-thread render loop and the blocking shader compile.
  *
- * Same reason as the particle field's worker: a render loop on the main
- * thread wakes it every frame, and every main-thread frame re-ticks every
- * running CSS animation on the page. Here the context, the shader compile
- * and the loop all live in the worker and commit straight to the
- * compositor — including the compile, which on the main thread was a
- * 100–230ms stall however carefully it was scheduled.
- *
- * The page still owns every decision (size, visibility, pointer) and the
- * sentence's rasterisation, and sends them here as messages.
+ * The page handles sizing, visibility, pointer input and text rasterisation,
+ * and sends them here as messages.
  */
 import { createWarpRenderer } from './warpGL';
 
